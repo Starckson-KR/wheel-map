@@ -13,6 +13,7 @@ import DemoTools, { MockStrip } from '../components/DemoTools'
 import SheetHandle from '../components/SheetHandle'
 import ReportFlow, { type Loc } from '../components/ReportFlow'
 import ReportsPanel from '../components/ReportsPanel'
+import MyRewards from '../components/MyRewards'
 import LayerPanel from '../components/LayerPanel'
 import PubCard from '../components/PubCard'
 import RoutePanel from '../components/RoutePanel'
@@ -92,6 +93,7 @@ export default function BarrierMap() {
   const [picking, setPicking] = useState(false)
   const [draftPos, setDraftPos] = useState<Loc | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
+  const [rewardsOpen, setRewardsOpen] = useState(false)
   const [focusIds, setFocusIds] = useState<string[]>([])
   const [layers, setLayers] = useState<LayerState>(loadLayers)
   const [layerOpen, setLayerOpen] = useState(false)
@@ -655,6 +657,7 @@ export default function BarrierMap() {
     setSelectedId(null)
     setListOpen(false)
     setPanelOpen(false)
+    setRewardsOpen(false)
     setFlowOpen(false)
     setPicking(false)
     setDraftPos(null)
@@ -667,10 +670,12 @@ export default function BarrierMap() {
     setSelectedId(id)
     setSelectedReportId(null)
     setPanelOpen(false)
+    setRewardsOpen(false)
   }
   const startReport = () => {
     setFlowOpen(true)
     setPanelOpen(false)
+    setRewardsOpen(false)
     setSelectedId(null)
     setSelectedReportId(null)
     setListOpen(false)
@@ -685,6 +690,7 @@ export default function BarrierMap() {
     closeFlow()
     setSelectedReportId(null)
     setPanelOpen(false)
+    setRewardsOpen(false)
     const err = await resetAll()
     if (err) window.alert(err)
   }
@@ -801,6 +807,7 @@ export default function BarrierMap() {
                 setRouteOpen(true)
                 setRoutePick(null)
                 setPanelOpen(false)
+                setRewardsOpen(false)
               }}
             >
               어디로 가세요? 길찾기
@@ -864,8 +871,11 @@ export default function BarrierMap() {
                 <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
                   문제 제보하기
                 </button>
-                <button type="button" className="hm-cta-sub" onClick={() => setPanelOpen(true)}>
+                <button type="button" className="hm-cta-sub" onClick={() => { setRewardsOpen(false); setPanelOpen(true) }}>
                   제보 현황
+                </button>
+                <button type="button" className="hm-cta-sub" onClick={() => { setPanelOpen(false); setRewardsOpen(true) }}>
+                  내 기여
                 </button>
               </div>
             </div>
@@ -997,6 +1007,17 @@ export default function BarrierMap() {
         )}
 
         {panelOpen && <ReportsPanel onOpen={openReport} onClose={() => setPanelOpen(false)} />}
+        {rewardsOpen && (
+          <MyRewards
+            barriers={BARRIERS}
+            onOpenReports={() => {
+              setRewardsOpen(false)
+              setPanelOpen(true)
+            }}
+            onOpenReport={openReport}
+            onClose={() => setRewardsOpen(false)}
+          />
+        )}
 
         {selectedReportId && (
           <ReportDetail

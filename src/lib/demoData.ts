@@ -7,6 +7,7 @@ import { deadlineFor, findAgencies } from './agencyGuide'
 
 type Step = { status: ReportStatus; daysAgo: number; by: string; memo: string }
 type Spec = {
+  owner: string // 제보한 시연 사용자(시민 A·B·C에 나눠 리워드가 각자 다르게 보이게 한다)
   seedId: string
   type: string
   kind: string
@@ -19,12 +20,12 @@ type Spec = {
 const S = (status: ReportStatus, daysAgo: number, by: string, memo: string): Step => ({ status, daysAgo, by, memo: `(시연) ${memo}` })
 
 const SPECS: Spec[] = [
-  { seedId: 'R16', type: '파손 노면', kind: '버스정류장', submittedDaysAgo: 20, steps: [] },
-  { seedId: 'B02', type: '계단·턱', kind: '버스정류장', submittedDaysAgo: 5, steps: [S('assigned', 4, 'officer', '기관 배정 확인')] },
-  { seedId: 'R17', type: '계단·턱', kind: '횡단보도·신호', submittedDaysAgo: 9, steps: [S('assigned', 8, 'officer', '기관 배정 확인'), S('in_progress', 6, 'officer', '현장 확인·조치 시작')] },
-  { seedId: 'W-C', type: '좁은 보도', kind: '구·시 도로의 보도', submittedDaysAgo: 70, steps: [S('assigned', 68, 'officer', '기관 배정 확인'), S('in_progress', 60, 'officer', '현장 확인·조치 시작')] },
+  { owner: 'citizen-a', seedId: 'R16', type: '파손 노면', kind: '버스정류장', submittedDaysAgo: 20, steps: [] },
+  { owner: 'citizen-b', seedId: 'B02', type: '계단·턱', kind: '버스정류장', submittedDaysAgo: 5, steps: [S('assigned', 4, 'officer', '기관 배정 확인')] },
+  { owner: 'citizen-c', seedId: 'R17', type: '계단·턱', kind: '횡단보도·신호', submittedDaysAgo: 9, steps: [S('assigned', 8, 'officer', '기관 배정 확인'), S('in_progress', 6, 'officer', '현장 확인·조치 시작')] },
+  { owner: 'citizen-c', seedId: 'W-C', type: '좁은 보도', kind: '구·시 도로의 보도', submittedDaysAgo: 70, steps: [S('assigned', 68, 'officer', '기관 배정 확인'), S('in_progress', 60, 'officer', '현장 확인·조치 시작')] },
   {
-    seedId: 'R19',
+    owner: 'citizen-a', seedId: 'R19',
     type: '파손 노면',
     kind: '대학 캠퍼스 내부',
     submittedDaysAgo: 40,
@@ -32,15 +33,15 @@ const SPECS: Spec[] = [
     recheckPass: true,
   },
   {
-    seedId: 'B03',
+    owner: 'citizen-a', seedId: 'B03',
     type: '파손 노면',
     kind: '버스정류장',
     submittedDaysAgo: 12,
     steps: [S('assigned', 11, 'officer', '기관 배정 확인'), S('in_progress', 8, 'officer', '현장 확인·조치 시작'), S('resolved', 2, 'officer', '정류장 진입 노면을 보수했습니다')],
   },
-  { seedId: 'R18', type: '쓰레기', kind: '구·시 도로의 보도', submittedDaysAgo: 1, steps: [] },
+  { owner: 'citizen-b', seedId: 'R18', type: '쓰레기', kind: '구·시 도로의 보도', submittedDaysAgo: 1, steps: [] },
   {
-    seedId: 'N01',
+    owner: 'citizen-c', seedId: 'N01',
     type: '불법 주정차',
     kind: '구·시 도로의 보도',
     submittedDaysAgo: 6,
@@ -48,7 +49,7 @@ const SPECS: Spec[] = [
     transfer: { toAgencyId: 'bukgu-geonseol-admin', reason: '(시연) 불법 주정차가 아니라 노상 적치물 단속 사안으로 보여 이관을 요청합니다', daysAgo: 1 },
   },
   {
-    seedId: 'R15-1',
+    owner: 'citizen-b', seedId: 'R15-1',
     type: '계단·턱',
     kind: '버스정류장',
     submittedDaysAgo: 15,
@@ -72,12 +73,12 @@ export function buildDemoReports(seeds: Barrier[], now: number, newId: () => str
     const iso = (daysAgo: number) => new Date(now - daysAgo * DAY).toISOString()
     const submittedAt = iso(sp.submittedDaysAgo)
     const history: Report['history'] = [
-      { status: 'verified', at: submittedAt, by: 'citizen-a', memo: '(시연) 팀 현장조사 지점에서 시작(검증 완료로 간주)' },
-      { status: 'filed', at: submittedAt, by: 'citizen-a', memo: '(시연) 안전신문고 접수번호 DEMO-SIM-' + sp.seedId },
+      { status: 'verified', at: submittedAt, by: sp.owner, memo: '(시연) 팀 현장조사 지점에서 시작(검증 완료로 간주)' },
+      { status: 'filed', at: submittedAt, by: sp.owner, memo: '(시연) 안전신문고 접수번호 DEMO-SIM-' + sp.seedId },
     ]
     let status: ReportStatus = 'filed'
     for (const st of sp.steps) {
-      history.push({ status: st.status, at: iso(st.daysAgo), by: st.by, memo: st.memo })
+      history.push({ status: st.status, at: iso(st.daysAgo), by: st.by, memo: st.memo, ...(st.status === 'rechecked' ? { passable: !!sp.recheckPass } : {}) })
       status = st.status
     }
     const resolvedStep = sp.steps.find((s) => s.status === 'resolved')
@@ -85,7 +86,7 @@ export function buildDemoReports(seeds: Barrier[], now: number, newId: () => str
       id: newId(),
       seedId: sp.seedId,
       demo: true,
-      userId: 'citizen-a',
+      userId: sp.owner,
       createdAt: submittedAt,
       lat: at0[0],
       lng: at0[1],

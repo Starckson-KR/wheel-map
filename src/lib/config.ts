@@ -78,3 +78,24 @@ export const ROUTE_CFG = {
 export const ROUTE_CROSSWALK_RADIUS_M = 20 // 경로 근처 횡단보도
 export const ROUTE_STOP_RADIUS_M = 150 // 출발·도착 근처 버스정류장
 export const ROUTE_DEST_RADIUS_M = 50 // 도착지 장애인편의시설·장애인화장실
+
+// 6단계: 시민 참여 리워드(명세서 4-2). 아래 값은 모두 명세서의 "(안)"이며 팀 회의에서 확정한다.
+export const REWARD_POINTS = {
+  verified: 10, // 제보가 검증됨
+  evidence: 5, // 실측값·사진 3장 포함 (안: 실측값과 사진 3장을 모두 갖춘 경우)
+  ledToAction: 20, // 제보가 조치 완료로 이어짐 (4-5 ⑦: 재확인 통과로 ○가 반영될 때)
+  voteMatch: 2, // 확인 투표(결과가 검증과 일치). 같은 지점 중복 제보의 확인 점수도 같은 값(안)
+  recheck: 5, // 조치 후 재확인 참여(통과·불통과 모두)
+  companion: 30, // 동행 점검 참여 — 동행 점검 기능이 아직 없어 지급 기록이 생기지 않는다
+  fake: -20, // 허위·악의 제보 판정 — 판정 기능이 아직 없어 적용되지 않는다
+}
+export const REWARD_DAILY_CAP = 50 // 하루 점수 상한(명세서 예시값 50)
+export const REWARD_EVIDENCE_PHOTOS = 3
+// 등급 조건(명세서 4-2(1))
+export const REWARD_GRADE_RULES = {
+  g2: { verified: 5, votes: 20 }, // 둘 중 하나
+  g3: { verified: 15, ledToAction: 3 }, // 둘 다
+  g4: { companion: 3 },
+}
+// 유형별 엠블럼: 명세서에는 이름 예시만 있고 조건이 없어 "해당 유형의 검증된 제보 N건"(안)으로 둔다.
+export const REWARD_TYPE_EMBLEM_MIN = 2

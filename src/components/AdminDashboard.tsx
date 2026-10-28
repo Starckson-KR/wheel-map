@@ -8,6 +8,7 @@ import { RATING_STYLE } from '../lib/rating'
 import { dongKey, loadDongs } from '../lib/regions'
 import { nowMs, useReports } from '../lib/reportStore'
 import { loadNoAlt, noAltFor } from '../lib/routing/noAlt.ts'
+import { computeRewards } from '../lib/rewards'
 import { ROUTES, ratingOfBarrier, routeStats, type RowRating } from '../lib/routeStats'
 import type { Barrier, Report } from '../types'
 
@@ -57,13 +58,13 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
 
   useEffect(() => {
     let cancelled = false
-    loadDongs(pts.map((p) => ({ lat: p.lat, lng: p.lng })))
+    loadDongs([...pts, ...reports].map((p) => ({ lat: p.lat, lng: p.lng })))
       .then((d) => !cancelled && setDongs(d))
       .catch(() => !cancelled && setDongErr('행정동을 찾지 못했어요. 카카오 지도 설정을 확인해 주세요.'))
     return () => {
       cancelled = true
     }
-  }, [pts])
+  }, [pts, reports])
 
   const byDong = new Map<string, { O: number; TRIANGLE: number; X: number; none: number }>()
   if (dongs) {
@@ -74,6 +75,25 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
       byDong.set(d, e)
     }
   }
+  // 동 단위 기여 집계(명세서 4-2(3) 동네 기여 순위): 개인 이름은 보이지 않고 동별 점수 합계만 센다.
+  const byDongPoints = new Map<string, { points: number; people: Set<string> }>()
+  if (dongs) {
+    const byReport = new Map(reports.map((r) => [r.id, r]))
+    const rw = computeRewards(reports, [...new Set(reports.flatMap((r) => [r.userId, ...r.verification.voterIds, ...r.history.map((h) => h.by)]))])
+    for (const u of Object.values(rw)) {
+      for (const e of u.events) {
+        const r = byReport.get(e.reportId)
+        if (!r || e.points <= 0) continue
+        const d = dongs[dongKey(r.lat, r.lng)] ?? '확인 필요'
+        const x = byDongPoints.get(d) ?? { points: 0, people: new Set<string>() }
+        x.points += e.points
+        x.people.add(e.userId)
+        byDongPoints.set(d, x)
+      }
+    }
+  }
+  const dongPointRows = [...byDongPoints].sort((a, b) => b[1].points - a[1].points)
+  const maxDongPoints = Math.max(1, ...dongPointRows.map(([, x]) => x.points))
   const dongRows = [...byDong].sort((a, b) => b[1].X + b[1].TRIANGLE + b[1].O + b[1].none - (a[1].X + a[1].TRIANGLE + a[1].O + a[1].none))
 
   const cases = reports.filter((r) => r.complaint)
@@ -140,6 +160,16 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
           </div>
         ))}
         <span className="bm-meta">○ 괜찮음 · △ 주의 · X 어려움 · ? 평가 없음. 위치가 정해진 팀 조사 지점과 검증이 끝난 시민 제보를 세요. 행정동은 카카오 지도로 찾아서 이 브라우저에 저장해 둬요.</span>
+      </section>
+
+      <section className="rf-card">
+        <h3>동별 시민 기여 점수</h3>
+        {dongPointRows.length === 0 ? (
+          <p className="bm-meta">아직 쌓인 기여 점수가 없어요. 제보가 검증되면 해당 동의 점수로 모여요.</p>
+        ) : (
+          dongPointRows.map(([dong, x]) => <Bar key={dong} label={dong} value={x.points} max={maxDongPoints} note={`점 · ${x.people.size}명`} />)
+        )}
+        <span className="bm-meta">개인 순위 없이 동 단위 합계만 보여 줘요(명세서 4-2). 검증 이후 지급된 점수만 더하며, 시연 사용자 기준이에요.</span>
       </section>
 
       <section className="rf-card">

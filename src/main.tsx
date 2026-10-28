@@ -8,6 +8,7 @@ import './styles/route.css'
 import './styles/admin.css'
 import './styles/verify.css'
 import './styles/panel.css'
+import './styles/rewards.css'
 import { initPrefs } from './lib/viewPrefs'
 import App from './App.tsx'
 

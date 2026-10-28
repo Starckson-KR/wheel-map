@@ -77,7 +77,7 @@ export type Report = {
     reason?: string
     rating?: Rating // 검증자 ○△X 판정(없으면 '검증자 판정 대기')
   }
-  history: { status: ReportStatus; at: string; by: string; memo?: string }[]
+  history: { status: ReportStatus; at: string; by: string; memo?: string; passable?: boolean }[] // passable: 재확인 기록의 통과 여부(리워드 계산용)
   // 3단계
   locationKind?: string // 위치 성격(조사 문서 분류)
   seedId?: string // 팀 조사 지점에서 시작한 흐름이면 그 지점 id

@@ -124,10 +124,10 @@ export const useReports = create<State>((set, get) => {
   const update = (id: string, fn: (r: Report) => Report) => set((s) => ({ reports: s.reports.map((r) => (r.id === id ? fn(r) : r)) }))
   const me = () => DEMO_USERS.find((u) => u.id === get().userId) ?? DEMO_USERS[0]
   const find = (id: string) => get().reports.find((r) => r.id === id)
-  const log = (r: Report, status: ReportStatus, memo?: string, by?: string): Report => ({
+  const log = (r: Report, status: ReportStatus, memo?: string, by?: string, passable?: boolean): Report => ({
     ...r,
     status,
-    history: [...r.history, { status, at: new Date(nowMs()).toISOString(), by: by ?? me().id, ...(memo ? { memo } : {}) }],
+    history: [...r.history, { status, at: new Date(nowMs()).toISOString(), by: by ?? me().id, ...(memo ? { memo } : {}), ...(passable === undefined ? {} : { passable }) }],
   })
 
   return {
@@ -310,8 +310,8 @@ export const useReports = create<State>((set, get) => {
       const rc = { passable, at: new Date(nowMs()).toISOString(), by: u.id }
       update(id, (x) => {
         const withAction = { ...x, action: { ...(x.action as NonNullable<Report['action']>), recheck: rc } }
-        if (passable) return log({ ...withAction, lastCheckedAt: rc.at, verification: { ...withAction.verification, rating: 'O' as const } }, 'rechecked', '재확인: 실제로 통과 가능 → 지도에 ○ 반영')
-        return log(log(withAction, 'rechecked', '재확인: 아직 지나가기 어려움'), 'in_progress', '⑤ 조치 중으로 되돌림')
+        if (passable) return log({ ...withAction, lastCheckedAt: rc.at, verification: { ...withAction.verification, rating: 'O' as const } }, 'rechecked', '재확인: 실제로 통과 가능 → 지도에 ○ 반영', undefined, true)
+        return log(log(withAction, 'rechecked', '재확인: 아직 지나가기 어려움', undefined, false), 'in_progress', '⑤ 조치 중으로 되돌림')
       })
       return { ok: true }
     },

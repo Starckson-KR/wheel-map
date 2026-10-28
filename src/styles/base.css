@@ -1,0 +1,583 @@
+/* 바탕·글자·버튼·입력·배지·카드 등 모든 화면이 함께 쓰는 부품 */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h2,
+h3,
+h4 {
+  color: var(--text-strong);
+  letter-spacing: -0.02em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ───── 보조 글자·안내 ───── */
+.bm-meta {
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+}
+
+.rf-warn {
+  color: var(--red-700);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.rf-notice {
+  padding: var(--s-3) 14px;
+  border-radius: var(--r-md);
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: var(--fs-small);
+}
+
+/* ───── 버튼: 기본은 연한 회색, rf-primary는 파랑 채움 ───── */
+.bm button {
+  box-sizing: border-box;
+  min-height: var(--touch);
+  padding: 0 var(--s-4);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--grey-100);
+  color: var(--grey-800);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    transform var(--t-press) var(--ease-out),
+    background-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.bm button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bm button:hover:not(:disabled) {
+    background: var(--grey-200);
+  }
+}
+
+.bm button:focus-visible,
+.bm summary:focus-visible,
+.bm a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.bm button:disabled {
+  background: var(--grey-100);
+  color: var(--grey-500);
+  cursor: default;
+}
+
+.bm button.rf-primary {
+  background: var(--blue-600);
+  color: var(--on-primary);
+  font-weight: 700;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bm button.rf-primary:hover:not(:disabled) {
+    background: var(--blue-700);
+  }
+}
+
+.bm button.rf-primary:disabled {
+  background: var(--grey-200);
+  color: var(--grey-500);
+}
+
+.bm button.rf-danger {
+  background: var(--red-50);
+  color: var(--red-700);
+}
+
+/* 닫기: 글자는 화면 읽기용으로 남기고 보이는 것은 × 아이콘 */
+.bm button.bm-close {
+  flex: none;
+  width: 36px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--r-full);
+  font-size: 0;
+  background: var(--grey-100) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%234e5968' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3.5 3.5l9 9M12.5 3.5l-9 9'/%3E%3C/svg%3E") center / 16px no-repeat;
+}
+
+.rf-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--t-press) var(--ease-out);
+}
+
+.rf-btn:active {
+  transform: scale(0.97);
+}
+
+.rf-btn:focus-within {
+  box-shadow: var(--focus-ring);
+}
+
+.rf-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* ───── 입력 ───── */
+.bm select,
+.bm textarea,
+.bm input[type='number'],
+.bm input[type='text'],
+.bm input[type='search'] {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px var(--s-4);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--grey-100);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: var(--fs-body);
+  transition:
+    border-color var(--t-fast) ease,
+    background-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.bm select {
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%236b7684' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.bm textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.bm select:focus,
+.bm textarea:focus,
+.bm input:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  background-color: var(--bg);
+  box-shadow: var(--focus-ring);
+}
+
+.bm input::placeholder,
+.bm textarea::placeholder {
+  color: var(--grey-500);
+}
+
+.rf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.rf-field > select,
+.rf-field > input,
+.rf-field > textarea {
+  font-weight: 500;
+}
+
+.rf-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+}
+
+/* ───── 카드·묶음 ───── */
+.rf-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--bg-sub);
+  border: 1px solid var(--grey-100);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rf-card > strong,
+.rf-card > h3 {
+  color: var(--text-strong);
+  font-size: var(--fs-sub);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.rf-card p {
+  font-size: var(--fs-small);
+}
+
+.rf-actions {
+  display: flex;
+  gap: var(--s-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.rf-actions button {
+  min-width: 96px;
+}
+
+/* 단계 선택(세그먼트) */
+.rf-seg {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--r-md);
+  background: var(--grey-100);
+}
+
+.bm .rf-seg button {
+  flex: 1;
+  min-height: 40px;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-sub);
+}
+
+.bm .rf-seg button.on {
+  background: var(--bg);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bm .rf-seg button:hover:not(:disabled):not(.on) {
+    background: rgb(255 255 255 / 0.5);
+  }
+}
+
+/* 탭(밑줄) */
+.rp-tabs {
+  display: flex;
+  gap: var(--s-5);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+
+.rp-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.bm .rp-tabs button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 2px;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 15px;
+}
+
+.bm .rp-tabs button.on {
+  color: var(--text-strong);
+  border-bottom-color: var(--text-strong);
+}
+
+/* ───── 배지·칩 ───── */
+.bm-badge,
+.rp-badge,
+.rf-cat,
+.cg-tag,
+.adm-flag,
+.adm-demo,
+.bm-unplaced {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 700;
+  font-style: normal;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.bm-badge {
+  color: #fff;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.rp-badge {
+  flex: none;
+  background: var(--grey-100);
+  color: var(--grey-700);
+}
+
+.rp-pending,
+.rp-in_progress {
+  background: var(--amber-50);
+  color: var(--amber-700);
+}
+
+.rp-merged {
+  background: var(--purple-50);
+  color: var(--purple-700);
+}
+
+.rp-verified,
+.rp-filed,
+.rp-assigned {
+  background: var(--blue-50);
+  color: var(--blue-700);
+}
+
+.rp-resolved,
+.rp-rechecked {
+  background: var(--green-50);
+  color: var(--green-700);
+}
+
+.rp-rejected {
+  background: var(--grey-100);
+  color: var(--grey-700);
+}
+
+.rf-cat {
+  background: var(--grey-100);
+  color: var(--grey-700);
+  font-weight: 600;
+}
+
+.rf-cat-temporary {
+  background: var(--amber-50);
+  color: var(--amber-700);
+}
+
+.adm-flag,
+.bm-unplaced {
+  background: var(--amber-50);
+  color: var(--amber-700);
+}
+
+.adm-demo {
+  background: var(--purple-50);
+  color: var(--purple-700);
+}
+
+.rf-glyph {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 28px;
+  height: 28px;
+  border-radius: var(--r-full);
+  color: #fff;
+  font-weight: 800;
+}
+
+/* 요약 목록(이름 | 값) */
+.rf-sum,
+.pc-dl {
+  display: grid;
+  margin: 0;
+}
+
+.rf-sum dt {
+  margin-top: var(--s-3);
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+
+.rf-sum dd {
+  margin: 2px 0 0;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+/* 접이식 */
+.bm details > summary {
+  min-height: var(--touch);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-strong);
+  font-weight: 600;
+  list-style: none;
+}
+
+.bm details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bm details > summary::after {
+  content: '';
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%236b7684' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E") center / 16px no-repeat;
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.bm details[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+/* 사진 */
+.bm-thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-2);
+}
+
+.bm .bm-thumb {
+  padding: 0;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  aspect-ratio: 1;
+  min-height: 0;
+  background: var(--grey-100);
+  cursor: zoom-in;
+}
+
+.bm-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bm-lightbox {
+  position: fixed;
+  z-index: var(--z-lightbox);
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-4);
+  background: rgb(25 31 40 / 0.72);
+}
+
+.bm-lightbox figure {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  max-width: 96vw;
+  max-height: 96vh;
+  margin: 0;
+  padding: var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+}
+
+.bm-lightbox figure img {
+  max-width: 100%;
+  max-height: 74vh;
+  border-radius: var(--r-md);
+  object-fit: contain;
+}
+
+.bm-lightbox figcaption {
+  max-width: 80ch;
+  font-size: var(--fs-small);
+}
+
+.bm-lightbox-close {
+  align-self: stretch;
+}
+
+/* ───── 움직임을 줄여 달라는 설정 ───── */
+@media (prefers-reduced-motion: reduce) {
+  .bm button,
+  .rf-btn {
+    transition: none;
+  }
+
+  .bm button:active:not(:disabled),
+  .rf-btn:active {
+    transform: none;
+  }
+}
+
+/* 개발 중 표시(DevBadge): 화면을 가리지 않도록 클릭을 통과시킨다 */
+.dev-badge {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  max-width: 100vw;
+  padding: calc(var(--safe-top) + 1px) 8px 1px;
+  border-radius: 0 0 8px 8px;
+  background: rgb(255 255 255 / 0.92);
+  color: #b3261e;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}

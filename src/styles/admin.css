@@ -1,0 +1,379 @@
+/* 행정 화면(#/admin): 데스크톱을 먼저 생각하고, 모바일에서도 같은 언어로 보이게 한다 */
+.adm {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+}
+
+.adm-top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 60px;
+  padding: calc(var(--safe-top) + var(--s-2)) var(--s-5) var(--s-2);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.adm-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.adm-brand h1 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--fs-sub);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.adm-top-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.adm-main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.adm-body {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  padding: var(--s-6) var(--s-5) var(--s-8);
+  overflow-y: auto;
+}
+
+.adm-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.adm-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adm-head h2 {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.adm-sec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-3);
+}
+
+.adm-agency {
+  max-width: 360px;
+}
+
+.adm-case {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.bm button.adm-row {
+  display: flex;
+  flex: 1 1 200px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-width: 0;
+  min-height: 72px;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  box-shadow: var(--shadow-1);
+  text-align: left;
+  font-weight: 500;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bm button.adm-row:hover:not(:disabled) {
+    background: var(--bg);
+    box-shadow: var(--shadow-2);
+  }
+}
+
+.bm button.adm-row.on {
+  box-shadow: inset 0 0 0 2px var(--blue-500);
+}
+
+.adm-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--text-strong);
+}
+
+.adm-row-main > strong {
+  font-size: var(--fs-body);
+}
+
+.adm-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.adm-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.adm-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--s-3);
+}
+
+.adm-kpis .rf-card {
+  gap: 2px;
+}
+
+.adm-kpis strong {
+  color: var(--text-strong);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+}
+
+.adm-body .rf-card {
+  background: var(--bg);
+  border: 0;
+  box-shadow: var(--shadow-1);
+}
+
+.adm-body .rf-card > h3 {
+  font-size: var(--fs-sub);
+}
+
+.adm-bar,
+.adm-stack {
+  display: flex;
+  min-height: 32px;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  color: #fff;
+  font-size: var(--fs-caption);
+  font-weight: 800;
+}
+
+.adm-bar span,
+.adm-stack span {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+}
+
+.adm-ratio {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.adm-dong {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  margin: 4px 0;
+}
+
+.adm-hbar {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  font-size: var(--fs-small);
+}
+
+.adm-hbar-l {
+  flex: none;
+  width: 120px;
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+
+.adm-hbar-t {
+  flex: 1;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--grey-100);
+  overflow: hidden;
+}
+
+.adm-hbar-t i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--blue-500);
+}
+
+.adm-scroll {
+  overflow-x: auto;
+}
+
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+
+.adm-table th,
+.adm-table td {
+  padding: var(--s-3) var(--s-2);
+  border-bottom: 1px solid var(--grey-100);
+  text-align: left;
+  vertical-align: top;
+}
+
+.adm-table th {
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.adm-rate {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bm button.adm-link {
+  min-height: var(--touch);
+  padding: 0;
+  background: none;
+  color: var(--blue-700);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.adm-coord {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: flex-end;
+}
+
+.adm-coord .rf-field {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.adm-prio {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-prio details {
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--bg-sub);
+}
+
+.adm-prio summary {
+  gap: var(--s-3);
+  min-height: 56px;
+}
+
+.adm-prio-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.adm-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: #fff;
+  font-size: var(--fs-small);
+  font-weight: 800;
+}
+
+.adm-body select {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* 행정 화면의 상세는 오른쪽 카드 */
+.adm-main .bm-detail {
+  z-index: var(--z-panel);
+}
+
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .adm-top {
+    padding-left: var(--s-4);
+    padding-right: var(--s-4);
+  }
+
+  :root:not([data-view='desktop']) .adm-body {
+    padding: var(--s-5) var(--s-4) var(--s-8);
+  }
+
+  :root:not([data-view='desktop']) .adm-hbar-l {
+    width: 84px;
+  }
+
+  :root:not([data-view='desktop']) .adm-case {
+    flex-wrap: wrap;
+  }
+}
+
+/*  data-view="mobile" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
+
+:root[data-view='mobile'] .adm-top {
+    padding-left: var(--s-4);
+    padding-right: var(--s-4);
+  }
+
+:root[data-view='mobile'] .adm-body {
+    padding: var(--s-5) var(--s-4) var(--s-8);
+  }
+
+:root[data-view='mobile'] .adm-hbar-l {
+    width: 84px;
+  }
+
+:root[data-view='mobile'] .adm-case {
+    flex-wrap: wrap;
+  }

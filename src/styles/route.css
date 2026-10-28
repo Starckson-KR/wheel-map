@@ -1,0 +1,544 @@
+/* 길찾기: 경로 고르기, 결과 비교 카드, 지도 위 경로 표시. 모바일은 아래 시트(지도가 위에 보임), 큰 화면은 왼쪽 패널 */
+.rt {
+  gap: var(--s-4);
+}
+
+.rt[hidden] {
+  display: none;
+}
+
+/* 모바일: 지도가 위쪽에 보이도록 화면의 아래쪽 60%만 쓴다 */
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .rp.rt {
+    inset: auto 0 0 0;
+    height: 62%;
+    padding-top: 0;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: var(--shadow-sheet);
+  }
+
+  :root:not([data-view='desktop']) .rt > .sheet-handle {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: var(--bg);
+  }
+
+  :root:not([data-view='desktop']) .rt > .rf-head {
+    top: 28px;
+    padding-top: 0;
+    min-height: 44px;
+  }
+}
+/*  data-view="mobile" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
+:root[data-view='mobile'] .rp.rt {
+    inset: auto 0 0 0;
+    height: 62%;
+    padding-top: 0;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: var(--shadow-sheet);
+  }
+:root[data-view='mobile'] .rt > .sheet-handle {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: var(--bg);
+  }
+:root[data-view='mobile'] .rt > .rf-head {
+    top: 28px;
+    padding-top: 0;
+    min-height: 44px;
+  }
+
+.rt-head-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bm .rt-head-btns button:not(.bm-close) {
+  min-height: 36px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-small);
+}
+
+.rt-sec {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.rt-sec h3 {
+  margin: 0;
+  font-size: var(--fs-sub);
+  font-weight: 700;
+}
+
+.rt-sec p {
+  margin: 0;
+}
+
+.rt-pairs,
+.rt-hits,
+.rt-results,
+.rt-plain {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rt-plain {
+  gap: 6px;
+  font-size: var(--fs-small);
+}
+
+.rt-wrap {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.bm button.rt-pair {
+  border-bottom: 1px solid var(--grey-100);
+}
+
+.bm button.rt-pair.on .lr-title {
+  color: var(--blue-700);
+}
+
+.bm button.rt-pair.on .lr-chev {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 14 14' fill='none' stroke='%231b64da' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5l2.8 2.8L11 4.8'/%3E%3C/svg%3E");
+}
+
+.bm button.lr.rt-on {
+  background: var(--blue-50);
+  box-shadow: -12px 0 0 var(--blue-50), 12px 0 0 var(--blue-50);
+}
+
+/* 직접 검색(개발 모드) */
+.rt-place {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+
+.rt-place legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+.rt-val {
+  margin: 0;
+}
+
+.rt-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rt-row input {
+  flex: 1 1 140px;
+  width: auto;
+}
+
+.bm .rt-row button.on {
+  background: var(--blue-50);
+  color: var(--blue-700);
+}
+
+.bm .rt-results button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: var(--s-2) var(--s-3);
+}
+
+/* 결과 */
+.rt-route-title {
+  font-size: var(--fs-head) !important;
+  font-weight: 800 !important;
+  line-height: 1.35;
+  letter-spacing: -0.03em;
+}
+
+.rt-verdict-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+}
+
+.rt-verdict-card > i {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-style: normal;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.rt-verdict-card strong {
+  display: block;
+  color: var(--text-strong);
+  font-size: var(--fs-sub);
+}
+
+.rt-verdict-card p {
+  font-size: var(--fs-small);
+}
+
+.rt-verdict-card.rt-v-pass {
+  background: var(--r-o-soft);
+}
+
+.rt-verdict-card.rt-v-pass > i {
+  background: var(--r-o);
+  color: var(--r-o-ink);
+}
+
+.rt-verdict-card.rt-v-caution {
+  background: var(--r-t-soft);
+}
+
+.rt-verdict-card.rt-v-caution > i {
+  background: var(--r-t);
+  color: var(--r-t-ink);
+}
+
+.rt-verdict-card.rt-v-blocked {
+  background: var(--r-x-soft);
+}
+
+.rt-verdict-card.rt-v-blocked > i {
+  background: var(--r-x);
+  color: var(--r-x-ink);
+}
+
+.rt-alert,
+.rt-warn {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--r-x-soft);
+  color: var(--r-x-text);
+  font-size: var(--fs-small);
+}
+
+.rt-warn {
+  background: var(--amber-50);
+  color: var(--amber-700);
+}
+
+.rt-noalt {
+  color: var(--r-x-text);
+}
+
+/* 경로 비교 카드 */
+.rt-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+}
+
+.bm button.rt-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 0;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--grey-200);
+  text-align: left;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.bm button.rt-card.on {
+  background: var(--blue-50);
+  box-shadow: inset 0 0 0 2px var(--blue-500);
+}
+
+.rt-card-title {
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.rt-big {
+  color: var(--text-strong);
+  font-size: var(--fs-sub);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.rt-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rt-pill.rt-v-pass {
+  background: var(--r-o-soft);
+  color: var(--r-o-text);
+}
+
+.rt-pill.rt-v-caution {
+  background: var(--r-t-soft);
+  color: var(--r-t-text);
+}
+
+.rt-pill.rt-v-blocked {
+  background: var(--r-x-soft);
+  color: var(--r-x-text);
+}
+
+.rt-sum {
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+}
+
+.rt-card-state {
+  margin-top: auto;
+  color: var(--blue-700);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+
+.rt-more > summary {
+  font-size: var(--fs-sub);
+}
+
+.rt-more .rt-sec {
+  margin-top: var(--s-4);
+}
+
+.rt-more h3 {
+  font-size: var(--fs-body);
+}
+
+/* 구간 막대 */
+.rt-seg h4 {
+  margin: 0 0 var(--s-2);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+
+.rt-track {
+  position: relative;
+  height: 56px;
+  margin: var(--s-1) 14px;
+}
+
+.rt-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 18px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--grey-200);
+}
+
+.rt-end {
+  position: absolute;
+  top: 36px;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rt-end-s {
+  left: -8px;
+}
+
+.rt-end-e {
+  right: -8px;
+}
+
+.bm .rt-dot {
+  position: absolute;
+  top: 8px;
+  width: 28px;
+  min-height: 28px;
+  height: 28px;
+  margin-left: -14px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgb(25 31 40 / 0.35);
+}
+
+.bm .rt-dot::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.bm .rt-dot.on {
+  box-shadow: 0 0 0 3px var(--blue-500);
+  z-index: 2;
+}
+
+.rt-legend {
+  line-height: 1.7;
+}
+
+.rt-legend span {
+  white-space: nowrap;
+}
+
+/* 지도 보기로 접었을 때 */
+.rt-mini {
+  position: absolute;
+  left: var(--s-4);
+  right: var(--s-4);
+  bottom: calc(var(--safe-bottom) + var(--s-4));
+  z-index: 37;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  border-radius: var(--r-xl);
+  background: var(--bg);
+  box-shadow: var(--shadow-2);
+  animation: rise var(--t-sheet) var(--ease-drawer) backwards;
+}
+
+.rt-mini > span {
+  flex: 1 1 160px;
+  padding-left: var(--s-2);
+  color: var(--text-strong);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .rt-mini {
+    right: auto;
+    width: 392px;
+  }
+}
+
+/*  data-view="desktop" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
+
+:root[data-view='desktop'] .rt-mini {
+    right: auto;
+    width: 392px;
+  }
+
+/* 지도 위 표시 */
+.rt-flag {
+  padding: 0 var(--s-3);
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid #fff;
+  border-radius: var(--r-full);
+  color: #fff;
+  font: 800 13px/1 var(--font);
+  letter-spacing: 0;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgb(25 31 40 / 0.35);
+}
+
+.rt-flag-s {
+  background: var(--blue-600);
+}
+
+.rt-flag-e {
+  background: var(--grey-900);
+}
+
+.rt-ring {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--blue-600);
+  color: #fff;
+  font: 800 14px/1 var(--font);
+}
+
+.rt-ring.on {
+  width: 38px;
+  height: 38px;
+  box-shadow: 0 0 0 4px #ffd600;
+}
+
+.rt-m {
+  padding: 2px 6px;
+  border: 1px solid #fff;
+  border-radius: 6px;
+  color: #fff;
+  font: 800 11px/1.3 var(--font);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.rt-m-cw {
+  background: #455a64;
+  outline: 2px dashed var(--r-x);
+}
+
+.rt-m-bus {
+  background: #1e6fb5;
+}
+
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .rt-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/*  data-view="mobile" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
+
+:root[data-view='mobile'] .rt-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+@media (prefers-reduced-motion: reduce) {
+  .rt-mini {
+    animation: none;
+  }
+}
+
+.rt-cards:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .rt > .sheet-handle {
+    display: none;
+  }
+}
+
+/*  data-view="desktop" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
+
+:root[data-view='desktop'] .rt > .sheet-handle {
+    display: none;
+  }

@@ -1,0 +1,5 @@
+[
+  { "id": "p1", "label": "학교 쪽문(R19) → 전대치과병원(I-a)", "fromId": "R19", "toId": "I-a", "fromName": "학교 쪽문(R19)", "toName": "전대치과병원" },
+  { "id": "p2", "label": "한화꿈에그린 정류장(R15-1) → 전대치과병원(I-a)", "fromId": "R15-1", "toId": "I-a", "fromName": "한화꿈에그린 정류장", "toName": "전대치과병원" },
+  { "id": "p3", "label": "북구청 옆 정류장(R16) → 전대치과병원(I-a)", "fromId": "R16", "toId": "I-a", "fromName": "북구청 옆 정류장", "toName": "전대치과병원" }
+]

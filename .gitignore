@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vite/
+
+# 현장 사진 원본은 내부 확인용 — 저장소·배포에 올리지 않는다(공개 전 선별·가림 처리)
+data/photos/*
+!data/photos/.gitkeep
+
+# 공공데이터 수집 캐시(지오코딩·API 응답)
+data/public/.cache/
+
+# 팀원 발표 자료 등 참고 이미지(내부 참고용, 저장소에 올리지 않음)
+docs/참고자료/
+
+# TMAP 경로 개발 캐시(키 없음, 요청별 응답)
+data/routes/.cache/
+
+# 공개 저장소에서 제외하는 내부 문서(내 PC에만 보관)
+CLAUDE.md
+docs/인수인계.md
+docs/시드후보_정리.md
+docs/명세서.md
+docs/명세서_5장_수정안.md
+docs/참고_그늘로_분석.md

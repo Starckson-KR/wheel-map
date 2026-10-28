@@ -1,0 +1,8 @@
+[
+  {
+    "id": "pilot",
+    "name": "후문 원룸촌 → 정류장 → 전대치과병원",
+    "barrierIds": ["W-C", "N01", "N02", "R15", "R16", "R17", "R18", "R19", "B02", "B03", "I-a", "B07", "C03", "W-B"],
+    "coordinatorAgencyId": null
+  }
+]

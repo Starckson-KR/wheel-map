@@ -1,0 +1,170 @@
+/* 디자인 토큰 — 색·글자·간격·모서리·그림자·움직임을 이 파일 한 곳에서만 정한다.
+   토스 디자인 언어(TDS 공개 가이드의 원칙)를 따르되 값은 이 프로젝트용으로 정한 것이다.
+   근거와 출처: docs/디자인_토스_가이드_요약.md */
+:root {
+  /* 글꼴: Pretendard(SIL OFL, 무료). 없으면 시스템 글꼴 */
+  --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif;
+
+  /* 파랑(브랜드). 채움 버튼은 대비를 위해 600을 쓴다 */
+  --blue-50: #e8f3ff;
+  --blue-100: #c9e2ff;
+  --blue-500: #3182f6;
+  --blue-600: #2272eb;
+  --blue-700: #1b64da;
+
+  /* 회색 */
+  --grey-0: #ffffff;
+  --grey-50: #f9fafb;
+  --grey-100: #f2f4f6;
+  --grey-200: #e5e8eb;
+  --grey-300: #d1d6db;
+  --grey-500: #8b95a1;
+  --grey-600: #6b7684;
+  --grey-700: #4e5968;
+  --grey-800: #333d4b;
+  --grey-900: #191f28;
+
+  /* 의미 색(경고·오류·성공) */
+  --red-50: #fdeceb;
+  --red-600: #d0342c;
+  --red-700: #b3261e;
+  --amber-50: #fff3d6;
+  --amber-700: #8a5a00;
+  --green-50: #e6f6ee;
+  --green-700: #0f7f55;
+  --purple-50: #f1ecfb;
+  --purple-700: #5b3fb8;
+
+  /* 역할 색 */
+  --bg: var(--grey-0);
+  --bg-page: var(--grey-100);
+  --bg-sub: var(--grey-50);
+  --text-strong: var(--grey-900);
+  --text: var(--grey-800);
+  --text-sub: var(--grey-600);
+  --line: var(--grey-200);
+  --primary: var(--blue-600);
+  --primary-weak: var(--blue-50);
+  --on-primary: #ffffff;
+  --danger: var(--red-600);
+  --focus-ring: 0 0 0 3px rgb(49 130 246 / 0.4);
+
+  /* ○△X 색. 색만으로 구분하지 않도록 글자(○△X)를 같이 쓴다.
+     ink는 색 위에 올리는 글자색(대비 4.5 이상). soft는 배지 배경 */
+  --r-o: #0f7f55;
+  --r-o-ink: #ffffff;
+  --r-o-soft: #e6f6ee;
+  --r-o-text: #0b6845;
+  --r-t: #f2a900;
+  --r-t-ink: #3d2400;
+  --r-t-soft: #fff3d6;
+  --r-t-text: #7a5000;
+  --r-x: #d0342c;
+  --r-x-ink: #ffffff;
+  --r-x-soft: #fdeceb;
+  --r-x-text: #b3261e;
+  --r-n: #6b7684;
+  --r-n-ink: #ffffff;
+  --r-n-soft: #f2f4f6;
+  --r-n-text: #4e5968;
+
+  /* 글자 크기(px). 본문은 16 이상으로 둔다 */
+  --fs-title: 24px;
+  --fs-head: 20px;
+  --fs-sub: 17px;
+  --fs-body: 16px;
+  --fs-small: 14px;
+  --fs-caption: 13px;
+
+  /* 간격(4px 단위) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --gutter: 20px;
+
+  /* 모서리 */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-full: 999px;
+
+  /* 그림자 */
+  --shadow-1: 0 1px 2px rgb(25 31 40 / 0.06), 0 2px 8px rgb(25 31 40 / 0.08);
+  --shadow-2: 0 4px 16px rgb(25 31 40 / 0.14);
+  --shadow-sheet: 0 -4px 24px rgb(25 31 40 / 0.16);
+
+  /* 움직임: 짧게, 나올 때는 ease-out */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-press: 120ms;
+  --t-fast: 160ms;
+  --t-sheet: 280ms;
+
+  /* 안전 영역 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* 겹침 순서 */
+  --z-map-ui: 10;
+  --z-home: 20;
+  --z-detail: 38;
+  --z-panel: 40;
+  --z-pick: 50;
+  --z-modal: 60;
+  --z-lightbox: 100;
+
+  --touch: 44px;
+  color-scheme: light;
+}
+
+/* 다크 모드는 토큰만 준비했다. html에 data-theme="dark"를 붙이면 켜진다(지도 타일은 그대로 밝다). */
+:root[data-theme='dark'] {
+  --bg: #17171c;
+  --bg-page: #101014;
+  --bg-sub: #202027;
+  --text-strong: #f9fafb;
+  --text: #e5e8eb;
+  --text-sub: #b0b8c1;
+  --line: #2c2c35;
+  --primary: #4593fc;
+  --primary-weak: #1c2b44;
+  --grey-0: #17171c;
+  --grey-50: #1b1b21;
+  --grey-100: #202027;
+  --grey-200: #2c2c35;
+  --grey-300: #3d3d49;
+  --grey-500: #8b95a1;
+  --grey-600: #a3acb7;
+  --grey-700: #c3c9d1;
+  --grey-800: #e5e8eb;
+  --grey-900: #f9fafb;
+  --blue-50: #1c2b44;
+  --blue-100: #243a5c;
+  --red-50: #3a1f1f;
+  --red-700: #ff8a80;
+  --amber-50: #3a2f14;
+  --amber-700: #f2b84b;
+  --green-50: #16322a;
+  --green-700: #52c79a;
+  --purple-50: #2a2340;
+  --purple-700: #b9a4f5;
+  --r-o-soft: #16322a;
+  --r-o-text: #52c79a;
+  --r-t-soft: #3a2f14;
+  --r-t-text: #f2b84b;
+  --r-x-soft: #3a1f1f;
+  --r-x-text: #ff8a80;
+  --focus-ring: 0 0 0 3px rgb(69 147 252 / 0.5);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-sheet: 1ms;
+  }
+}

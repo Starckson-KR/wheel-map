@@ -1,0 +1,49 @@
+# main 브랜치에 push되면 빌드해서 GitHub Pages에 배포한다.
+# 저장소 Settings > Pages > Source 를 "GitHub Actions"로 설정해야 한다.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          # 브라우저용 카카오 지도 JavaScript 키(도메인 제한으로 보호). 저장소 Secrets에 등록한다.
+          # 그 외 키(TMAP, 공공데이터포털, 카카오 REST)는 빌드에 쓰지 않는다.
+          # 경로·공공데이터는 미리 받아 저장소에 둔 JSON(data/routes, data/public)만 사용하고,
+          # 개발 서버 전용 중계(TMAP)·현장 사진(data/photos)은 배포 빌드에 포함되지 않는다.
+          VITE_KAKAO_JS_KEY: ${{ secrets.VITE_KAKAO_JS_KEY }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

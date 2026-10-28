@@ -1,0 +1,16 @@
+[
+  { "id": "W-C", "geometryKind": "line", "name": "용봉로(전남사대부고·전남대·주택가·원룸촌)", "type": "보도구간", "query": null, "searchable": false, "sourceRefs": ["[팀원 B] 보행 구간 W-C", "시드후보_정리 1-C, 3장"], "note": "구간이라 점 하나로 못 찍음. 후문 원룸촌 쪽 대표 위치를 지도에서 직접 찍을 것. 원룸촌이 구간명 설명에 포함됨." },
+  { "id": "N01", "geometryKind": "area", "name": "전대 후문 상가·원룸 골목", "type": "구간(승하차 만남 지점)", "query": null, "searchable": false, "sourceRefs": ["[새빛] 인터뷰 진술(2026-09-30)", "시드후보_정리 1-E, 3장"], "note": "범위가 넓어 점 하나로 찍기 어려움. 정확한 골목은 사용자가 확인." },
+  { "id": "R15", "geometryKind": "point", "name": "용봉 한화꿈에그린 정류장", "type": "정류장", "query": "용봉동 한화꿈에그린 정류장", "searchable": true, "sourceRefs": ["[팀원 A] 사진 ⑯", "시드후보_정리 1-A, 3장"], "note": "기숙사·원룸촌 인접. 팀원 B B02(용봉휴먼시아)와 같은 정류장인지는 자료에 없음." },
+  { "id": "R16", "geometryKind": "point", "name": "북구청 옆 정류장", "type": "정류장", "query": "용봉동 북구청 옆 정류장", "searchable": true, "sourceRefs": ["[팀원 A] 사진 ⑰", "시드후보_정리 1-A, 3장"], "note": "대기공간 폭 1.09m. 카카오 검색에서 '북구청 옆'이 안 잡히면 지도 클릭으로 직접 찍을 것." },
+  { "id": "R17", "geometryKind": "point", "name": "북구청 앞(맞은편) 횡단보도 일대", "type": "횡단보도", "query": null, "searchable": false, "sourceRefs": ["[팀원 A] 사진 ⑱⑲", "시드후보_정리 1-A, 2장 ①"], "note": "팀원 B C12(북구청 사거리)와 같은 지점인지 확인 필요." },
+  { "id": "R18", "geometryKind": "line", "name": "후문 일대 보도(1.74·1.75m 구간)", "type": "보도구간", "query": null, "searchable": false, "sourceRefs": ["[팀원 A] 사진 ⑳㉑", "시드후보_정리 1-A, 3장"], "note": "조회용 주소 후보 없음. 야간 촬영 구간, 점용물은 일시 상황일 수 있음. 지도에서 직접 찍을 것." },
+  { "id": "R19", "geometryKind": "point", "name": "학교 쪽문(글로벌앤리서치허브 옆)", "type": "건물 출입구(쪽문)", "query": null, "searchable": false, "sourceRefs": ["[팀원 A] 쪽문 폭 1.09m", "시드후보_정리 1-A, 3장"], "note": "쪽문 자체는 검색으로 못 찾음. 자료상 위치 단서는 '글로벌앤리서치허브 옆'. 명세서 7-1 '후문 쪽문'과 같은 지점으로 보임." },
+  { "id": "N02", "geometryKind": "area", "name": "캠퍼스·주변 신축 아파트 주차장", "type": "승하차 만남 지점", "query": null, "searchable": false, "sourceRefs": ["[새빛] 인터뷰 진술(2026-09-30)", "시드후보_정리 1-E, 3장"], "note": "어느 아파트인지 자료에 없음. 사용자가 지점을 정해 찍을 것." },
+  { "id": "B02", "geometryKind": "point", "name": "용봉휴먼시아.apt 정류장", "type": "정류장", "query": "용봉동 용봉휴먼시아 정류장", "searchable": true, "sourceRefs": ["[팀원 B] 정류장 B02", "시드후보_정리 1-C, 3장"], "note": "횡단보도 C02와 연관. 팀원 A R15와의 관계는 2장 ⑦." },
+  { "id": "B03", "geometryKind": "point", "name": "용봉초교 정류장", "type": "정류장", "query": "용봉동 용봉초교 정류장", "searchable": true, "sourceRefs": ["[팀원 B] 정류장 B03", "시드후보_정리 1-C, 3장"], "note": "" },
+  { "id": "I-a", "geometryKind": "point", "name": "전남치과대학병원(=전대치과병원, 장애인 권역치료센터)", "type": "기관(병원)", "query": "전남대 치과병원", "searchable": true, "sourceRefs": ["[팀원 B] 기관 a", "[새빛] 인터뷰", "시드후보_정리 1-C, 2장 ⑨, 3장"], "note": "시범 경로 종점. 명칭이 5종(전남대치과대학병원/전남치과대학병원/전남대 치과병원/전대치과병원/전대치과) 표기돼 정식 명칭 확인 필요." },
+  { "id": "B07", "geometryKind": "point", "name": "전남대 치과병원 정류장", "type": "정류장", "query": "용봉동 전남대 치과병원 정류장", "searchable": true, "sourceRefs": ["[팀원 B] 정류장 B07", "시드후보_정리 1-C, 3장"], "note": "" },
+  { "id": "C03", "geometryKind": "point", "name": "전남대치과대학병원 앞 횡단보도", "type": "횡단보도", "query": null, "searchable": false, "sourceRefs": ["[팀원 B] 횡단보도 C03", "시드후보_정리 1-B, 3장"], "note": "병원 앞 횡단보도 위치는 지도에서 직접 찍을 것." },
+  { "id": "W-B", "geometryKind": "line", "name": "용봉로 초입(전남대치과병원·용봉택지 방면)", "type": "보도구간", "query": null, "searchable": false, "sourceRefs": ["[팀원 B] 보행 구간 W-B", "시드후보_정리 1-C, 2장 ③"], "note": "구간이라 대표 위치를 직접 찍을 것. 자료의 '전철우 방면' 의미는 확인 필요." }
+]

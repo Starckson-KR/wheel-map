@@ -1,0 +1,247 @@
+/* 화면 묶음(패널)·보기 방식·다크 모드 보정 */
+
+/* 모바일: 래퍼는 레이아웃에 끼지 않고 상단 카드·하단 시트가 예전처럼 동작한다 */
+.hm-panel {
+  display: contents;
+}
+
+/* 작은 부품 */
+.lr-kind {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  margin-left: -6px;
+  border-radius: 10px;
+  background: #333d4b;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.hm-legend i.hm-leg-kind {
+  background: #333d4b;
+  color: #fff;
+}
+
+/* 공공데이터(장애인 화장실 등)는 참고용이라 멀리서는 작은 옅은 점으로만 보인다 */
+.bm-pub--dot {
+  min-width: 14px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border-width: 1.5px;
+  border-radius: 50%;
+  font-size: 0;
+  opacity: 0.55;
+}
+
+/* #/verify 에서는 화면 설정 버튼이 오른쪽 아래에 떠 있다 */
+.vs-float {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 200;
+  box-shadow: var(--shadow-2);
+}
+
+body > .ms-dim,
+body > .ms {
+  position: fixed;
+}
+
+/* 보기 방식 '모바일': PC 창에서도 가운데 폰 크기 틀 안에 모바일 레이아웃으로 보인다 */
+:root[data-view='mobile'] body {
+  background: var(--bg-page);
+}
+
+:root[data-view='mobile'] #root {
+  position: relative;
+  width: min(390px, 100vw);
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow-2);
+  transform: translateZ(0); /* 틀 안의 fixed 요소가 틀 기준으로 놓이게 한다 */
+}
+
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .hm-panel {
+    position: absolute;
+    top: var(--s-4);
+    left: var(--s-4);
+    max-height: calc(100% - 2 * var(--s-4));
+    z-index: var(--z-home);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 392px;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: var(--r-xl);
+    background: var(--bg);
+    box-shadow: var(--shadow-2);
+  }
+
+  :root:not([data-view='mobile']) .hm-panel .hm-top {
+    position: static;
+    flex: none;
+    width: auto;
+    padding: 0;
+  }
+
+  :root:not([data-view='mobile']) .hm-panel .hm-card {
+    padding: var(--s-4) var(--s-4) var(--s-3) var(--s-5);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  :root:not([data-view='mobile']) .hm-panel .hm-sheet {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    flex: 1;
+    width: auto;
+    min-height: 0;
+    max-height: none;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  :root:not([data-view='mobile']) .hm-panel .bm button.hm-locate {
+    top: var(--s-4);
+    right: var(--s-4);
+    width: 40px;
+    height: 40px;
+    box-shadow: var(--shadow-1);
+  }
+
+  :root:not([data-view='mobile']) .hm-panel:has(.hm-sheet) {
+    bottom: var(--s-4);
+  }
+
+  /* 범례는 패널 밖, 지도 오른쪽 아래의 작은 카드로 */
+  :root:not([data-view='mobile']) .hm-panel .hm-legend {
+    position: fixed;
+    right: var(--s-4);
+    bottom: 28px;
+    z-index: var(--z-map-ui);
+    flex-wrap: wrap;
+    max-width: 300px;
+    padding: var(--s-2);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+    box-shadow: var(--shadow-1);
+    overflow: visible;
+  }
+
+  :root:not([data-view='mobile']) .hm-panel .hm-legend li {
+    box-shadow: none;
+    background: var(--grey-100);
+  }
+}
+
+/*  data-view="desktop" 강제 보기용  */
+  :root[data-view='desktop'] .hm-panel {
+    position: absolute;
+    top: var(--s-4);
+    left: var(--s-4);
+    max-height: calc(100% - 2 * var(--s-4));
+    z-index: var(--z-home);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 392px;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: var(--r-xl);
+    background: var(--bg);
+    box-shadow: var(--shadow-2);
+  }
+
+  :root[data-view='desktop'] .hm-panel .hm-top {
+    position: static;
+    flex: none;
+    width: auto;
+    padding: 0;
+  }
+
+  :root[data-view='desktop'] .hm-panel .hm-card {
+    padding: var(--s-4) var(--s-4) var(--s-3) var(--s-5);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  :root[data-view='desktop'] .hm-panel .hm-sheet {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    flex: 1;
+    width: auto;
+    min-height: 0;
+    max-height: none;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  :root[data-view='desktop'] .hm-panel .bm button.hm-locate {
+    top: var(--s-4);
+    right: var(--s-4);
+    width: 40px;
+    height: 40px;
+    box-shadow: var(--shadow-1);
+  }
+
+  :root[data-view='desktop'] .hm-panel:has(.hm-sheet) {
+    bottom: var(--s-4);
+  }
+
+  /* 범례는 패널 밖, 지도 오른쪽 아래의 작은 카드로 */
+  :root[data-view='desktop'] .hm-panel .hm-legend {
+    position: fixed;
+    right: var(--s-4);
+    bottom: 28px;
+    z-index: var(--z-map-ui);
+    flex-wrap: wrap;
+    max-width: 300px;
+    padding: var(--s-2);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+    box-shadow: var(--shadow-1);
+    overflow: visible;
+  }
+
+  :root[data-view='desktop'] .hm-panel .hm-legend li {
+    box-shadow: none;
+    background: var(--grey-100);
+  }
+
+/* 다크 모드 보정: 연한 파랑 배경 위의 글자는 밝은 파랑으로 */
+:root[data-theme='dark'] .bm button.hm-cta-sub,
+:root[data-theme='dark'] .bm .rf-seg button.on {
+  color: #8fc2ff;
+}
+
+/* 모바일 범례는 옆으로 밀어 볼 수 있어서, 오른쪽 끝을 옅게 해 더 있다는 걸 알려 준다 */
+.hm-legend {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .hm-panel .hm-legend {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+:root[data-view='desktop'] .hm-panel .hm-legend {
+  -webkit-mask-image: none;
+  mask-image: none;
+}

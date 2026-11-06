@@ -11,7 +11,10 @@ import { buildObstacles } from '../lib/routing/obstacles.ts'
 import type { RouteMarker, RouteOverlay } from '../lib/routing/overlay.ts'
 import { DEMO_PAIRS, FREE_SEARCH, makeFetcher, newStats, type DemoPair, type NetStats, type Place } from '../lib/routing/provider.ts'
 import type { Barrier, Rating, Report, ReportStatus } from '../types'
+import { boardingNear } from '../lib/bus/boarding.ts'
+import BusArrivals from './BusArrivals'
 import SheetHandle from './SheetHandle'
+import TransitView from './TransitView'
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
@@ -151,8 +154,16 @@ export default function RoutePanel(props: Props) {
   const [active, setActive] = useState<'base' | 'detour'>('base')
   const [focus, setFocus] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
+  const [mode, setMode] = useState<'walk' | 'bus'>('walk') // 걸어서 / 버스 타고(7단계)
+  const [transitOv, setTransitOv] = useState<RouteOverlay | null>(null)
+  const [openStop, setOpenStop] = useState<string | null>(null)
   const runId = useRef(0)
   const byId = useMemo(() => new Map(barriers.map((b) => [b.id, b])), [barriers])
+  // 버스 타고 가는 길·정류장 경고에 쓰는 장애요소(걷는 경로와 같은 규칙)
+  const obstaclesNow = useMemo(
+    () => buildObstacles(barriers, seedRatings, reports.filter((r) => !r.seedId && SHOWN_ON_MAP.includes(r.status) && !isExpired(r))),
+    [barriers, seedRatings, reports],
+  )
 
   // 지도에서 고른 위치 반영
   const lastPicked = useRef(0)
@@ -238,6 +249,10 @@ export default function RoutePanel(props: Props) {
 
   // 지도에 보낼 정보
   useEffect(() => {
+    if (mode === 'bus') {
+      onOverlay(transitOv)
+      return
+    }
     if (!result || !activeCard) {
       onOverlay(null)
       return
@@ -267,7 +282,7 @@ export default function RoutePanel(props: Props) {
     })
     // onOverlay는 부모의 setState라 의존성에서 뺀다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result, activeCard, perRoute, focus, unresolvedIds])
+  }, [result, activeCard, perRoute, focus, unresolvedIds, mode, transitOv])
 
   useEffect(() => () => onOverlay(null), []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -318,6 +333,49 @@ export default function RoutePanel(props: Props) {
     </div>
   )
 
+  const stopsBlock = result?.extras && (
+    <section className="rf-card rt-sec">
+      <h3>출발·도착 근처 버스정류장 ({ROUTE_STOP_RADIUS_M}m 안)</h3>
+      <p className="bm-meta">정류장을 누르면 다음 저상버스를 볼 수 있어요. 정류장에 버스 타기 불편한 곳이 있으면 같이 알려 드려요.</p>
+      {(
+        [
+          ['출발', result.extras.stops.start],
+          ['도착', result.extras.stops.end],
+        ] as const
+      ).map(([lab, list]) => (
+        <div key={lab}>
+          <p>
+            <b>{lab} 근처</b> {list.length === 0 && <span className="bm-meta">정류장 자료가 없어요.</span>}
+          </p>
+          {list.length > 0 && (
+            <ul className="rt-plain">
+              {list.slice(0, 5).map((s) => {
+                const key = lab + s.item.id
+                const open = openStop === key
+                return (
+                  <li key={key}>
+                    <button type="button" className="bus-dir" aria-expanded={open} onClick={() => setOpenStop(open ? null : key)}>
+                      {s.item.name} · {s.distM}m{s.item.fields['NEXT_BUSSTOP'] ? ` · ${String(s.item.fields['NEXT_BUSSTOP'])} 방면` : ''}
+                    </button>
+                    {open && (
+                      <BusArrivals
+                        key={s.item.id}
+                        choices={[{ stationId: s.item.id, name: s.item.name, next: s.item.fields['NEXT_BUSSTOP'] as string | undefined }]}
+                        warns={boardingNear(obstaclesNow, [s.item.lat as number, s.item.lng as number])}
+                      />
+                    )}
+                  </li>
+                )
+              })}
+              {list.length > 5 && <li className="bm-meta">외 {list.length - 5}곳</li>}
+            </ul>
+          )}
+        </div>
+      ))}
+      <p className="bm-meta">정류장 출처: 광주 BIS 정류소(광주버스정보).</p>
+    </section>
+  )
+
   const extrasBlock = result && (
     <>
       {result.extrasError && <p className="rf-warn">공공데이터(횡단보도·정류장·편의시설)를 불러오지 못했어요.</p>}
@@ -347,33 +405,6 @@ export default function RoutePanel(props: Props) {
                 </>
               )
             })()}
-          </section>
-
-          <section className="rt-sec">
-            <h3>출발·도착 근처 버스정류장 ({ROUTE_STOP_RADIUS_M}m 안)</h3>
-            {(
-              [
-                ['출발', result.extras.stops.start],
-                ['도착', result.extras.stops.end],
-              ] as const
-            ).map(([lab, list]) => (
-              <div key={lab}>
-                <p>
-                  <b>{lab} 근처</b> {list.length === 0 && <span className="bm-meta">정류장 자료가 없어요.</span>}
-                </p>
-                {list.length > 0 && (
-                  <ul className="rt-plain">
-                    {list.slice(0, 5).map((s) => (
-                      <li key={s.item.id}>
-                        {s.item.name} · {s.distM}m
-                      </li>
-                    ))}
-                    {list.length > 5 && <li className="bm-meta">외 {list.length - 5}곳</li>}
-                  </ul>
-                )}
-              </div>
-            ))}
-            <p className="bm-meta">출처: TAGO 버스정류소정보. 저상버스인지는 실시간 도착 정보로만 알 수 있어서 보여 드리지 않아요.</p>
           </section>
 
           <section className="rt-sec">
@@ -478,18 +509,33 @@ export default function RoutePanel(props: Props) {
         </section>
       )}
 
-      {status === 'loading' && (
+      <div className="tr-tabs" role="tablist" aria-label="이동 방법">
+        {(
+          [
+            ['walk', '걸어서'],
+            ['bus', '버스 타고'],
+          ] as const
+        ).map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={mode === id} className={'tr-tab' + (mode === id ? ' on' : '')} onClick={() => setMode(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'bus' && <TransitView from={from} to={to} pairId={pairId} obstacles={obstaclesNow} onOverlay={setTransitOv} onOpenHit={openHit} />}
+
+      {mode === 'walk' && status === 'loading' && (
         <p className="rf-notice" role="status">
           경로를 찾고 장애요소를 살펴보고 있어요…
         </p>
       )}
-      {status === 'error' && (
+      {mode === 'walk' && status === 'error' && (
         <p className="rf-warn" role="alert">
           {error}
         </p>
       )}
 
-      {status === 'done' && result && activeCard && (
+      {mode === 'walk' && status === 'done' && result && activeCard && (
         <>
           <section className="rt-sec rt-result" aria-live="polite">
             <h3 className="rt-route-title">
@@ -648,6 +694,8 @@ export default function RoutePanel(props: Props) {
               {FREE_SEARCH && ` (저장본 ${result.stats.stored} · 개발 서버 저장 ${result.stats.cached} · 새 TMAP 호출 ${result.stats.requested})`}
             </p>
           </section>
+
+          {stopsBlock}
 
           {extrasBlock}
         </>

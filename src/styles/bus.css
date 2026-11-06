@@ -1,0 +1,269 @@
+/* 7단계 저상버스 — 도착 정보 카드, 대중교통 경로. 색은 tokens.css 토큰만 쓴다(다크 모드 자동 대응). */
+.bus-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--bg-sub);
+}
+
+.bus-warn {
+  margin: 0;
+  padding: var(--s-3);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.bus-warn-x {
+  background: var(--r-x-soft);
+  color: var(--r-x-text);
+}
+
+.bus-warn-t {
+  background: var(--r-t-soft);
+  color: var(--r-t-text);
+}
+
+.bus-dirs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.bus-dir,
+.bus-load,
+.bus-refresh {
+  min-height: 40px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+
+.bus-dir.on {
+  border-color: var(--primary);
+  background: var(--primary-weak);
+  color: var(--blue-700);
+  font-weight: 700;
+}
+
+.bus-load {
+  border-color: var(--primary);
+  color: var(--blue-700);
+  font-weight: 700;
+}
+
+.bus-refresh {
+  align-self: flex-start;
+}
+
+.bus-mode {
+  margin: 0;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+
+.bus-mode-live {
+  color: var(--r-o-text);
+}
+
+.bus-mode-snap {
+  color: var(--r-t-text);
+}
+
+.bus-big {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--fs-sub);
+  line-height: 1.4;
+}
+
+.bus-none {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+}
+
+.bus-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bus-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-small);
+}
+
+.bus-row-mark {
+  font-weight: 700;
+}
+
+.bus-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bus-low {
+  background: var(--r-o-soft);
+  color: var(--r-o-text);
+}
+
+.bus-norm {
+  background: var(--r-n-soft);
+  color: var(--r-n-text);
+}
+
+.bus-line {
+  min-width: 64px;
+  color: var(--text-strong);
+}
+
+.bus-eta {
+  color: var(--text-sub);
+}
+
+.bus-more summary {
+  cursor: pointer;
+  color: var(--blue-700);
+  font-size: var(--fs-small);
+}
+
+.bus-line-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+/* 길찾기 탭 */
+.tr-tabs {
+  display: flex;
+  gap: var(--s-1);
+  padding: var(--s-1);
+  border-radius: var(--r-md);
+  background: var(--bg-page);
+}
+
+.tr-tab {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-sub);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tr-tab.on {
+  background: var(--bg);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-1);
+}
+
+.tr-itins {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tr-itin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tr-itin.on {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.tr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.tr-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--r-n-soft);
+  color: var(--r-n-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tr-chip-bus {
+  background: var(--primary-weak);
+  color: var(--blue-700);
+}
+
+.tr-leg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--line);
+}
+
+.tr-leg h4 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--fs-body);
+}
+
+.tr-alt {
+  margin: 0;
+  padding: var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--bg-sub);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.bus-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: var(--s-3) 0;
+}
+
+.bus-sec h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--fs-sub);
+}

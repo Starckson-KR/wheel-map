@@ -1,0 +1,950 @@
+{
+ "source": "광주광역시 광주버스정보(BIS) arriveInfo·busLocationInfo — 한 시점 스냅샷(실시간 아님)",
+ "provider": "광주광역시",
+ "url": "https://www.data.go.kr/data/15157923/openapi.do",
+ "collectedAt": "2026-10-30T07:10:37.296Z",
+ "note": "LOW_BUS 1=저상(응답 관찰 기준). 도착 시간은 수집 시각 기준이다.",
+ "stations": {
+  "289": {
+   "name": "도로교통공단 대신파크",
+   "collectedAt": "2026-10-30T07:10:33.989Z",
+   "arrivals": [
+    {
+     "lineId": "20",
+     "lineName": "일곡38",
+     "remainMin": 2,
+     "remainStop": 1,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "송산유원지"
+    },
+    {
+     "lineId": "54",
+     "lineName": "용봉83",
+     "remainMin": 2,
+     "remainStop": 1,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레(중앙여고방향)"
+    },
+    {
+     "lineId": "10",
+     "lineName": "송정19",
+     "remainMin": 5,
+     "remainStop": 2,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "도산동"
+    },
+    {
+     "lineId": "29",
+     "lineName": "운림54",
+     "remainMin": 6,
+     "remainStop": 4,
+     "low": false,
+     "kind": 2,
+     "dirEnd": "무등산국립공원(증심사)"
+    },
+    {
+     "lineId": "4",
+     "lineName": "진월07",
+     "remainMin": 8,
+     "remainStop": 3,
+     "low": true,
+     "kind": 1,
+     "dirEnd": "송암공단"
+    },
+    {
+     "lineId": "6",
+     "lineName": "지원15",
+     "remainMin": 8,
+     "remainStop": 7,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "월남동"
+    },
+    {
+     "lineId": "51",
+     "lineName": "문흥80",
+     "remainMin": 9,
+     "remainStop": 5,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "충장로5가입구"
+    },
+    {
+     "lineId": "15",
+     "lineName": "일곡28",
+     "remainMin": 11,
+     "remainStop": 10,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "매월동"
+    },
+    {
+     "lineId": "31",
+     "lineName": "419",
+     "remainMin": 27,
+     "remainStop": 14,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "조선대해오름관"
+    }
+   ]
+  },
+  "642": {
+   "name": "북구청",
+   "collectedAt": "2026-10-30T07:10:34.418Z",
+   "arrivals": [
+    {
+     "lineId": "15",
+     "lineName": "일곡28",
+     "remainMin": 3,
+     "remainStop": 1,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "매월동"
+    },
+    {
+     "lineId": "213",
+     "lineName": "마을788",
+     "remainMin": 3,
+     "remainStop": 1,
+     "low": false,
+     "kind": 4,
+     "dirEnd": "시화문화마을문화관"
+    },
+    {
+     "lineId": "54",
+     "lineName": "용봉83",
+     "remainMin": 6,
+     "remainStop": 4,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레(중앙여고방향)"
+    },
+    {
+     "lineId": "20",
+     "lineName": "일곡38",
+     "remainMin": 7,
+     "remainStop": 4,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "송산유원지"
+    },
+    {
+     "lineId": "10",
+     "lineName": "송정19",
+     "remainMin": 9,
+     "remainStop": 5,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "도산동"
+    },
+    {
+     "lineId": "30",
+     "lineName": "금남55",
+     "remainMin": 9,
+     "remainStop": 6,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "장등동"
+    },
+    {
+     "lineId": "51",
+     "lineName": "문흥80",
+     "remainMin": 13,
+     "remainStop": 8,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "충장로5가입구"
+    },
+    {
+     "lineId": "14",
+     "lineName": "봉선27",
+     "remainMin": 14,
+     "remainStop": 11,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "용산지구"
+    },
+    {
+     "lineId": "86",
+     "lineName": "518",
+     "remainMin": 28,
+     "remainStop": 12,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "효령노인복지타운"
+    },
+    {
+     "lineId": "106",
+     "lineName": "두암81",
+     "remainMin": 30,
+     "remainStop": 16,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "장등마을(장등동경유)"
+    }
+   ]
+  },
+  "643": {
+   "name": "북구청",
+   "collectedAt": "2026-10-30T07:10:34.621Z",
+   "arrivals": [
+    {
+     "lineId": "20",
+     "lineName": "일곡38",
+     "remainMin": 2,
+     "remainStop": 2,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "살레시오고"
+    },
+    {
+     "lineId": "10",
+     "lineName": "송정19",
+     "remainMin": 3,
+     "remainStop": 2,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "장등동"
+    },
+    {
+     "lineId": "86",
+     "lineName": "518",
+     "remainMin": 6,
+     "remainStop": 3,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "상무지구"
+    },
+    {
+     "lineId": "542",
+     "lineName": "나주160",
+     "remainMin": 6,
+     "remainStop": 3,
+     "low": false,
+     "kind": 6,
+     "dirEnd": "문흥종점"
+    },
+    {
+     "lineId": "213",
+     "lineName": "마을788",
+     "remainMin": 7,
+     "remainStop": 4,
+     "low": false,
+     "kind": 4,
+     "dirEnd": "남부대시립국제수영장"
+    },
+    {
+     "lineId": "14",
+     "lineName": "봉선27",
+     "remainMin": 10,
+     "remainStop": 6,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "첨단"
+    },
+    {
+     "lineId": "15",
+     "lineName": "일곡28",
+     "remainMin": 11,
+     "remainStop": 7,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "살레시오고"
+    },
+    {
+     "lineId": "30",
+     "lineName": "금남55",
+     "remainMin": 11,
+     "remainStop": 8,
+     "low": true,
+     "kind": 3,
+     "dirEnd": "덕남마을 입구"
+    },
+    {
+     "lineId": "51",
+     "lineName": "문흥80",
+     "remainMin": 16,
+     "remainStop": 9,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "장등동"
+    },
+    {
+     "lineId": "54",
+     "lineName": "용봉83",
+     "remainMin": 18,
+     "remainStop": 10,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레(북구청방향)"
+    }
+   ]
+  },
+  "644": {
+   "name": "북구보건소",
+   "collectedAt": "2026-10-30T07:10:32.989Z",
+   "arrivals": [
+    {
+     "lineId": "86",
+     "lineName": "518",
+     "remainMin": 8,
+     "remainStop": 4,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "상무지구"
+    },
+    {
+     "lineId": "31",
+     "lineName": "419",
+     "remainMin": 32,
+     "remainStop": 17,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "조선대해오름관"
+    }
+   ]
+  },
+  "869": {
+   "name": "용봉2휴먼시아아파트",
+   "collectedAt": "2026-10-30T07:10:33.177Z",
+   "arrivals": [
+    {
+     "lineId": "13",
+     "lineName": "매월26",
+     "remainMin": 3,
+     "remainStop": 2,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "용전"
+    },
+    {
+     "lineId": "32",
+     "lineName": "금남57",
+     "remainMin": 3,
+     "remainStop": 2,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "살레시오고"
+    },
+    {
+     "lineId": "38",
+     "lineName": "상무64",
+     "remainMin": 6,
+     "remainStop": 3,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레전시관"
+    },
+    {
+     "lineId": "17",
+     "lineName": "첨단30",
+     "remainMin": 15,
+     "remainStop": 8,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "국립광주과학관"
+    }
+   ]
+  },
+  "907": {
+   "name": "전남대공과대학",
+   "collectedAt": "2026-10-30T07:10:34.843Z",
+   "arrivals": [
+    {
+     "lineId": "20",
+     "lineName": "일곡38",
+     "remainMin": 3,
+     "remainStop": 2,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "송산유원지"
+    },
+    {
+     "lineId": "54",
+     "lineName": "용봉83",
+     "remainMin": 3,
+     "remainStop": 2,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레(중앙여고방향)"
+    },
+    {
+     "lineId": "10",
+     "lineName": "송정19",
+     "remainMin": 6,
+     "remainStop": 3,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "도산동"
+    },
+    {
+     "lineId": "51",
+     "lineName": "문흥80",
+     "remainMin": 10,
+     "remainStop": 6,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "충장로5가입구"
+    },
+    {
+     "lineId": "9",
+     "lineName": "문흥18",
+     "remainMin": 11,
+     "remainStop": 5,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "진곡산단"
+    },
+    {
+     "lineId": "15",
+     "lineName": "일곡28",
+     "remainMin": 13,
+     "remainStop": 11,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "매월동"
+    },
+    {
+     "lineId": "31",
+     "lineName": "419",
+     "remainMin": 29,
+     "remainStop": 15,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "조선대해오름관"
+    }
+   ]
+  },
+  "940": {
+   "name": "용봉우미아파트",
+   "collectedAt": "2026-10-30T07:10:35.049Z",
+   "arrivals": [
+    {
+     "lineId": "31",
+     "lineName": "419",
+     "remainMin": 2,
+     "remainStop": 1,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "살레시오고"
+    }
+   ]
+  },
+  "1003": {
+   "name": "용봉한화꿈에그린",
+   "collectedAt": "2026-10-30T07:10:32.780Z",
+   "arrivals": [
+    {
+     "lineId": "31",
+     "lineName": "419",
+     "remainMin": 25,
+     "remainStop": 13,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "조선대해오름관"
+    }
+   ]
+  },
+  "1004": {
+   "name": "용봉한화꿈에그린",
+   "collectedAt": "2026-10-30T07:10:32.581Z",
+   "arrivals": [
+    {
+     "lineId": "54",
+     "lineName": "용봉83",
+     "remainMin": 4,
+     "remainStop": 1,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레(북구청방향)"
+    }
+   ]
+  },
+  "1007": {
+   "name": "용봉초교",
+   "collectedAt": "2026-10-30T07:10:33.586Z",
+   "arrivals": [
+    {
+     "lineId": "9",
+     "lineName": "문흥18",
+     "remainMin": 3,
+     "remainStop": 1,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "진곡산단"
+    },
+    {
+     "lineId": "13",
+     "lineName": "매월26",
+     "remainMin": 3,
+     "remainStop": 2,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "매월동"
+    },
+    {
+     "lineId": "14",
+     "lineName": "봉선27",
+     "remainMin": 3,
+     "remainStop": 1,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "첨단"
+    },
+    {
+     "lineId": "38",
+     "lineName": "상무64",
+     "remainMin": 5,
+     "remainStop": 4,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "세하동"
+    },
+    {
+     "lineId": "98",
+     "lineName": "수완49",
+     "remainMin": 8,
+     "remainStop": 4,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "수완지구"
+    },
+    {
+     "lineId": "54",
+     "lineName": "용봉83",
+     "remainMin": 8,
+     "remainStop": 4,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레(중앙여고방향)"
+    },
+    {
+     "lineId": "24",
+     "lineName": "송암47",
+     "remainMin": 12,
+     "remainStop": 8,
+     "low": false,
+     "kind": 2,
+     "dirEnd": "덕남마을 입구"
+    },
+    {
+     "lineId": "43",
+     "lineName": "송암72",
+     "remainMin": 17,
+     "remainStop": 10,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "수완지구"
+    },
+    {
+     "lineId": "752",
+     "lineName": "담양311-1",
+     "remainMin": 17,
+     "remainStop": 11,
+     "low": false,
+     "kind": 6,
+     "dirEnd": "신세계백화점"
+    }
+   ]
+  },
+  "1008": {
+   "name": "용봉초교",
+   "collectedAt": "2026-10-30T07:10:33.378Z",
+   "arrivals": [
+    {
+     "lineId": "740",
+     "lineName": "담양311",
+     "remainMin": 1,
+     "remainStop": 1,
+     "low": false,
+     "kind": 6,
+     "dirEnd": "국립목포대학교담양캠퍼스"
+    },
+    {
+     "lineId": "43",
+     "lineName": "송암72",
+     "remainMin": 4,
+     "remainStop": 4,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "송암공단"
+    },
+    {
+     "lineId": "14",
+     "lineName": "봉선27",
+     "remainMin": 7,
+     "remainStop": 6,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "용산지구"
+    },
+    {
+     "lineId": "210",
+     "lineName": "마을777",
+     "remainMin": 10,
+     "remainStop": 4,
+     "low": false,
+     "kind": 4,
+     "dirEnd": "전남대용봉탑"
+    },
+    {
+     "lineId": "24",
+     "lineName": "송암47",
+     "remainMin": 13,
+     "remainStop": 7,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "장등동"
+    },
+    {
+     "lineId": "9",
+     "lineName": "문흥18",
+     "remainMin": 14,
+     "remainStop": 10,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "장등동"
+    },
+    {
+     "lineId": "13",
+     "lineName": "매월26",
+     "remainMin": 17,
+     "remainStop": 8,
+     "low": false,
+     "kind": 2,
+     "dirEnd": "용전"
+    },
+    {
+     "lineId": "98",
+     "lineName": "수완49",
+     "remainMin": 17,
+     "remainStop": 11,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "무등산국립공원(증심사)"
+    },
+    {
+     "lineId": "38",
+     "lineName": "상무64",
+     "remainMin": 22,
+     "remainStop": 11,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레전시관"
+    }
+   ]
+  },
+  "1125": {
+   "name": "유창아파트",
+   "collectedAt": "2026-10-30T07:10:35.264Z",
+   "arrivals": [
+    {
+     "lineId": "54",
+     "lineName": "용봉83",
+     "remainMin": 9,
+     "remainStop": 3,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레(북구청방향)"
+    },
+    {
+     "lineId": "13",
+     "lineName": "매월26",
+     "remainMin": 12,
+     "remainStop": 7,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "매월동"
+    },
+    {
+     "lineId": "32",
+     "lineName": "금남57",
+     "remainMin": 14,
+     "remainStop": 8,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "조선대해오름관"
+    },
+    {
+     "lineId": "17",
+     "lineName": "첨단30",
+     "remainMin": 25,
+     "remainStop": 13,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "운암산코오롱하늘채"
+    }
+   ]
+  },
+  "1207": {
+   "name": "전남대사거리(동)",
+   "collectedAt": "2026-10-30T07:10:34.211Z",
+   "arrivals": [
+    {
+     "lineId": "114",
+     "lineName": "수완03",
+     "remainMin": 4,
+     "remainStop": 1,
+     "low": true,
+     "kind": 1,
+     "dirEnd": "폭스존(대창운수)"
+    },
+    {
+     "lineId": "4",
+     "lineName": "진월07",
+     "remainMin": 6,
+     "remainStop": 3,
+     "low": true,
+     "kind": 1,
+     "dirEnd": "송암공단"
+    },
+    {
+     "lineId": "112",
+     "lineName": "순환01-B",
+     "remainMin": 9,
+     "remainStop": 6,
+     "low": false,
+     "kind": 1,
+     "dirEnd": "세하동"
+    },
+    {
+     "lineId": "24",
+     "lineName": "송암47",
+     "remainMin": 10,
+     "remainStop": 7,
+     "low": false,
+     "kind": 2,
+     "dirEnd": "덕남마을 입구"
+    },
+    {
+     "lineId": "14",
+     "lineName": "봉선27",
+     "remainMin": 15,
+     "remainStop": 9,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "첨단"
+    },
+    {
+     "lineId": "752",
+     "lineName": "담양311-1",
+     "remainMin": 15,
+     "remainStop": 10,
+     "low": false,
+     "kind": 6,
+     "dirEnd": "신세계백화점"
+    },
+    {
+     "lineId": "30",
+     "lineName": "금남55",
+     "remainMin": 16,
+     "remainStop": 11,
+     "low": true,
+     "kind": 3,
+     "dirEnd": "덕남마을 입구"
+    },
+    {
+     "lineId": "9",
+     "lineName": "문흥18",
+     "remainMin": 17,
+     "remainStop": 9,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "진곡산단"
+    }
+   ]
+  },
+  "1208": {
+   "name": "전대치과병원",
+   "collectedAt": "2026-10-30T07:10:33.782Z",
+   "arrivals": [
+    {
+     "lineId": "13",
+     "lineName": "매월26",
+     "remainMin": 2,
+     "remainStop": 1,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "용전"
+    },
+    {
+     "lineId": "32",
+     "lineName": "금남57",
+     "remainMin": 2,
+     "remainStop": 1,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "살레시오고"
+    },
+    {
+     "lineId": "38",
+     "lineName": "상무64",
+     "remainMin": 4,
+     "remainStop": 2,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "비엔날레전시관"
+    },
+    {
+     "lineId": "17",
+     "lineName": "첨단30",
+     "remainMin": 13,
+     "remainStop": 7,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "국립광주과학관"
+    },
+    {
+     "lineId": "123",
+     "lineName": "지원152",
+     "remainMin": 46,
+     "remainStop": 28,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "전대치과병원"
+    }
+   ]
+  },
+  "1210": {
+   "name": "전남대",
+   "collectedAt": "2026-10-30T07:10:35.478Z",
+   "arrivals": [
+    {
+     "lineId": "38",
+     "lineName": "상무64",
+     "remainMin": 2,
+     "remainStop": 2,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "세하동"
+    },
+    {
+     "lineId": "17",
+     "lineName": "첨단30",
+     "remainMin": 4,
+     "remainStop": 3,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "운암산코오롱하늘채"
+    },
+    {
+     "lineId": "86",
+     "lineName": "518",
+     "remainMin": 11,
+     "remainStop": 5,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "상무지구"
+    },
+    {
+     "lineId": "13",
+     "lineName": "매월26",
+     "remainMin": 18,
+     "remainStop": 11,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "매월동"
+    },
+    {
+     "lineId": "32",
+     "lineName": "금남57",
+     "remainMin": 20,
+     "remainStop": 12,
+     "low": false,
+     "kind": 3,
+     "dirEnd": "조선대해오름관"
+    }
+   ]
+  },
+  "1290": {
+   "name": "효동초교입구",
+   "collectedAt": "2026-10-30T07:10:35.685Z",
+   "arrivals": [
+    {
+     "lineId": "4",
+     "lineName": "진월07",
+     "remainMin": 4,
+     "remainStop": 2,
+     "low": true,
+     "kind": 1,
+     "dirEnd": "송암공단"
+    },
+    {
+     "lineId": "14",
+     "lineName": "봉선27",
+     "remainMin": 12,
+     "remainStop": 7,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "첨단"
+    },
+    {
+     "lineId": "30",
+     "lineName": "금남55",
+     "remainMin": 13,
+     "remainStop": 9,
+     "low": true,
+     "kind": 3,
+     "dirEnd": "덕남마을 입구"
+    },
+    {
+     "lineId": "9",
+     "lineName": "문흥18",
+     "remainMin": 15,
+     "remainStop": 7,
+     "low": true,
+     "kind": 2,
+     "dirEnd": "진곡산단"
+    }
+   ]
+  }
+ },
+ "lines": {
+  "419": {
+   "lineName": "419",
+   "total": 4,
+   "low": 0,
+   "collectedAt": "2026-10-30T07:10:36.771Z"
+  },
+  "518": {
+   "lineName": "518",
+   "total": 7,
+   "low": 0,
+   "collectedAt": "2026-10-30T07:10:37.145Z"
+  },
+  "진월07": {
+   "lineName": "진월07",
+   "total": 16,
+   "low": 12,
+   "collectedAt": "2026-10-30T07:10:35.979Z"
+  },
+  "문흥18": {
+   "lineName": "문흥18",
+   "total": 14,
+   "low": 13,
+   "collectedAt": "2026-10-30T07:10:36.173Z"
+  },
+  "일곡28": {
+   "lineName": "일곡28",
+   "total": 14,
+   "low": 13,
+   "collectedAt": "2026-10-30T07:10:36.382Z"
+  },
+  "봉선27": {
+   "lineName": "봉선27",
+   "total": 16,
+   "low": 13,
+   "collectedAt": "2026-10-30T07:10:36.577Z"
+  },
+  "용봉83": {
+   "lineName": "용봉83",
+   "total": 5,
+   "low": 0,
+   "collectedAt": "2026-10-30T07:10:36.959Z"
+  }
+ }
+}

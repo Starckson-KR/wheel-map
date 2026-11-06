@@ -1,4 +1,7 @@
+import BusArrivals from '../components/BusArrivals'
 import PhotoGallery from '../components/PhotoGallery'
+import { PILOT_STOPS } from '../lib/bus/data.ts'
+import type { BoardingWarn } from '../lib/bus/boarding.ts'
 import SheetHandle from '../components/SheetHandle'
 import { RATING_STYLE } from '../lib/rating'
 import { IMPACT_INFO, impactLine, impactOf, shortName } from '../lib/display'
@@ -42,6 +45,12 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
   const rating = own ?? inherited
   const style = RATING_STYLE[rating ?? 'none']
   const impact = impactOf(b, parent)
+  // 7단계: 시범 정류장은 실제 BIS 정류소와 짝지어 둔 것이 있으면 저상버스 도착 정보를 보여 준다(없으면 이 구역은 나오지 않음)
+  const stopEntry = PILOT_STOPS.items[b.id]
+  const stopWarns: BoardingWarn[] =
+    impact === 'boarding' && (rating === 'X' || rating === 'TRIANGLE')
+      ? [{ id: b.id, name: b.issue ?? shortName(b.id, b.name), rating, distM: 0, origin: 'seed', parentKey: b.id }]
+      : []
 
   return (
     <aside className="bm-detail" data-sheet aria-label="지점 상세">
@@ -70,6 +79,18 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
         <i className="hm-cat">{IMPACT_INFO[impact].glyph}</i>
         {impactLine(impact, rating ?? 'none')}
       </p>
+
+      {stopEntry && (
+        <section className="bus-sec" aria-label="저상버스 정보">
+          <h3>저상버스 도착 정보</h3>
+          {stopEntry.status !== 'ok' && <p className="bm-meta">실제 정류소와 짝짓기가 애매해요: {stopEntry.note}.{stopEntry.matches.length > 1 ? ' 아래 방면을 눌러 맞는 쪽을 골라 주세요.' : ''}</p>}
+          <BusArrivals
+            key={b.id}
+            choices={stopEntry.matches.map((m) => ({ stationId: m.stationId, name: m.name, next: m.next }))}
+            warns={stopWarns}
+          />
+        </section>
+      )}
 
       <dl>
         <dt>종류</dt>

@@ -1,5 +1,5 @@
 // 광주 북구 공공데이터 사전 수집 스크립트 (키는 브라우저에 넣지 않고 미리 받아 JSON으로 저장)
-// 사용: node scripts/prefetch.ts [crosswalks|toilets|facilities|bus-stops|lowfloor-check|routes [쌍id]|all]  (routes는 all에 포함되지 않음)
+// 사용: node scripts/prefetch.ts [crosswalks|toilets|facilities|bus-stops|lowfloor-check|routes [쌍id]|pilot-stops|transit-demo|bus-snapshot|all]  (routes는 all에 포함되지 않음)
 // 결과: data/public/<이름>.json / 캐시: data/public/.cache/ / 통계: data/public/.cache/stats.json
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,6 +8,10 @@ import { mergeBarriers } from '../src/lib/seedMerge.ts';
 import { buildObstacles } from '../src/lib/routing/obstacles.ts';
 import { searchRoute, viaKey, verdictOf, type Pt, type RouteData } from '../src/lib/routing/engine.ts';
 import { callTmap } from './tmapClient.ts';
+import { bisArrive, bisLineLow } from './bisClient.ts';
+import { callTransit, TRANSIT_DAILY_CAP, transitCallsToday } from './transitClient.ts';
+import { classifyMatch, matchBisStop, PILOT_MATCH_RADIUS_M, stopsNear, type BisStop, type PilotStopEntry } from '../src/lib/bus/stops.ts';
+import type { TItinerary } from '../src/lib/transit/parse.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PUB = path.join(ROOT, 'data', 'public');
@@ -851,6 +855,123 @@ async function routes() {
   log('  routes 저장 완료. 이번 실행에서 TMAP 실제 호출:', fresh, '회');
 }
 
+// ---------- 7단계: 저상버스 ----------
+function seedBarriers() {
+  const seed = path.join(ROOT, 'data', 'seed');
+  return mergeBarriers(
+    readJson<any[]>(path.join(seed, 'barriers.json'), []),
+    readJson<any[]>(path.join(seed, 'pilot_coords.json'), []),
+    readJson<any[]>(path.join(seed, 'pilot_candidates.json'), []),
+  );
+}
+function readBisStops(): BisStop[] {
+  const j = readJson<{ items: any[] }>(path.join(PUB, 'bus-stops.bis.json'), { items: [] });
+  return j.items.map((x) => ({ id: String(x.id), name: x.name, lat: x.lat, lng: x.lng, ars: x.fields?.ARS_ID, next: x.fields?.NEXT_BUSSTOP }));
+}
+
+// 시범 경로의 정류장(영향 종류 boarding)을 실제 BIS 정류소와 짝짓는다(좌표 40m 이내, API 호출 없음).
+// 결과: data/public/pilot-stops.json — 애매한 것(status ambiguous/none)은 note에 이유를 적는다.
+async function pilotStops() {
+  const barriers = seedBarriers();
+  const byId = new Map(barriers.map((b: any) => [b.id, b]));
+  const bis = readBisStops();
+  const items: Record<string, PilotStopEntry> = {};
+  for (const b of barriers as any[]) {
+    const impact = b.impact ?? byId.get(b.parentId)?.impact;
+    if (impact !== 'boarding' || !b.geometry) continue;
+    const g = b.geometry;
+    let pts: Pt[] = g.kind === 'point' ? [g.at] : g.path;
+    if (g.kind === 'area') {
+      const cx = g.path.reduce((a: number, p: Pt) => a + p[0], 0) / g.path.length;
+      const cy = g.path.reduce((a: number, p: Pt) => a + p[1], 0) / g.path.length;
+      pts = [...g.path, [cx, cy]];
+    }
+    const matches = stopsNear(pts, bis, PILOT_MATCH_RADIUS_M).slice(0, 4);
+    const c = classifyMatch(matches);
+    items[b.id] = { barrierId: b.id, matches, status: c.status, primary: c.primary, note: c.note };
+    log('  ' + b.id, b.name, c.status, matches.map((m) => `${m.name}(${m.stationId}, ${m.next ?? ''}, ${m.distM}m)`).join(' / '), c.note);
+  }
+  writeJson(path.join(PUB, 'pilot-stops.json'), {
+    source: '시범 경로 정류장(팀 조사) ↔ 광주 BIS 정류소(bus-stops.bis.json) 좌표 짝짓기',
+    generatedAt: new Date().toISOString(),
+    radiusM: PILOT_MATCH_RADIUS_M,
+    items,
+  });
+}
+
+// 시연 쌍마다 TMAP 대중교통 경로(최대 3개)를 받아 data/routes/transit.json에 저장한다. 같은 요청은 캐시, 하루 상한은 transitClient.ts.
+async function transitDemo() {
+  const rdir = path.join(ROOT, 'data', 'routes');
+  const pairs = readJson<any[]>(path.join(rdir, 'pairs.json'), []);
+  const byId = new Map(seedBarriers().map((b: any) => [b.id, b]));
+  const outPath = path.join(rdir, 'transit.json');
+  const out = readJson<any>(outPath, { source: 'TMAP 대중교통 경로(SK open API)', pairs: {} });
+  let fresh = 0;
+  for (const pair of pairs) {
+    const f: any = byId.get(pair.fromId), t: any = byId.get(pair.toId);
+    if (f?.geometry?.kind !== 'point' || t?.geometry?.kind !== 'point') continue;
+    const r = await callTransit({ from: f.geometry.at, to: t.geometry.at }, TMAP_KEY, ROOT);
+    if (!r.ok) { log('  ' + pair.id, '실패:', r.error); continue; }
+    if (!r.fromCache) fresh++;
+    out.pairs[pair.id] = { fromId: pair.fromId, toId: pair.toId, fetchedAt: new Date().toISOString(), itineraries: r.itineraries };
+    log('  ' + pair.id, r.fromCache ? '(캐시)' : '(호출)', r.itineraries.map((i) => `${Math.round(i.time / 60)}분 ${i.legs.map((l) => l.mode === 'BUS' ? l.lineName : l.mode === 'WALK' ? '도보' : l.mode).join('>')}`).join(' | '));
+  }
+  out.fetchedAt = new Date().toISOString();
+  writeJson(outPath, out);
+  log(`  transit 저장 완료. 이번 실행의 TMAP 대중교통 실제 호출 ${fresh}회, 오늘 누적 ${transitCallsToday(ROOT)}/${TRANSIT_DAILY_CAP}`);
+}
+
+// 발표(배포)판용 한 시점 스냅샷: 시범 정류장 + 대중교통 시연 경로의 승·하차 정류소의 도착정보와 노선별 운행 저상 수.
+// 실시간이 아니다 — collectedAt을 같이 저장해 화면에 '○시 ○분 기준'으로 보여 준다. BIS 호출 상한 50회 안에서만.
+async function busSnapshot() {
+  const bis = readBisStops();
+  const pilot = readJson<any>(path.join(PUB, 'pilot-stops.json'), { items: {} });
+  const transit = readJson<any>(path.join(ROOT, 'data', 'routes', 'transit.json'), { pairs: {} });
+  const ids = new Map<string, string>();
+  for (const e of Object.values<any>(pilot.items)) for (const m of e.matches) ids.set(m.stationId, m.name);
+  const lines = new Set<string>();
+  for (const pr of Object.values<any>(transit.pairs)) {
+    for (const it of pr.itineraries as TItinerary[]) {
+      for (const l of it.legs) {
+        if (l.mode !== 'BUS' || !l.stations?.length) continue;
+        if (l.lineName) lines.add(l.lineName);
+        const a = matchBisStop(l.stations[0], l.stations[1]?.name, bis);
+        const z = matchBisStop(l.stations[l.stations.length - 1], undefined, bis);
+        for (const m of [a, z]) if (m) ids.set(m.stop.id, m.stop.name);
+      }
+    }
+  }
+  const MAX_ST = 28;
+  const list = [...ids.entries()].slice(0, MAX_ST);
+  log(`  정류소 ${list.length}곳(상한 ${MAX_ST}), 노선 ${lines.size}개`);
+  const stations: Record<string, any> = {};
+  let calls = 0;
+  for (const [id, name] of list) {
+    const r = await bisArrive(id, DATA_KEY, ROOT, 0);
+    if (!r.ok) { log('  ', id, name, '실패:', r.error); if (r.limit) break; continue; }
+    if (!r.fromCache) calls++;
+    stations[id] = { name, collectedAt: r.collectedAt, arrivals: r.arrivals };
+    await sleep(150);
+  }
+  const lineLow: Record<string, any> = {};
+  for (const ln of [...lines].slice(0, 8)) {
+    const r = await bisLineLow(ln, DATA_KEY, ROOT);
+    if (!r.ok) { log('  노선', ln, '실패:', r.error); continue; }
+    lineLow[ln] = r.data;
+    await sleep(150);
+  }
+  writeJson(path.join(PUB, 'bus-snapshot.json'), {
+    source: '광주광역시 광주버스정보(BIS) arriveInfo·busLocationInfo — 한 시점 스냅샷(실시간 아님)',
+    provider: '광주광역시',
+    url: 'https://www.data.go.kr/data/15157923/openapi.do',
+    collectedAt: new Date().toISOString(),
+    note: 'LOW_BUS 1=저상(응답 관찰 기준). 도착 시간은 수집 시각 기준이다.',
+    stations,
+    lines: lineLow,
+  });
+  log(`  스냅샷 저장: 정류소 ${Object.keys(stations).length}곳, 노선 ${Object.keys(lineLow).length}개 (도착정보 새 호출 ${calls}회)`);
+}
+
 // ---------- 실행 ----------
 const jobs: Record<string, () => Promise<void>> = {
   crosswalks,
@@ -860,9 +981,12 @@ const jobs: Record<string, () => Promise<void>> = {
   'bus-stops-bis': busStopsBis,
   'lowfloor-check': lowfloorCheck,
   routes,
+  'pilot-stops': pilotStops,
+  'transit-demo': transitDemo,
+  'bus-snapshot': busSnapshot,
 };
 const arg = process.argv[2] ?? 'all';
-const run = arg === 'all' ? Object.keys(jobs).filter((n) => n !== 'routes') : [arg]; // routes는 TMAP 호출이 들어가 따로 실행
+const run = arg === 'all' ? Object.keys(jobs).filter((n) => !['routes', 'transit-demo', 'bus-snapshot'].includes(n)) : [arg]; // routes는 TMAP 호출이 들어가 따로 실행
 if (run.some((n) => !(n in jobs))) {
   console.error('사용: node scripts/prefetch.ts [' + Object.keys(jobs).join('|') + '|all]');
   process.exit(1);

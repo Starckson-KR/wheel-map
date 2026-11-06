@@ -555,6 +555,14 @@ export default function BarrierMap() {
     }
     draw(overlay.base, 'base')
     draw(overlay.detour, 'detour')
+    for (const l of overlay.legs ?? []) {
+      const lls = l.coords.map(ll)
+      const bus = l.kind === 'bus'
+      shapes.push(
+        new k.maps.Polyline({ map, path: lls, strokeWeight: (bus ? 9 : 7) + 5, strokeColor: '#ffffff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 8 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: bus ? 9 : 7, strokeColor: bus ? '#1b64da' : '#6b7684', strokeOpacity: 1, strokeStyle: bus ? 'solid' : 'shortdash', zIndex: 9 }),
+      )
+    }
     const flag = (p: Place, text: string, cls: string) => {
       const el = document.createElement('div')
       el.className = 'rt-flag ' + cls
@@ -591,7 +599,7 @@ export default function BarrierMap() {
     if (overlay.fitKey !== lastFit.current) {
       lastFit.current = overlay.fitKey
       const b = new k.maps.LatLngBounds()
-      for (const p of [...(overlay.base ?? []), ...(overlay.detour ?? [])]) b.extend(new k.maps.LatLng(p[0], p[1]))
+      for (const p of [...(overlay.base ?? []), ...(overlay.detour ?? []), ...(overlay.legs ?? []).flatMap((l) => l.coords)]) b.extend(new k.maps.LatLng(p[0], p[1]))
       setTimeout(() => {
         map.relayout()
         map.setBounds(b, isDesktopLayout() ? 60 : 70, 40, isDesktopLayout() ? 80 : Math.round(window.innerHeight * 0.66), isDesktopLayout() ? 480 : 40)

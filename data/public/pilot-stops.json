@@ -1,0 +1,111 @@
+{
+ "source": "시범 경로 정류장(팀 조사) ↔ 광주 BIS 정류소(bus-stops.bis.json) 좌표 짝짓기",
+ "generatedAt": "2026-10-30T07:10:07.628Z",
+ "radiusM": 40,
+ "items": {
+  "R15-1": {
+   "barrierId": "R15-1",
+   "matches": [
+    {
+     "stationId": "1004",
+     "name": "용봉한화꿈에그린",
+     "ars": "4389",
+     "next": "삼원맨션",
+     "distM": 4
+    }
+   ],
+   "status": "ok",
+   "primary": "1004",
+   "note": ""
+  },
+  "R15-2": {
+   "barrierId": "R15-2",
+   "matches": [
+    {
+     "stationId": "1003",
+     "name": "용봉한화꿈에그린",
+     "ars": "4390",
+     "next": "도로교통공단 대신파크",
+     "distM": 11
+    },
+    {
+     "stationId": "1004",
+     "name": "용봉한화꿈에그린",
+     "ars": "4389",
+     "next": "삼원맨션",
+     "distM": 33
+    }
+   ],
+   "status": "ok",
+   "primary": "1003",
+   "note": "반대편 후보 1개 있음"
+  },
+  "R16": {
+   "barrierId": "R16",
+   "matches": [
+    {
+     "stationId": "644",
+     "name": "북구보건소",
+     "ars": "4545",
+     "next": "중흥2동주민센터",
+     "distM": 4
+    }
+   ],
+   "status": "ok",
+   "primary": "644",
+   "note": ""
+  },
+  "B02": {
+   "barrierId": "B02",
+   "matches": [
+    {
+     "stationId": "869",
+     "name": "용봉2휴먼시아아파트",
+     "ars": "4413",
+     "next": "신안교입구",
+     "distM": 34
+    }
+   ],
+   "status": "ambiguous",
+   "primary": "869",
+   "note": "가장 가까운 정류소가 34m로 멀어 같은 정류장인지 확인 필요"
+  },
+  "B03": {
+   "barrierId": "B03",
+   "matches": [
+    {
+     "stationId": "1008",
+     "name": "용봉초교",
+     "ars": "4344",
+     "next": "전남대사거리(동)",
+     "distM": 8
+    },
+    {
+     "stationId": "1007",
+     "name": "용봉초교",
+     "ars": "4345",
+     "next": "신안교",
+     "distM": 31
+    }
+   ],
+   "status": "ok",
+   "primary": "1008",
+   "note": "반대편 후보 1개 있음"
+  },
+  "B07": {
+   "barrierId": "B07",
+   "matches": [
+    {
+     "stationId": "1208",
+     "name": "전대치과병원",
+     "ars": "4412",
+     "next": "전대친환경농업연구소",
+     "distM": 8
+    }
+   ],
+   "status": "ok",
+   "primary": "1208",
+   "note": ""
+  }
+ }
+}

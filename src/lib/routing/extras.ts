@@ -1,9 +1,10 @@
 import { ROUTE_CROSSWALK_RADIUS_M, ROUTE_DEST_RADIUS_M, ROUTE_STOP_RADIUS_M } from '../config'
 import { loadPubDataset, toiletAccessible, type PubItem } from '../publicLayers'
+import { loadBisStops } from '../bus/data.ts'
 import { distM, distToRoute, type Pt } from './engine.ts'
 import type { Place } from './provider.ts'
 
-// 길찾기에 쓰는 공공데이터(참고 정보, ○△X 판정과 무관): 경로 근처 횡단보도, 출발·도착 근처 정류장, 목적지 장애인편의시설·화장실.
+// 길찾기에 쓰는 공공데이터(참고 정보, ○△X 판정과 무관): 경로 근처 횡단보도, 출발·도착 근처 정류장(BIS), 목적지 장애인편의시설·화장실.
 export type Near = { item: PubItem; distM: number }
 export type Extras = {
   stops: { start: Near[]; end: Near[] }
@@ -15,7 +16,11 @@ const norm = (s: string) => s.replace(/[\s()·\-,.]/g, '').toLowerCase()
 const at = (i: PubItem): Pt | null => (i.lat != null && i.lng != null ? [i.lat, i.lng] : null)
 
 export async function loadExtras(start: Place, end: Place): Promise<Extras> {
-  const [bus, fac, toilet, cross] = await Promise.all([loadPubDataset('bus'), loadPubDataset('facility'), loadPubDataset('toilet'), loadPubDataset('crosswalk')])
+  // 정류장은 실시간 저상버스 도착정보(광주 BIS)를 붙일 수 있도록 BIS 정류소 목록을 쓴다(TAGO 목록과 id가 다름).
+  const bisAsPub = async (): Promise<{ items: PubItem[] }> => ({
+    items: (await loadBisStops()).map((s) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng, address: '', fields: { ARS_ID: s.ars, NEXT_BUSSTOP: s.next } })),
+  })
+  const [bus, fac, toilet, cross] = await Promise.all([bisAsPub(), loadPubDataset('facility'), loadPubDataset('toilet'), loadPubDataset('crosswalk')])
   const around = (items: PubItem[], c: Place, r: number): Near[] =>
     items
       .map((item) => ({ item, p: at(item) }))

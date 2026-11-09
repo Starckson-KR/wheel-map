@@ -20,7 +20,7 @@ export function loadKakao(): Promise<typeof kakao> {
     script.onload = () => window.kakao.maps.load(() => resolve(window.kakao))
     script.onerror = () => {
       loading = null
-      reject(new Error('카카오맵 SDK를 불러오지 못했습니다. 키와 웹 도메인 등록(http://localhost:5173)을 확인해 주세요.'))
+      reject(new Error(`카카오맵 SDK를 불러오지 못했습니다. 키와 웹 도메인 등록(${window.location.origin})을 확인해 주세요.`))
     }
     document.head.appendChild(script)
   })

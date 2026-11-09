@@ -3,7 +3,7 @@ import { ReportThumb } from './ReportPhotos'
 import { STATUS_LABEL, isDone, useReports, userName } from '../lib/reportStore'
 import type { Report } from '../types'
 
-type Props = { onOpen: (id: string) => void; onClose: () => void }
+type Props = { onOpen: (id: string) => void; onClose?: () => void; embedded?: boolean }
 type Tab = 'all' | 'doing' | 'done'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'all', label: '전체' },
@@ -11,7 +11,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'done', label: '완료' },
 ]
 
-export default function ReportsPanel({ onOpen, onClose }: Props) {
+export default function ReportsPanel({ onOpen, onClose, embedded = false }: Props) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const [section, setSection] = useState<'mine' | 'todo'>('mine')
@@ -39,13 +39,15 @@ export default function ReportsPanel({ onOpen, onClose }: Props) {
   )
 
   return (
-    <div className="rp" role="dialog" aria-label="제보 현황">
+    <div className={'rp' + (embedded ? ' rp--embedded' : '')} role={embedded ? 'region' : 'dialog'} aria-label="제보 현황">
+      {!embedded && (
       <div className="rf-head">
         <h2>제보 현황</h2>
         <button type="button" className="bm-close" onClick={onClose}>
           닫기
         </button>
       </div>
+      )}
       <div className="rf-seg" role="tablist" aria-label="구분">
         <button type="button" role="tab" aria-selected={section === 'mine'} className={section === 'mine' ? 'on' : ''} onClick={() => setSection('mine')}>
           내 제보 {mine.length}

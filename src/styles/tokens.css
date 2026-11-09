@@ -164,7 +164,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root {
+  html:not(.motion-force) {
     --t-sheet: 1ms;
   }
 }

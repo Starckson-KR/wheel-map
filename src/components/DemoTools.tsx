@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { DEMO_USERS, useReports } from '../lib/reportStore'
 import type { Barrier } from '../types'
 import SheetHandle from './SheetHandle'
+import { getMotionForce, setMotionForce } from '../lib/viewPrefs'
 
 // 시연용 모의 연동 표시: 모의 접수 모드에서는 어느 화면에서나 계속 보인다.
 export function MockStrip() {
@@ -34,6 +35,7 @@ type Props = {
 export default function DemoTools({ page, onReset, barriers }: Props) {
   const [open, setOpen] = useState(false)
   const [msg, setMsg] = useState('')
+  const [motion, setMotion] = useState(getMotionForce)
   const userId = useReports((s) => s.userId)
   const setUser = useReports((s) => s.setUser)
   const mode = useReports((s) => s.complaintMode)
@@ -104,6 +106,19 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
             </div>
 
             <div className="ms-sec">
+              <h3>움직임 보기</h3>
+              <div className="rf-seg" role="group" aria-label="움직임 보기">
+                <button type="button" className={!motion ? 'on' : ''} aria-pressed={!motion} onClick={() => { setMotion(false); setMotionForce(false) }}>
+                  꺼짐
+                </button>
+                <button type="button" className={motion ? 'on' : ''} aria-pressed={motion} onClick={() => { setMotion(true); setMotionForce(true) }}>
+                  켜짐
+                </button>
+              </div>
+              <p className="bm-meta">기기에서 움직임 줄이기를 켜 두었어도, 시연용으로 화면 움직임을 보여 줘요.</p>
+            </div>
+
+            <div className="ms-sec">
               <h3>시연 데이터</h3>
               <div className="rf-actions">
                 <button
@@ -151,7 +166,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                   type="button"
                   onClick={() => {
                     setOpen(false)
-                    location.hash = ''
+                    location.hash = '#/map'
                   }}
                 >
                   지도로 돌아가기

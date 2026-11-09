@@ -38,6 +38,18 @@ export type Barrier = BarrierAttrs & {
   geometry: Geometry | null
   parentId?: string
   locationStatus?: '미확정'
+  provisional?: Provisional // 확정 좌표는 없고 카카오 장소 검색 결과를 임시로 붙인 경우(geometry는 null 그대로 → 경로·통계에서 자동 제외)
+}
+
+export type Provisional = {
+  lat: number
+  lng: number
+  query: string
+  place: string
+  address: string
+  uncertain: boolean
+  lineAsPoint: boolean
+  note: string
 }
 
 // ---- 시민 제보(명세서 5장 Report + 상태 흐름 4-5) ----

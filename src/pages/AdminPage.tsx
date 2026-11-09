@@ -124,7 +124,7 @@ export default function AdminPage() {
     <div className="bm adm">
       <header className="adm-top">
         <div className="adm-brand">
-          <button type="button" onClick={() => (location.hash = '')}>
+          <button type="button" onClick={() => (location.hash = '#/map')}>
             지도로
           </button>
           <h1>북구동행지도 · 행정</h1>
@@ -227,7 +227,7 @@ export default function AdminPage() {
             seedName={(id) => BY_ID.get(id)?.name ?? null}
             onClose={() => setSelected(null)}
             onOpenReport={setSelected}
-            onOpenSeed={() => (location.hash = '')}
+            onOpenSeed={() => (location.hash = '#/map')}
           />
         )}
       </div>

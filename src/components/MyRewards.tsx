@@ -5,7 +5,7 @@ import { REWARD_DAILY_CAP } from '../lib/config'
 import { GRADE_EMBLEMS, SPECIAL_EMBLEM, TYPE_EMBLEMS, changedRoads, computeRewards, type PointEvent } from '../lib/rewards'
 import type { Barrier, Report } from '../types'
 
-type Props = { barriers: Barrier[]; onOpenReports: () => void; onOpenReport: (id: string) => void; onClose: () => void }
+type Props = { barriers: Barrier[]; onOpenReports: () => void; onOpenReport: (id: string) => void; onClose?: () => void; embedded?: boolean }
 type Tab = 'title' | 'points' | 'roads'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'title', label: '칭호·엠블럼' },
@@ -28,7 +28,7 @@ function groupCounts(mine: Report[]) {
   return g
 }
 
-export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClose }: Props) {
+export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClose, embedded = false }: Props) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const [tab, setTab] = useState<Tab>('title')
@@ -42,13 +42,15 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
   const events: PointEvent[] = rw.events.slice().reverse()
 
   return (
-    <div className="rp rw" role="dialog" aria-label="내 기여">
+    <div className={'rp rw' + (embedded ? ' rp--embedded' : '')} role={embedded ? 'region' : 'dialog'} aria-label="내 기여">
+      {!embedded && (
       <div className="rf-head">
         <h2>내 기여</h2>
         <button type="button" className="bm-close" onClick={onClose}>
           닫기
         </button>
       </div>
+      )}
 
       <section className="rw-hero" aria-label="칭호와 점수">
         {titleEmb ? <RewardEmblem def={titleEmb} size="lg" /> : <span className="emb emb-lg is-empty" aria-hidden="true">🌱</span>}

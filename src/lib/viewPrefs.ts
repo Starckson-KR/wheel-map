@@ -6,6 +6,7 @@ export type ThemeMode = 'system' | 'light' | 'dark'
 
 const VIEW_KEY = 'wheelmap.view'
 const THEME_KEY = 'wheelmap.theme'
+const MOTION_KEY = 'wheelmap.motionForce'
 
 function read(key: string): string | null {
   try {
@@ -52,8 +53,26 @@ export function setTheme(t: ThemeMode) {
   applyTheme(t)
 }
 
+// 시연용: 기기에서 움직임 줄이기를 켜 두었어도 화면 움직임을 보여 준다. <html class="motion-force">
+export function getMotionForce(): boolean {
+  return read(MOTION_KEY) === '1'
+}
+export function applyMotionForce(on: boolean) {
+  document.documentElement.classList.toggle('motion-force', on)
+}
+export function setMotionForce(on: boolean) {
+  write(MOTION_KEY, on ? '1' : '0')
+  applyMotionForce(on)
+}
+// 지금 움직임을 줄여야 하는지: 시연 스위치가 켜져 있으면 줄이지 않는다.
+export function prefersCalm(): boolean {
+  if (document.documentElement.classList.contains('motion-force')) return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 export function initPrefs() {
   applyView(getView())
+  applyMotionForce(getMotionForce())
   applyTheme(getTheme())
   dark().addEventListener('change', () => {
     if (getTheme() === 'system') applyTheme('system')

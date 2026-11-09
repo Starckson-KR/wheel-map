@@ -30,6 +30,7 @@ type Props = {
   onOpenSeed: (id: string) => void
   onOpenReport: (id: string) => void
   onClose: () => void
+  initialMode?: 'walk' | 'bus'
 }
 
 type Card = { id: 'base' | 'detour'; title: string; route: RouteData; hits: Hit[] }
@@ -154,7 +155,7 @@ export default function RoutePanel(props: Props) {
   const [active, setActive] = useState<'base' | 'detour'>('base')
   const [focus, setFocus] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
-  const [mode, setMode] = useState<'walk' | 'bus'>('walk') // 걸어서 / 버스 타고(7단계)
+  const [mode, setMode] = useState<'walk' | 'bus'>(props.initialMode ?? 'walk') // 걸어서 / 버스 타고(7단계)
   const [transitOv, setTransitOv] = useState<RouteOverlay | null>(null)
   const [openStop, setOpenStop] = useState<string | null>(null)
   const runId = useRef(0)

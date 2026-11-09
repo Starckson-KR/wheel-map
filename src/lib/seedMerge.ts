@@ -1,11 +1,12 @@
-import type { Barrier, BarrierAttrs, BarrierKind, Geometry } from '../types'
+import type { Barrier, BarrierAttrs, BarrierKind, Geometry, Provisional } from '../types'
 
 // 속성(barriers.json)과 위치(pilot_coords.json)를 id로 합치는 순수 함수. JSON을 직접 읽지 않아 Node 스크립트에서도 쓴다.
 // 위치가 없으면 '위치 미확정', 짝이 안 맞으면 개발 콘솔에 경고한다.
 
 export type CoordEntry = { id: string; name: string; kind?: BarrierKind; geometry: Geometry | null; parentId?: string }
 
-export function mergeBarriers(attrs: BarrierAttrs[], coords: CoordEntry[], candidates: { id: string; geometryKind: BarrierKind }[]): Barrier[] {
+export function mergeBarriers(attrs: BarrierAttrs[], coords: CoordEntry[], candidates: { id: string; geometryKind: BarrierKind }[], provisionals: (Provisional & { id: string })[] = []): Barrier[] {
+  const provById = new Map(provisionals.map((p) => [p.id, p]))
   const defaultKinds = new Map(candidates.map((c) => [c.id, c.geometryKind]))
   const coordById = new Map(coords.map((c) => [c.id, c]))
   const attrById = new Map(attrs.map((a) => [a.id, a]))
@@ -15,6 +16,7 @@ export function mergeBarriers(attrs: BarrierAttrs[], coords: CoordEntry[], candi
     const a = attrById.get(id)
     const c = coordById.get(id)
     const geometry = c?.geometry ?? null
+    const prov = geometry ? undefined : provById.get(id) // 확정 좌표가 있으면 늘 그쪽이 우선
     const kind: BarrierKind = c?.kind ?? geometry?.kind ?? defaultKinds.get(id) ?? 'point'
     return {
       type: '(속성 없음)',
@@ -28,6 +30,7 @@ export function mergeBarriers(attrs: BarrierAttrs[], coords: CoordEntry[], candi
       kind,
       geometry,
       ...(c?.parentId ? { parentId: c.parentId } : {}),
+      ...(prov ? { provisional: { lat: prov.lat, lng: prov.lng, query: prov.query, place: prov.place, address: prov.address, uncertain: prov.uncertain, lineAsPoint: prov.lineAsPoint, note: prov.note } } : {}),
       ...(!c || (!geometry && kind !== 'group') ? { locationStatus: '미확정' as const } : {}),
     }
   })

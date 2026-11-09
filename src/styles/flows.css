@@ -690,13 +690,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rf,
-  .rp,
-  .rf-done-mark {
+  html:not(.motion-force) .rf,
+  html:not(.motion-force) .rp,
+  html:not(.motion-force) .rf-done-mark {
     animation: none;
   }
 
-  .rf-progress > i {
+  html:not(.motion-force) .rf-progress > i {
     transition: none;
   }
 }

@@ -92,11 +92,19 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
         </section>
       )}
 
+      {b.provisional && (
+        <p className="bm-prov-box" role="note">
+          위치는 카카오 장소 검색 결과를 임시로 쓴 것이에요. 아직 확인 전이에요.
+          {b.provisional.uncertain && <> 검색 결과가 정확하지 않아 다른 장소일 수 있어요.</>}
+          {b.provisional.lineAsPoint && <> 선 구간이지만 임시로 점 하나로 표시했어요.</>}
+        </p>
+      )}
+
       <dl>
         <dt>종류</dt>
         <dd>
           {KIND_LABEL[b.kind]} · {b.type}
-          {b.locationStatus ? ' · 위치 미확정' : ''}
+          {b.provisional ? ' · 위치 임시' : b.locationStatus ? ' · 위치 미확정' : ''}
         </dd>
         {b.issue && (
           <>

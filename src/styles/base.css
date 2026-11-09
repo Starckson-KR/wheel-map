@@ -550,13 +550,13 @@ h4 {
 
 /* ───── 움직임을 줄여 달라는 설정 ───── */
 @media (prefers-reduced-motion: reduce) {
-  .bm button,
-  .rf-btn {
+  html:not(.motion-force) .bm button,
+  html:not(.motion-force) .rf-btn {
     transition: none;
   }
 
-  .bm button:active:not(:disabled),
-  .rf-btn:active {
+  html:not(.motion-force) .bm button:active:not(:disabled),
+  html:not(.motion-force) .rf-btn:active {
     transform: none;
   }
 }

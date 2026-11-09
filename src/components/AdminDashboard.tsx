@@ -169,7 +169,7 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
         ) : (
           dongPointRows.map(([dong, x]) => <Bar key={dong} label={dong} value={x.points} max={maxDongPoints} note={`점 · ${x.people.size}명`} />)
         )}
-        <span className="bm-meta">개인 순위 없이 동 단위 합계만 보여 줘요(명세서 4-2). 검증 이후 지급된 점수만 더하며, 시연 사용자 기준이에요.</span>
+        <span className="bm-meta">개인 순위 없이 동 단위 합계만 보여 줘요. 검증 이후 지급된 점수만 더하며, 시연 사용자 기준이에요.</span>
       </section>
 
       <section className="rf-card">

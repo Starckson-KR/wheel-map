@@ -294,8 +294,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rw-toast,
-  .rw-bar-t i {
+  html:not(.motion-force) .rw-toast,
+  html:not(.motion-force) .rw-bar-t i {
     animation: none;
     transition: none;
   }

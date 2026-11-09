@@ -137,7 +137,7 @@ export default function AdminRoute({ barriers, onOpen }: { barriers: Barrier[]; 
                   } catch {
                     /* 저장 실패 시 강조 없이 지도로 이동 */
                   }
-                  location.hash = ''
+                  location.hash = '#/map'
                 }}
               >
                 지도에서 이 경로의 지점 보기

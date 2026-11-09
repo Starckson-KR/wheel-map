@@ -10,6 +10,7 @@ import './styles/admin.css'
 import './styles/verify.css'
 import './styles/panel.css'
 import './styles/rewards.css'
+import './styles/home.css'
 import { initPrefs } from './lib/viewPrefs'
 import App from './App.tsx'
 

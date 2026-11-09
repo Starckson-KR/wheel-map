@@ -38,7 +38,8 @@ import {
 
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
-const UNPLACED = BARRIERS.filter((b) => b.locationStatus)
+const UNPLACED = BARRIERS.filter((b) => b.locationStatus && !b.provisional)
+const PROVISIONAL = BARRIERS.filter((b) => b.provisional && !b.geometry)
 
 function anchorOf(g: Geometry): LatLng {
   return g.kind === 'point' ? g.at : g.path[0]
@@ -74,6 +75,7 @@ type PinItem = {
   route: boolean
   citizen?: boolean
   expired?: boolean
+  prov?: boolean // 위치 임시(카카오 검색 결과)
   onClick: () => void
 }
 const DOT_PX = 30
@@ -81,19 +83,24 @@ const PIN_H = 30
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
-export default function BarrierMap() {
+export default function BarrierMap({ intent = '', active = true }: { intent?: string; active?: boolean }) {
+  const [start] = useState(() => {
+    const q = new URLSearchParams(intent)
+    const rid = q.get('report')
+    return { go: q.get('go'), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
+  })
   const container = useRef<HTMLDivElement>(null)
   const kRef = useRef<typeof kakao | null>(null)
   const mapRef = useRef<kakao.maps.Map | null>(null)
   const [state, setState] = useState<{ status: 'loading' | 'ready' } | { status: 'error'; message: string }>({ status: 'loading' })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [listOpen, setListOpen] = useState(false)
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
-  const [flowOpen, setFlowOpen] = useState(false)
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(start.report?.id ?? null)
+  const [flowOpen, setFlowOpen] = useState(start.go === 'report')
   const [picking, setPicking] = useState(false)
   const [draftPos, setDraftPos] = useState<Loc | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
-  const [rewardsOpen, setRewardsOpen] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(start.go === 'reports')
+  const [rewardsOpen, setRewardsOpen] = useState(start.go === 'rewards')
   const [focusIds, setFocusIds] = useState<string[]>([])
   const [layers, setLayers] = useState<LayerState>(loadLayers)
   const [layerOpen, setLayerOpen] = useState(false)
@@ -103,7 +110,7 @@ export default function BarrierMap() {
   const [view, setView] = useState<{ level: number; b: [number, number, number, number] } | null>(null)
   const [pubSel, setPubSel] = useState<{ layer: PubLayerId; item: PubItem } | null>(null)
   const [kObj, setKObj] = useState<typeof kakao | null>(null)
-  const [routeOpen, setRouteOpen] = useState(false)
+  const [routeOpen, setRouteOpen] = useState(start.go === 'route')
   const [locMsg, setLocMsg] = useState('')
   const meRef = useRef<kakao.maps.CustomOverlay | null>(null)
   const sheetRef = useRef<HTMLElement>(null)
@@ -114,6 +121,7 @@ export default function BarrierMap() {
   const pickN = useRef(0)
   const lastFit = useRef(0)
   const pickingRef = useRef(false)
+  const keepRef = useRef<{ lat: number; lng: number; level: number } | null>(null)
   useEffect(() => {
     pickingRef.current = picking
   }, [picking])
@@ -153,10 +161,11 @@ export default function BarrierMap() {
             if (center) break
           }
         }
+        if (start.report) center = new k.maps.LatLng(start.report.lat, start.report.lng)
         if (cancelled || !container.current) return
         if (!center) throw new Error('지도 중심 주소를 찾지 못했어요. 카카오 앱의 지도·로컬 사용 설정을 확인해 주세요.')
         const map = new k.maps.Map(container.current, { center, level: 4 })
-        if (located.length > 0) {
+        if (located.length > 0 && !start.report) {
           const bounds = new k.maps.LatLngBounds()
           for (const b of located) {
             const g = b.geometry as Geometry
@@ -183,6 +192,11 @@ export default function BarrierMap() {
           setView({ level: map.getLevel(), b: [sw.getLat(), sw.getLng(), ne.getLat(), ne.getLng()] })
         }
         k.maps.event.addListener(map, 'idle', readView)
+        // 다른 탭에 다녀와도 같은 자리를 보여 주려고 마지막 위치를 기억해 둔다
+        k.maps.event.addListener(map, 'idle', () => {
+          const c = map.getCenter()
+          keepRef.current = { lat: c.getLat(), lng: c.getLng(), level: map.getLevel() }
+        })
         setState({ status: 'ready' })
         setTimeout(readView, 400)
         let focus: string[] = []
@@ -219,7 +233,7 @@ export default function BarrierMap() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [start])
 
   // 길찾기 중에는 경로와 관련 있는 지점만 또렷하게 보이고 나머지는 흐리게 한다.
   const routeIds = useMemo(() => {
@@ -247,6 +261,32 @@ export default function BarrierMap() {
     const dimOf = (id: string) => !!routeIds && !routeIds.has(id)
     for (const b of layers.team ? BARRIERS : []) {
       const g = b.geometry
+      if (!g && b.provisional && !b.parentId) {
+        // 확정 좌표가 없는 곳은 임시 위치를 점 하나로 그린다(길찾기 위치 고르기에는 쓰지 않는다)
+        const pv = b.provisional
+        const rk = ratingKeyOf(b, seedOverride)
+        items.push({
+          key: b.id,
+          lat: pv.lat,
+          lng: pv.lng,
+          rating: rk,
+          impact: impactOf(b, null),
+          name: shortName(b.id, b.name),
+          title: `${shortName(b.id, b.name)} · 위치 임시`,
+          small: false,
+          sel: b.id === selectedId,
+          dim: !!routeIds,
+          route: false,
+          prov: true,
+          onClick: () => {
+            if (routePickRef.current || pickingRef.current) return
+            setSelectedId(b.id)
+            setSelectedReportId(null)
+            setListOpen(false)
+          },
+        })
+        continue
+      }
       if (!g) continue
       const isSel = b.id === selectedId
       const dim = dimOf(b.id)
@@ -391,7 +431,7 @@ export default function BarrierMap() {
       const mode = modeOf.get(i) ?? 'dot'
       const st = styleOf(it.impact ?? 'passage', it.rating)
       const el = document.createElement('div')
-      el.className = `bm-pin bm-pin--${mode}` + (it.small ? ' bm-pin-small' : '') + (it.sel ? ' bm-pin-sel' : '') + (it.route ? ' bm-pin-route' : '') + (it.citizen ? ' bm-pin-citizen' : '') + (it.expired ? ' bm-pin-expired' : '') + (it.dim ? ' bm-pin-dim' : '')
+      el.className = `bm-pin bm-pin--${mode}` + (it.small ? ' bm-pin-small' : '') + (it.sel ? ' bm-pin-sel' : '') + (it.route ? ' bm-pin-route' : '') + (it.citizen ? ' bm-pin-citizen' : '') + (it.expired ? ' bm-pin-expired' : '') + (it.prov ? ' bm-pin-prov' : '') + (it.dim ? ' bm-pin-dim' : '')
       el.style.background = st.color
       el.style.color = st.ink
       const kindText = it.impact ? IMPACT_INFO[it.impact].label : ''
@@ -405,6 +445,12 @@ export default function BarrierMap() {
       g.className = 'bm-pin-g'
       g.textContent = st.glyph
       el.appendChild(g)
+      if (it.prov) {
+        const t = document.createElement('span')
+        t.className = 'bm-pin-t'
+        t.textContent = '임시'
+        el.appendChild(t)
+      }
       if (mode !== 'dot' && it.impact) {
         const kk = document.createElement('span')
         kk.className = 'bm-pin-k'
@@ -635,10 +681,26 @@ export default function BarrierMap() {
     const k = kRef.current
     const map = mapRef.current
     const b = selectedId ? BY_ID.get(selectedId) : null
-    if (!ready || !k || !map || !b?.geometry) return
-    const a = anchorOf(b.geometry)
+    if (!ready || !k || !map || !(b?.geometry || b?.provisional)) return
+    const a: LatLng = b.geometry ? anchorOf(b.geometry) : [b.provisional!.lat, b.provisional!.lng]
     map.panTo(new k.maps.LatLng(a[0], a[1]))
   }, [selectedId, ready])
+
+  // 탭을 바꿔 숨겨졌다가 다시 보일 때: 크기를 다시 재고 보던 자리로 돌아간다
+  useEffect(() => {
+    const k = kRef.current
+    const map = mapRef.current
+    if (!active || !ready || !k || !map) return
+    const t = setTimeout(() => {
+      map.relayout()
+      const c = keepRef.current
+      if (c) {
+        map.setLevel(c.level)
+        map.setCenter(new k.maps.LatLng(c.lat, c.lng))
+      }
+    }, 30)
+    return () => clearTimeout(t)
+  }, [active, ready])
 
   useEffect(() => {
     const onView = () => setTimeout(() => mapRef.current?.relayout(), 60)
@@ -738,6 +800,12 @@ export default function BarrierMap() {
     const order: Record<string, number> = { X: 0, TRIANGLE: 1, none: 2, O: 3 }
     return rows.sort((a, b) => order[a.rating] - order[b.rating])
   }, [view, layers.team, reports, seedOverride])
+  // 위치 임시 지점은 기존 장애요소 숫자에 섞지 않고 따로 센다
+  const hereProv = useMemo(() => {
+    if (!view || !layers.team) return 0
+    const [s, w, n, e] = view.b
+    return PROVISIONAL.filter((b) => b.provisional!.lat >= s && b.provisional!.lat <= n && b.provisional!.lng >= w && b.provisional!.lng <= e).length
+  }, [view, layers.team])
   const hereCount = (c: Category) => here.filter((r) => r.cat === c).length
 
   const overlayOpen = flowOpen || panelOpen || routeOpen || picking || !!routePick
@@ -798,7 +866,11 @@ export default function BarrierMap() {
           <MockStrip />
           <div className="hm-card">
             <div className="hm-bar">
-              <h1 className="hm-brand">북구동행지도</h1>
+              <h1 className="hm-brand">
+                <button type="button" className="hm-brand-btn" aria-label="북구동행지도 홈으로" onClick={() => { location.hash = '#/' }}>
+                  북구동행지도
+                </button>
+              </h1>
               <div className="hm-tools">
                 <button type="button" className="hm-tool" onClick={() => setLayerOpen((v) => !v)} aria-expanded={layerOpen}>
                   레이어
@@ -834,6 +906,9 @@ export default function BarrierMap() {
                 {IMPACT_INFO[k].label}
               </li>
             ))}
+            <li>
+              <i className="hm-leg-prov">임</i>위치 임시
+            </li>
             {PUB_LAYERS.filter((l) => layers[l.id]).map((l) => (
               <li key={l.id}>
                 <i className="hm-leg-pub" style={{ background: l.color }}>
@@ -875,6 +950,7 @@ export default function BarrierMap() {
                   )}
                 </ul>
               )}
+              {hereProv > 0 && <p className="hm-prov-note">위치 임시 {hereProv}곳 (확인 전, 위 숫자에는 넣지 않았어요)</p>}
               <div className="hm-cta">
                 <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
                   문제 제보하기
@@ -914,6 +990,27 @@ export default function BarrierMap() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {PROVISIONAL.length > 0 && (
+                <>
+                  <h3 style={{ marginTop: 20 }}>위치 임시 {PROVISIONAL.length}곳</h3>
+                  <ul className="lr-list">
+                    {PROVISIONAL.map((b) => (
+                      <li key={b.id}>
+                        <button type="button" className="lr" onClick={() => openSeed(b.id)}>
+                          <i className="lr-glyph" style={{ background: ratingOf(b, seedOverride).color, color: ratingOf(b, seedOverride).ink }}>
+                            {ratingOf(b, seedOverride).glyph}
+                          </i>
+                          <span className="lr-main">
+                            <span className="lr-title">{shortName(b.id, b.name)}</span>
+                            <span className="lr-sub">위치 임시 · 아직 확인 전이에요</span>
+                          </span>
+                          <span className="lr-chev" aria-hidden="true" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
               {UNPLACED.length > 0 && (
                 <>
@@ -987,6 +1084,7 @@ export default function BarrierMap() {
 
         {routeOpen && (
           <RoutePanel
+            initialMode={start.mode}
             k={kObj}
             barriers={BARRIERS}
             seedRatings={seedOverride}

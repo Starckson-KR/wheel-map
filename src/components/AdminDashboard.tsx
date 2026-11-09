@@ -1,36 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
+import { avgProcessDays } from '../lib/progress'
 import { listAgencies } from '../lib/agencyGuide'
-import { DAY, agencyOf, deadlineOf, pct } from '../lib/caseMetrics'
-import { DEMAND_FACILITY_TYPES, PRIORITY_DEMAND_RADIUS_M, PRIORITY_REPORT_RADIUS_M, PRIORITY_WEIGHTS } from '../lib/config'
-import { distanceM, distanceToGeometryM } from '../lib/geo'
-import { loadPubDataset, type PubDataset } from '../lib/publicLayers'
+import { agencyOf, deadlineOf, pct } from '../lib/caseMetrics'
+import { PRIORITY_DEMAND_RADIUS_M, PRIORITY_REPORT_RADIUS_M, PRIORITY_WEIGHTS } from '../lib/config'
+import { collectPoints } from '../lib/priority'
+import { usePriority } from '../lib/usePriority'
 import { RATING_STYLE } from '../lib/rating'
 import { dongKey, loadDongs } from '../lib/regions'
 import { nowMs, useReports } from '../lib/reportStore'
-import { loadNoAlt, noAltFor } from '../lib/routing/noAlt.ts'
 import { computeRewards } from '../lib/rewards'
-import { ROUTES, ratingOfBarrier, routeStats, type RowRating } from '../lib/routeStats'
-import type { Barrier, Report } from '../types'
-
-const SHOWN = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
-
-// 지도에 올라간 지점(팀 조사 지점 + 검증 이후 시민 제보). 위치가 확정된 것만.
-type Pt = { key: string; label: string; lat: number; lng: number; rating: RowRating; seed?: Barrier; report?: Report }
-
-function collectPoints(barriers: Barrier[], reports: Report[]): Pt[] {
-  const byId = new Map(barriers.map((b) => [b.id, b]))
-  const out: Pt[] = []
-  for (const b of barriers) {
-    if (!b.geometry) continue
-    const a = b.geometry.kind === 'point' ? b.geometry.at : b.geometry.path[0]
-    out.push({ key: b.id, label: `${b.id} · ${b.name}`, lat: a[0], lng: a[1], rating: ratingOfBarrier(b, byId, reports), seed: b })
-  }
-  for (const r of reports) {
-    if (r.seedId || !SHOWN.includes(r.status)) continue
-    out.push({ key: r.id, label: `${r.type} (시민 제보)`, lat: r.lat, lng: r.lng, rating: r.verification.rating ?? 'none', report: r })
-  }
-  return out
-}
+import { ROUTES, routeStats } from '../lib/routeStats'
+import type { Barrier } from '../types'
 
 function Bar({ label, value, max, note }: { label: string; value: number; max: number; note?: string }) {
   return (
@@ -98,7 +78,7 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
 
   const cases = reports.filter((r) => r.complaint)
   const doneCases = cases.filter((r) => r.action?.doneAt)
-  const avgDays = doneCases.length > 0 ? doneCases.reduce((s, r) => s + (new Date(r.action?.doneAt ?? 0).getTime() - new Date(r.complaint?.submittedAt ?? 0).getTime()) / DAY, 0) / doneCases.length : null
+  const avgDays = avgProcessDays(doneCases)
   const longN = cases.filter((r) => (deadlineOf(r, now)?.longDays ?? 0) > 0).length
   const overdueN = cases.filter((r) => (deadlineOf(r, now)?.overdueDays ?? 0) > 0).length
   const transfers = cases.flatMap((r) => r.transfers ?? [])
@@ -218,46 +198,8 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
   )
 }
 
-type Cand = { pt: Pt; reportsN: number; bus: number; fac: number; alt: string[] | null; score: number }
-
 export function AdminPriority({ barriers }: { barriers: Barrier[] }) {
-  const reports = useReports((s) => s.reports)
-  const [data, setData] = useState<{ bus: PubDataset; fac: PubDataset } | null>(null)
-  const [err, setErr] = useState('')
-
-  useEffect(() => {
-    let cancelled = false
-    Promise.all([loadPubDataset('bus'), loadPubDataset('facility')])
-      .then(([bus, fac]) => !cancelled && setData({ bus, fac }))
-      .catch(() => !cancelled && setErr('이용 수요 자료(정류장·시설)를 불러오지 못했어요.'))
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const rows = useMemo<Cand[]>(() => {
-    if (!data) return []
-    const W = PRIORITY_WEIGHTS
-    const noAlt = loadNoAlt() // 길찾기에서 대안 경로 없음으로 기록된 지점
-    const pts = collectPoints(
-      barriers.filter((b) => !b.parentId),
-      reports,
-    )
-    const citizen = reports.filter((r) => !r.seedId && r.status !== 'rejected')
-    const fac = data.fac.items.filter((i) => i.lat != null && i.lng != null && DEMAND_FACILITY_TYPES.includes(String(i.fields['faclTyCd'])))
-    const bus = data.bus.items.filter((i) => i.lat != null && i.lng != null)
-    return pts
-      .map((pt) => {
-        const near = (lat: number, lng: number) => (pt.seed?.geometry ? distanceToGeometryM(lat, lng, pt.seed.geometry) : distanceM(pt.lat, pt.lng, lat, lng))
-        const reportsN = citizen.filter((r) => distanceM(pt.lat, pt.lng, r.lat, r.lng) <= PRIORITY_REPORT_RADIUS_M).length
-        const b = bus.filter((i) => near(i.lat as number, i.lng as number) <= PRIORITY_DEMAND_RADIUS_M).length
-        const f = fac.filter((i) => near(i.lat as number, i.lng as number) <= PRIORITY_DEMAND_RADIUS_M).length
-        // 지금도 X인 지점만 반영(재확인을 통과해 ○가 되면 점수에서 빠진다)
-        const rec = pt.rating === 'X' ? noAltFor(noAlt, pt.key) : undefined
-        return { pt, reportsN, bus: b, fac: f, alt: rec ? rec.pairs : null, score: reportsN * W.report + b * W.bus + f * W.facility + (rec ? W.alternative : 0) }
-      })
-      .sort((a, b) => b.score - a.score)
-  }, [data, barriers, reports])
+  const { rows, data, err } = usePriority(barriers)
 
   const W = PRIORITY_WEIGHTS
   return (

@@ -5,6 +5,7 @@ import { clearPhotos } from './photoStore'
 import { agencyOf, pendingTransfer } from './caseMetrics'
 import { findAgencyName } from './agencyName'
 import { buildDemoReports } from './demoData'
+import { usePlan } from './planStore'
 
 // 시연용 제보 저장소. 서버가 없으므로 제보 기록은 localStorage에 둔다(사진은 IndexedDB, photoStore.ts).
 const KEY = 'wheelmap.reports'
@@ -378,6 +379,7 @@ export const useReports = create<State>((set, get) => {
       } catch {
         err = (err ? err + ' ' : '') + '사진을 지우지 못했습니다.'
       }
+      usePlan.getState().reset() // 개선계획·예산 입력도 함께 비운다
       offsetDays = 0
       set({ reports: [], userId: DEMO_USERS[0].id, storageError: err, offsetDays: 0 })
       return err

@@ -20,7 +20,10 @@ import RoutePanel from '../components/RoutePanel'
 import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import type { RouteOverlay } from '../lib/routing/overlay.ts'
 import type { Place } from '../lib/routing/provider.ts'
-import { STATUS_LABEL, isExpired, useReports } from '../lib/reportStore'
+import ProgressPanel from '../components/ProgressPanel'
+import { PROGRESS_INFO, PROGRESS_ORDER, PERIODS, buildProgress, type PeriodId, type ProgressItem, type ProgressStage } from '../lib/progress'
+import { usePlan } from '../lib/planStore'
+import { STATUS_LABEL, isExpired, nowMs, useReports } from '../lib/reportStore'
 import type { ReportStatus } from '../types'
 import {
   PUB_LAYERS,
@@ -76,6 +79,7 @@ type PinItem = {
   citizen?: boolean
   expired?: boolean
   prov?: boolean // 위치 임시(카카오 검색 결과)
+  pg?: { stage: ProgressStage; label: string } // 개선 현황 보기의 핀
   onClick: () => void
 }
 const DOT_PX = 30
@@ -101,6 +105,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [draftPos, setDraftPos] = useState<Loc | null>(null)
   const [panelOpen, setPanelOpen] = useState(start.go === 'reports')
   const [rewardsOpen, setRewardsOpen] = useState(start.go === 'rewards')
+  const [progressOpen, setProgressOpen] = useState(start.go === 'progress') // 개선 현황 목록 패널
+  const [progressMode, setProgressMode] = useState(start.go === 'progress') // 개선 현황 보기(마커·범례가 바뀜)
+  const [period, setPeriod] = useState<PeriodId>('90')
+  const [pgStages, setPgStages] = useState<ProgressStage[]>(PROGRESS_ORDER)
   const [focusIds, setFocusIds] = useState<string[]>([])
   const [layers, setLayers] = useState<LayerState>(loadLayers)
   const [layerOpen, setLayerOpen] = useState(false)
@@ -128,6 +136,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   useEffect(() => {
     routePickRef.current = routePick
   }, [routePick])
+  const openReportRef = useRef<(id: string) => void>(() => {})
+  const openSeedRef = useRef<(id: string) => void>(() => {})
   const pickRoutePlace = (lat: number, lng: number, name: string) => {
     const which = routePickRef.current
     if (!which) return false
@@ -143,6 +153,26 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return m
   }, [reports])
   const resetAll = useReports((s) => s.resetAll)
+  const offsetDays = useReports((s) => s.offsetDays)
+  const plans = usePlan((s) => s.entries)
+  // 개선 현황: 기간은 시연 시각(nowMs) 기준
+  const progress = useMemo(() => {
+    void offsetDays
+    return buildProgress({
+      reports,
+      barriers: BARRIERS,
+      plans,
+      now: nowMs(),
+      periodDays: PERIODS.find((p) => p.id === period)?.days ?? null,
+      placeName: (r) => {
+        const sid = r.seedId ?? r.barrierId
+        const b = sid ? BY_ID.get(sid) : null
+        return b ? shortName(b.id, b.name) : `시민 제보${r.locationKind ? ` · ${r.locationKind}` : ''}`
+      },
+      seedName: (b) => shortName(b.id, b.name),
+    })
+  }, [reports, plans, period, offsetDays])
+  const pgShown = useMemo(() => progress.items.filter((i) => pgStages.includes(i.stage)), [progress, pgStages])
   const ready = state.status === 'ready'
 
   useEffect(() => {
@@ -259,7 +289,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const shapes: { setMap(m: kakao.maps.Map | null): void }[] = []
     const items: PinItem[] = []
     const dimOf = (id: string) => !!routeIds && !routeIds.has(id)
-    for (const b of layers.team ? BARRIERS : []) {
+    for (const b of layers.team && !progressMode ? BARRIERS : []) {
       const g = b.geometry
       if (!g && b.provisional && !b.parentId) {
         // 확정 좌표가 없는 곳은 임시 위치를 점 하나로 그린다(길찾기 위치 고르기에는 쓰지 않는다)
@@ -358,7 +388,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     }
     // 시민 제보 중 검증 완료된 건(source citizen). 판정 전이면 평가 없음 색으로 표시한다.
     for (const r of reports) {
-      if (!SHOWN_ON_MAP.includes(r.status) || r.seedId || !layers.team) continue
+      if (progressMode || !SHOWN_ON_MAP.includes(r.status) || r.seedId || !layers.team) continue
       items.push({
         key: r.id,
         lat: r.lat,
@@ -384,11 +414,30 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         },
       })
     }
+    if (progressMode) {
+      for (const it of pgShown) {
+        const isReport = it.kind === 'report'
+        items.push({
+          key: it.key,
+          lat: it.lat,
+          lng: it.lng,
+          rating: 'none',
+          impact: null,
+          name: it.title,
+          small: false,
+          sel: isReport ? it.id === selectedReportId : it.id === selectedId,
+          dim: false,
+          route: false,
+          pg: { stage: it.stage, label: PROGRESS_INFO[it.stage].short },
+          onClick: () => (isReport ? openReportRef.current(it.id) : openSeedRef.current(it.id)),
+        })
+      }
+    }
 
     const level = map.getLevel()
     const proj = (map as unknown as { getProjection(): { containerPointFromCoords(c: kakao.maps.LatLng): { x: number; y: number } } }).getProjection()
     const px = items.map((it) => proj.containerPointFromCoords(new k.maps.LatLng(it.lat, it.lng)))
-    const prio = (it: PinItem) => (it.sel ? 100 : 0) + (it.small ? 0 : 5) + ({ X: 3, TRIANGLE: 2, none: 1, O: 0 } as Record<string, number>)[it.rating]
+    const prio = (it: PinItem) => (it.sel ? 100 : 0) + (it.small ? 0 : 5) + (it.pg ? ({ overdue: 3, agency: 2, intake: 2, done: 1, rechecked: 1, plan: 1 } as Record<string, number>)[it.pg.stage] : ({ X: 3, TRIANGLE: 2, none: 1, O: 0 } as Record<string, number>)[it.rating])
     const order = items.map((_, i) => i).sort((i, j) => prio(items[j]) - prio(items[i]))
 
     // 1) 점끼리 겹치면 묶음으로(선택한 핀은 묶지 않는다)
@@ -416,12 +465,13 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const allowed: PinMode[] = level >= 5 ? ['dot'] : level === 4 ? ['chip', 'dot'] : ['full', 'chip', 'dot']
     const placed: { x: number; y: number; w: number }[] = []
     const hit = (x: number, y: number, w: number) => placed.some((p) => Math.abs(p.x - x) < (p.w + w) / 2 + 3 && Math.abs(p.y - y) < PIN_H + 3)
-    const widthOf = (it: PinItem, m: PinMode) => (m === 'dot' ? DOT_PX : m === 'chip' ? 58 : 30 + 29 + it.name.length * 13.5 + 12)
+    const widthOf = (it: PinItem, m: PinMode) => (m === 'dot' ? DOT_PX : it.pg ? 38 + it.pg.label.length * 12.5 : m === 'chip' ? 58 : 30 + 29 + it.name.length * 13.5 + 12)
     const modeOf = new Map<number, PinMode>()
     for (const i of singles) {
       const it = items[i]
-      const tryModes: PinMode[] = it.sel ? ['full'] : it.small ? ['dot'] : allowed
-      const m = it.sel ? 'full' : (tryModes.find((mm) => !hit(px[i].x, px[i].y, widthOf(it, mm))) ?? 'dot')
+      const chipOnly = (a: PinMode[]) => a.map((x) => (x === 'full' ? ('chip' as PinMode) : x))
+      const tryModes: PinMode[] = it.pg ? (it.sel ? ['chip'] : chipOnly(allowed)) : it.sel ? ['full'] : it.small ? ['dot'] : allowed
+      const m = it.sel ? (it.pg ? 'chip' : 'full') : (tryModes.find((mm) => !hit(px[i].x, px[i].y, widthOf(it, mm))) ?? 'dot')
       modeOf.set(i, m)
       placed.push({ x: px[i].x, y: px[i].y, w: widthOf(it, m) })
     }
@@ -429,6 +479,38 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     for (const i of singles) {
       const it = items[i]
       const mode = modeOf.get(i) ?? 'dot'
+      if (it.pg) {
+        // 개선 현황 핀: 색 + 글자(접·처·!·완·확·계)로 단계를 구분하고, 가까이에서는 단계 이름도 쓴다.
+        const pe = document.createElement('div')
+        pe.className = `bm-pin bm-pin--${mode} bm-pin-pg pg-${it.pg.stage}` + (it.sel ? ' bm-pin-sel' : '')
+        const text = `${it.name} · ${PROGRESS_INFO[it.pg.stage].label}`
+        pe.title = text
+        pe.setAttribute('role', 'button')
+        pe.tabIndex = 0
+        pe.setAttribute('aria-label', text)
+        const pgG = document.createElement('span')
+        pgG.className = 'bm-pin-g'
+        pgG.textContent = PROGRESS_INFO[it.pg.stage].glyph
+        pe.appendChild(pgG)
+        if (mode !== 'dot') {
+          const pn = document.createElement('span')
+          pn.className = 'bm-pin-n'
+          pn.textContent = it.pg.label
+          pe.appendChild(pn)
+        }
+        pe.addEventListener('click', (e) => {
+          e.stopPropagation()
+          it.onClick()
+        })
+        pe.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            it.onClick()
+          }
+        })
+        shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(it.lat, it.lng), content: pe, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: it.sel ? 10 : 4 }))
+        continue
+      }
       const st = styleOf(it.impact ?? 'passage', it.rating)
       const el = document.createElement('div')
       el.className = `bm-pin bm-pin--${mode}` + (it.small ? ' bm-pin-small' : '') + (it.sel ? ' bm-pin-sel' : '') + (it.route ? ' bm-pin-route' : '') + (it.citizen ? ' bm-pin-citizen' : '') + (it.expired ? ' bm-pin-expired' : '') + (it.prov ? ' bm-pin-prov' : '') + (it.dim ? ' bm-pin-dim' : '')
@@ -508,7 +590,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(lat, lng), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 5 }))
     }
     return () => shapes.forEach((s) => s.setMap(null))
-  }, [ready, selectedId, layers.team, seedOverride, focusIds, reports, selectedReportId, routeIds, mapLevel])
+  }, [ready, selectedId, layers.team, seedOverride, focusIds, reports, selectedReportId, routeIds, mapLevel, progressMode, pgShown])
 
   // 레이어를 켤 때 해당 데이터만 동적 import로 불러온다.
   useEffect(() => {
@@ -722,7 +804,12 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const leaveProgress = () => {
+    setProgressMode(false)
+    setProgressOpen(false)
+  }
   const openReport = (id: string) => {
+    setProgressOpen(false)
     setSelectedReportId(id)
     setSelectedId(null)
     setListOpen(false)
@@ -737,12 +824,14 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     if (r && k && map) map.setCenter(new k.maps.LatLng(r.lat, r.lng)) // 먼 곳은 panTo가 움직이지 않는 경우가 있어 setCenter를 쓴다
   }
   const openSeed = (id: string) => {
+    setProgressOpen(false)
     setSelectedId(id)
     setSelectedReportId(null)
     setPanelOpen(false)
     setRewardsOpen(false)
   }
   const startReport = () => {
+    leaveProgress()
     setFlowOpen(true)
     setPanelOpen(false)
     setRewardsOpen(false)
@@ -808,7 +897,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   }, [view, layers.team])
   const hereCount = (c: Category) => here.filter((r) => r.cat === c).length
 
-  const overlayOpen = flowOpen || panelOpen || routeOpen || picking || !!routePick
+  const overlayOpen = flowOpen || panelOpen || routeOpen || picking || !!routePick || progressMode
   const behind = !!(selectedId || selectedReportId || pubSel)
 
   const locateMe = () => {
@@ -848,6 +937,30 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return () => ro.disconnect()
   }, [overlayOpen])
 
+  useEffect(() => {
+    openReportRef.current = openReport
+    openSeedRef.current = openSeed
+  })
+  const openProgress = () => {
+    setProgressMode(true)
+    setProgressOpen(true)
+    setPanelOpen(false)
+    setRewardsOpen(false)
+    setRouteOpen(false)
+    setRoutePick(null)
+    setOverlay(null)
+    closeFlow()
+    setSelectedId(null)
+    setSelectedReportId(null)
+    setListOpen(false)
+  }
+  const pickProgress = (it: ProgressItem) => {
+    if (it.kind === 'report') openReport(it.id)
+    else openSeed(it.id)
+    const k = kRef.current
+    const map = mapRef.current
+    if (k && map) map.setCenter(new k.maps.LatLng(it.lat, it.lng))
+  }
   const pickRow = (r: HomeRow) => (r.kind === 'seed' ? openSeed(r.id) : openReport(r.id))
 
   return (
@@ -884,6 +997,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               className="hm-search"
               aria-expanded={routeOpen}
               onClick={() => {
+                leaveProgress()
                 setRouteOpen(true)
                 setRoutePick(null)
                 setPanelOpen(false)
@@ -893,22 +1007,31 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               어디로 가세요? 길찾기
             </button>
           </div>
-          <ul className="hm-legend" aria-label="범례: 색과 ○△X는 정도, 길·승·입·◆는 영향 종류">
-            {(['O', 'TRIANGLE', 'X', 'none'] as const).map((r) => (
+          <ul className="hm-legend" aria-label={progressMode ? '범례: 색과 글자는 개선 진행 단계' : '범례: 색과 ○△X는 정도, 길·승·입·◆는 영향 종류'}>
+            {progressMode &&
+              PROGRESS_ORDER.map((s) => (
+                <li key={s}>
+                  <i className={'hm-leg-pg pg-' + s}>{PROGRESS_INFO[s].glyph}</i>
+                  {PROGRESS_INFO[s].label}
+                </li>
+              ))}
+            {!progressMode && (['O', 'TRIANGLE', 'X', 'none'] as const).map((r) => (
               <li key={r}>
                 <i style={{ background: RATING_STYLE[r].color, color: RATING_STYLE[r].ink }}>{RATING_STYLE[r].glyph}</i>
                 {r === 'none' ? RATING_STYLE[r].label : RATING_STYLE[r].label.slice(2)}
               </li>
             ))}
-            {(['passage', 'boarding', 'entry', 'zone'] as const).map((k) => (
+            {!progressMode && (['passage', 'boarding', 'entry', 'zone'] as const).map((k) => (
               <li key={k}>
                 <i className="hm-leg-kind">{IMPACT_INFO[k].glyph}</i>
                 {IMPACT_INFO[k].label}
               </li>
             ))}
-            <li>
-              <i className="hm-leg-prov">임</i>위치 임시
-            </li>
+            {!progressMode && (
+              <li>
+                <i className="hm-leg-prov">임</i>위치 임시
+              </li>
+            )}
             {PUB_LAYERS.filter((l) => layers[l.id]).map((l) => (
               <li key={l.id}>
                 <i className="hm-leg-pub" style={{ background: l.color }}>
@@ -918,6 +1041,17 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               </li>
             ))}
           </ul>
+          {progressMode && !progressOpen && (
+            <div className="hm-focus" role="status">
+              <span>개선 현황을 보고 있어요.</span>
+              <button type="button" className="hm-focus-btn" onClick={() => setProgressOpen(true)}>
+                목록
+              </button>
+              <button type="button" className="hm-focus-btn" onClick={leaveProgress}>
+                끝내기
+              </button>
+            </div>
+          )}
           {focusIds.length > 0 && (
             <div className="hm-focus" role="status">
               <span>경로 지점 {focusIds.length}곳을 노란 테두리로 보여 드려요.</span>
@@ -955,11 +1089,14 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
                   문제 제보하기
                 </button>
-                <button type="button" className="hm-cta-sub" onClick={() => { setRewardsOpen(false); setPanelOpen(true) }}>
+                <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setRewardsOpen(false); setPanelOpen(true) }}>
                   제보 현황
                 </button>
-                <button type="button" className="hm-cta-sub" onClick={() => { setPanelOpen(false); setRewardsOpen(true) }}>
+                <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setPanelOpen(false); setRewardsOpen(true) }}>
                   내 기여
+                </button>
+                <button type="button" className="hm-cta-sub" onClick={openProgress}>
+                  개선 현황
                 </button>
               </div>
             </div>
@@ -1112,6 +1249,19 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           </div>
         )}
 
+        {progressOpen && (
+          <ProgressPanel
+            items={progress.items}
+            summary={progress.summary}
+            period={period}
+            onPeriod={setPeriod}
+            stages={pgStages}
+            onToggleStage={(st) => setPgStages((cur) => (cur.includes(st) ? cur.filter((x) => x !== st) : [...cur, st]))}
+            onPick={pickProgress}
+            onShowMap={() => setProgressOpen(false)}
+            onExit={leaveProgress}
+          />
+        )}
         {panelOpen && <ReportsPanel onOpen={openReport} onClose={() => setPanelOpen(false)} />}
         {rewardsOpen && (
           <MyRewards

@@ -36,6 +36,16 @@ export const LOCATION_KINDS = [
 ] as const
 export type LocationKind = (typeof LOCATION_KINDS)[number]
 
+// 지점 종류 문구로 위치 성격의 처음 선택값만 추정한다(사용자가 바꿀 수 있음).
+export function guessLocationKind(t: string): string {
+  if (t.includes('정류장')) return '버스정류장'
+  if (t.includes('횡단보도')) return '횡단보도·신호'
+  if (t.includes('쪽문')) return '대학 캠퍼스 내부'
+  if (t.includes('기관')) return '공공건물 출입'
+  if (t.includes('보도')) return '구·시 도로의 보도'
+  return ''
+}
+
 const base = (s: string) => s.split('(')[0].trim()
 
 export type AgencyMatch = { agency: Agency; candidate: boolean; condition?: string }

@@ -148,7 +148,7 @@
 
 .adm-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: var(--s-3);
 }
 
@@ -357,6 +357,10 @@
   :root:not([data-view='desktop']) .adm-case {
     flex-wrap: wrap;
   }
+
+  :root:not([data-view='desktop']) .adm-plan-total {
+    grid-column: 1 / -1;
+  }
 }
 
 /*  data-view="mobile" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
@@ -377,3 +381,64 @@
 :root[data-view='mobile'] .adm-case {
     flex-wrap: wrap;
   }
+
+:root[data-view='mobile'] .adm-plan-total {
+    grid-column: 1 / -1;
+  }
+
+/* ───── 개선계획·예산 ───── */
+.adm-plan-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: var(--s-3) 0;
+}
+
+.adm-plan-list {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-plan-item {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+
+.adm-plan-head {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+}
+
+.adm-plan-head .adm-prio-name {
+  display: grid;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.adm-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s-3);
+}
+
+.adm-plan-grid .rf-field {
+  min-width: 0;
+}
+
+.adm-plan-grid input,
+.adm-plan-grid textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.adm-plan-memo {
+  grid-column: 1 / -1;
+}

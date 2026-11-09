@@ -18,6 +18,7 @@ export const TO = {
   map: '#/map',
   route: '#/map?go=route',
   bus: '#/map?go=route&mode=bus',
+  progress: '#/map?go=progress',
   newReport: '#/map?go=report',
   report: '#/report',
   agency: '#/report?section=agency',

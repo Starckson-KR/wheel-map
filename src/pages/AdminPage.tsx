@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AdminDashboard, AdminPriority } from '../components/AdminDashboard'
 import AdminRoute from '../components/AdminRoute'
+import AdminPlan from '../components/AdminPlan'
 import ReportDetail from '../components/ReportDetail'
 import ViewSettings from '../components/ViewSettings'
 import DemoTools, { MockStrip } from '../components/DemoTools'
@@ -14,12 +15,13 @@ import type { Report } from '../types'
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
 
-type Section = 'inbox' | 'route' | 'dash' | 'prio' | 'inspect'
+type Section = 'inbox' | 'route' | 'dash' | 'prio' | 'plan' | 'inspect'
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'inbox', label: '민원함' },
   { id: 'route', label: '경로 보기' },
   { id: 'dash', label: '지역 현황' },
   { id: 'prio', label: '우선순위' },
+  { id: 'plan', label: '개선계획·예산' },
   { id: 'inspect', label: '사후 점검' },
 ]
 const TABS: { id: InboxTab; label: string }[] = [
@@ -188,6 +190,7 @@ export default function AdminPage() {
           {section === 'route' && <AdminRoute barriers={BARRIERS} onOpen={setSelected} />}
           {section === 'dash' && <AdminDashboard barriers={BARRIERS} />}
           {section === 'prio' && <AdminPriority barriers={BARRIERS} />}
+          {section === 'plan' && <AdminPlan barriers={BARRIERS} />}
 
           {section === 'inspect' && (
             <div className="adm-sec">

@@ -68,6 +68,26 @@
   --r-n-soft: #f2f4f6;
   --r-n-text: #4e5968;
 
+  /* 개선 현황 단계 색: 핀·범례는 solid(흰 글자), 칩·배지는 soft 배경 + text 글자. 글자(접·처·!·완·확·계)를 같이 쓴다 */
+  --pg-intake: #6b7684;
+  --pg-agency: #1b64da;
+  --pg-overdue: #b3261e;
+  --pg-done: #0f7f55;
+  --pg-rechecked: #0a6b75;
+  --pg-plan: #5b3fb8;
+  --pg-intake-soft: #f2f4f6;
+  --pg-agency-soft: #e8f3ff;
+  --pg-overdue-soft: #fdeceb;
+  --pg-done-soft: #e6f6ee;
+  --pg-rechecked-soft: #e0f3f5;
+  --pg-plan-soft: #f1ecfb;
+  --pg-intake-text: #4e5968;
+  --pg-agency-text: #1b64da;
+  --pg-overdue-text: #b3261e;
+  --pg-done-text: #0b6845;
+  --pg-rechecked-text: #0a6b75;
+  --pg-plan-text: #5b3fb8;
+
   /* 글자 크기(px). 본문은 16 이상으로 둔다 */
   --fs-title: 24px;
   --fs-head: 20px;
@@ -160,6 +180,18 @@
   --r-x-soft: #3a1f1f;
   --r-x-text: #ff8a80;
   --focus-ring: 0 0 0 3px rgb(69 147 252 / 0.5);
+  --pg-intake-soft: #2a2d34;
+  --pg-agency-soft: #1c2b44;
+  --pg-overdue-soft: #3a1f1f;
+  --pg-done-soft: #16322a;
+  --pg-rechecked-soft: #15303a;
+  --pg-plan-soft: #2a2340;
+  --pg-intake-text: #c3c9d1;
+  --pg-agency-text: #8fc2ff;
+  --pg-overdue-text: #ff8a80;
+  --pg-done-text: #52c79a;
+  --pg-rechecked-text: #5fd0dc;
+  --pg-plan-text: #b9a4f5;
   color-scheme: dark;
 }
 

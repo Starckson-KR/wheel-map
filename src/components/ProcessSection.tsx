@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ReportPhotos from './ReportPhotos'
+import BeforeAfter from './BeforeAfter'
 import { MockBadge } from './ComplaintGuide'
 import { resizeImage, savePhoto } from '../lib/photoStore'
 import { STATUS_LABEL, nowMs, useReports, userName } from '../lib/reportStore'
@@ -138,16 +139,22 @@ export default function ProcessSection({ report: r }: { report: Report }) {
           <strong>기관이 남긴 조치 내용</strong>
           <p>{r.action.description || '적힌 내용이 없어요.'}</p>
           <span className="bm-meta">{fmt(r.action.doneAt)}</span>
-          {r.action.beforePhotos.length > 0 && (
+          {r.status === 'resolved' || r.status === 'rechecked' ? (
+            <BeforeAfter report={r} />
+          ) : (
             <>
-              <p className="bm-meta">조치 전 사진</p>
-              <ReportPhotos keys={r.action.beforePhotos} />
-            </>
-          )}
-          {r.action.afterPhotos.length > 0 && (
-            <>
-              <p className="bm-meta">조치 후 사진</p>
-              <ReportPhotos keys={r.action.afterPhotos} />
+              {r.action.beforePhotos.length > 0 && (
+                <>
+                  <p className="bm-meta">조치 전 사진</p>
+                  <ReportPhotos keys={r.action.beforePhotos} />
+                </>
+              )}
+              {r.action.afterPhotos.length > 0 && (
+                <>
+                  <p className="bm-meta">조치 후 사진</p>
+                  <ReportPhotos keys={r.action.afterPhotos} />
+                </>
+              )}
             </>
           )}
           {r.action.recheck && !r.action.recheck.passable && <p className="rf-warn">방금 재확인에서 지나갈 수 없다고 판단해서 조치 중으로 되돌렸어요.</p>}

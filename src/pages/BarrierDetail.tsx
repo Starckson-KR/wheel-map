@@ -6,8 +6,9 @@ import SheetHandle from '../components/SheetHandle'
 import { RATING_STYLE } from '../lib/rating'
 import { IMPACT_INFO, impactLine, impactOf, shortName } from '../lib/display'
 import { useState } from 'react'
-import { LOCATION_KINDS } from '../lib/agencyGuide'
+import { LOCATION_KINDS, guessLocationKind } from '../lib/agencyGuide'
 import { REPORT_TYPES } from '../lib/reportTypes'
+import { usePlan } from '../lib/planStore'
 import { STATUS_LABEL, userName } from '../lib/reportStore'
 import type { Barrier, Rating, Report } from '../types'
 
@@ -27,19 +28,10 @@ type Props = {
   onStartFlow?: (type: string, kind: string) => void
 }
 
-// 지점 종류 문구로 위치 성격의 처음 선택값만 추정한다(사용자가 바꿀 수 있음).
-function guessKind(t: string): string {
-  if (t.includes('정류장')) return '버스정류장'
-  if (t.includes('횡단보도')) return '횡단보도·신호'
-  if (t.includes('쪽문')) return '대학 캠퍼스 내부'
-  if (t.includes('기관')) return '공공건물 출입'
-  if (t.includes('보도')) return '구·시 도로의 보도'
-  return ''
-}
-
 export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, onClose, mergedReports = [], onOpenReport, flowReport, overrideRating, onStartFlow }: Props) {
   const [flowType, setFlowType] = useState(b.reportType ?? '')
-  const [flowKind, setFlowKind] = useState(guessKind(b.type))
+  const [flowKind, setFlowKind] = useState(guessLocationKind(b.type))
+  const plan = usePlan((s) => s.entries[b.id])
   const own = overrideRating !== undefined ? (overrideRating ?? undefined) : b.rating
   const inherited = !own && parent?.rating ? parent.rating : undefined
   const rating = own ?? inherited
@@ -79,6 +71,13 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
         <i className="hm-cat">{IMPACT_INFO[impact].glyph}</i>
         {impactLine(impact, rating ?? 'none')}
       </p>
+
+      {plan && plan.stage !== '미반영' && (
+        <p className="bm-plan" role="note">
+          개선계획: {plan.stage}
+          {plan.year ? ` · ${plan.year}년` : ''}
+        </p>
+      )}
 
       {stopEntry && (
         <section className="bus-sec" aria-label="저상버스 정보">

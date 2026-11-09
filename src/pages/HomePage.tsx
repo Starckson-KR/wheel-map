@@ -7,11 +7,11 @@ import { nowMs, useReports } from '../lib/reportStore'
 import { prefersCalm } from '../lib/viewPrefs'
 
 const TILES = [
-  { icon: 'route', label: '휠체어 길찾기', to: TO.route },
   { icon: 'report', label: '문제 신고하기', to: TO.newReport },
   { icon: 'list', label: '내 민원 진행 상황', to: TO.report },
   { icon: 'bus', label: '저상버스 도착', to: TO.bus },
   { icon: 'map', label: '동행지도', to: TO.map },
+  { icon: 'check', label: '개선 현황', to: TO.progress },
   { icon: 'building', label: '담당 기관 안내', to: TO.agency },
 ]
 
@@ -57,10 +57,10 @@ const FOLDED = 2
 const MENU = [
   { icon: 'home', label: '홈', to: TO.home },
   { icon: 'map', label: '동행지도', to: TO.map },
-  { icon: 'route', label: '휠체어 길찾기', to: TO.route },
   { icon: 'bus', label: '저상버스 도착', to: TO.bus },
   { icon: 'report', label: '문제 신고하기', to: TO.newReport },
   { icon: 'list', label: '내 민원 진행 상황', to: TO.report },
+  { icon: 'check', label: '개선 현황', to: TO.progress },
   { icon: 'building', label: '담당 기관 안내', to: TO.agency },
   { icon: 'bell', label: '혜택알림', to: TO.alerts },
   { icon: 'user', label: '내 정보', to: TO.me },

@@ -1338,3 +1338,265 @@
   font-size: 13px;
   line-height: 1.5;
 }
+
+/* 시민 화면의 개선계획 표시(금액·사업명은 넣지 않는다) */
+.bm-plan {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--primary-weak);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ───── 개선 현황 ───── */
+.hm-cta {
+  flex-wrap: wrap;
+}
+
+.bm button.hm-cta-main {
+  flex: 1 1 100%;
+}
+
+.bm button.hm-cta-sub {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 46px;
+  padding-inline: var(--s-2);
+}
+
+.bm-pin-pg {
+  color: #fff;
+}
+
+.bm-pin-pg.pg-intake,
+.hm-legend i.hm-leg-pg.pg-intake {
+  background: var(--pg-intake);
+}
+.bm-pin-pg.pg-agency,
+.hm-legend i.hm-leg-pg.pg-agency {
+  background: var(--pg-agency);
+}
+.bm-pin-pg.pg-overdue,
+.hm-legend i.hm-leg-pg.pg-overdue {
+  background: var(--pg-overdue);
+}
+.bm-pin-pg.pg-done,
+.hm-legend i.hm-leg-pg.pg-done {
+  background: var(--pg-done);
+}
+.bm-pin-pg.pg-rechecked,
+.hm-legend i.hm-leg-pg.pg-rechecked {
+  background: var(--pg-rechecked);
+}
+.bm-pin-pg.pg-plan,
+.hm-legend i.hm-leg-pg.pg-plan {
+  background: var(--pg-plan);
+}
+
+.bm-pin-pg.pg-overdue {
+  border-style: dashed;
+}
+
+.pgp-sum {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.pgp-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+.pgp-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--grey-100);
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+}
+
+.pgp-stat strong {
+  color: var(--text-strong);
+  font-size: var(--fs-head);
+}
+
+.pgp-stat.is-warn strong {
+  color: var(--pg-overdue-text);
+}
+
+.pgp-rate {
+  display: grid;
+  gap: 2px;
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--blue-50);
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+}
+
+.pgp-rate strong {
+  color: var(--text-strong);
+  font-size: var(--fs-title);
+}
+
+.pgp-rate small {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.pgp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.bm button.pgp-chip,
+.pgp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bm button.pgp-chip {
+  min-height: 40px;
+  padding: 0 var(--s-3) 0 var(--s-2);
+  border: 2px solid transparent;
+  border-radius: var(--r-full);
+  opacity: 0.55;
+}
+
+.bm button.pgp-chip[aria-pressed='true'] {
+  opacity: 1;
+  border-color: currentColor;
+}
+
+.pgp-chip i,
+.pgp-tag i {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: var(--r-full);
+  color: #fff;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pgp-tag {
+  flex: none;
+  height: 28px;
+  padding: 0 10px 0 4px;
+  border-radius: var(--r-full);
+  font-size: 12px;
+}
+
+.bm .pgp-chip.pg-intake,
+.pgp-tag.pg-intake {
+  background: var(--pg-intake-soft);
+  color: var(--pg-intake-text);
+}
+.bm .pgp-chip.pg-agency,
+.pgp-tag.pg-agency {
+  background: var(--pg-agency-soft);
+  color: var(--pg-agency-text);
+}
+.bm .pgp-chip.pg-overdue,
+.pgp-tag.pg-overdue {
+  background: var(--pg-overdue-soft);
+  color: var(--pg-overdue-text);
+}
+.bm .pgp-chip.pg-done,
+.pgp-tag.pg-done {
+  background: var(--pg-done-soft);
+  color: var(--pg-done-text);
+}
+.bm .pgp-chip.pg-rechecked,
+.pgp-tag.pg-rechecked {
+  background: var(--pg-rechecked-soft);
+  color: var(--pg-rechecked-text);
+}
+.bm .pgp-chip.pg-plan,
+.pgp-tag.pg-plan {
+  background: var(--pg-plan-soft);
+  color: var(--pg-plan-text);
+}
+
+.pgp-chip.pg-intake i,
+.pgp-tag.pg-intake i {
+  background: var(--pg-intake);
+}
+.pgp-chip.pg-agency i,
+.pgp-tag.pg-agency i {
+  background: var(--pg-agency);
+}
+.pgp-chip.pg-overdue i,
+.pgp-tag.pg-overdue i {
+  background: var(--pg-overdue);
+}
+.pgp-chip.pg-done i,
+.pgp-tag.pg-done i {
+  background: var(--pg-done);
+}
+.pgp-chip.pg-rechecked i,
+.pgp-tag.pg-rechecked i {
+  background: var(--pg-rechecked);
+}
+.pgp-chip.pg-plan i,
+.pgp-tag.pg-plan i {
+  background: var(--pg-plan);
+}
+
+.pgp-row .rp-row-text strong {
+  overflow-wrap: anywhere;
+}
+
+/* 조치 전/후 사진 비교 */
+.ba {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+.ba figure {
+  min-width: 0;
+  margin: 0;
+}
+
+.ba figcaption {
+  margin-bottom: 4px;
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+
+.ba .bm-thumbs {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ba-empty,
+.ba-none {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+}
+
+.bm button.pgp-exit {
+  align-self: stretch;
+  min-height: 48px;
+  margin-bottom: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--grey-100);
+  color: var(--text-strong);
+}

@@ -442,3 +442,105 @@
 .adm-plan-memo {
   grid-column: 1 / -1;
 }
+
+/* ───── 부서별 ───── */
+.adm-body .adm-dept-sec {
+  background: var(--bg-sub);
+  border: 1px solid var(--grey-100);
+  box-shadow: none;
+}
+
+.adm-dept-dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px var(--s-4);
+  margin: 0;
+}
+
+.adm-dept-dl dt {
+  margin-top: var(--s-2);
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.adm-dept-dl dd {
+  margin: 0;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.adm-dept-dl ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.adm-dept-kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.adm-dept-sub {
+  font-size: var(--fs-small);
+}
+
+.adm-dept-group {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.adm-dept-group h4 {
+  margin: var(--s-2) 0 0;
+  color: var(--text-strong);
+  font-size: var(--fs-body);
+}
+
+.adm-dept-plan {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-dept-pt {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-1);
+}
+
+.adm-dept-pt .adm-prio-name {
+  display: grid;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.bm button.adm-link {
+  align-self: flex-start;
+  min-height: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--blue-600);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+@media (min-width: 720px) {
+  :root:not([data-view='mobile']) .adm-dept-kpis {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  :root:not([data-view='mobile']) .adm-dept-dl {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  :root:not([data-view='mobile']) .adm-dept-dl dt {
+    margin-top: 0;
+  }
+}

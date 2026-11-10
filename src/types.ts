@@ -67,6 +67,16 @@ export type ReportStatus =
 
 export type ReportCategory = 'fixed' | 'temporary'
 
+// 앱 밖(국민신문고·안전신문고 등)에서 진행된 처리 상황을 시민이 직접 적어 둔 기록. 앱 안의 처리 상태(status)는 바꾸지 않는다.
+export type ExternalStage = '접수 확인' | '이송됨' | '처리 중' | '답변 완료' | '기타'
+export type ExternalUpdate = {
+  stage: ExternalStage
+  at: string // 기록한 날짜(ISO)
+  agencyName?: string // 처리 기관 이름(자유 입력)
+  memo?: string // 답변 요약
+  by: string // 사용자 id, 모의 조회면 'mock-api'
+}
+
 export type Report = {
   id: string
   barrierId?: string // 합쳐진 대상(기존 제보 id 또는 시드 지점 id)
@@ -101,6 +111,7 @@ export type Report = {
     agencyIds: string[]
     assignedAgencyId?: string
     deadlineDays: number
+    external?: { updates: ExternalUpdate[]; lastCheckedAt?: string } // 없어도 동작(예전 저장 데이터)
   }
   demo?: boolean // 시연 데이터 채우기로 만든 건
   lastCheckedAt?: string // 사후 점검 기준일(조치 완료·재확인 통과 시 갱신)

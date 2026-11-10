@@ -54,15 +54,21 @@ export function computePriority(barriers: Barrier[], reports: Report[], data: { 
     .sort((a, b) => b.score - a.score)
 }
 
-// 담당 기관 이름. 접수된 민원이 있으면 그 기관, 없으면 지점 종류로 소관이 하나로 정해질 때만 알려 주고 아니면 빈칸.
-export function agencyNameOf(pt: Pt, reports: Report[]): string {
+// 담당 기관 id. 접수된 민원이 있으면 그 기관, 없으면 지점 종류로 소관이 하나로 정해질 때만 알려 주고 아니면 null.
+export function agencyIdOf(pt: Pt, reports: Report[]): string | null {
   const filed = pt.report ?? reports.find((r) => r.seedId === pt.key)
   const id = filed ? agencyOf(filed) : null
-  if (id) return findAgencyName(id)
+  if (id) return id
   const b = pt.seed
-  if (!b?.reportType) return ''
+  if (!b?.reportType) return null
   const kind = guessLocationKind(b.type)
-  if (!kind) return ''
+  if (!kind) return null
   const sure = findAgencies(b.reportType, kind).filter((m) => !m.candidate && !m.condition)
-  return sure.length === 1 ? sure[0].agency.name : ''
+  return sure.length === 1 ? sure[0].agency.id : null
+}
+
+// 담당 기관 이름(소관이 불확실하면 빈칸).
+export function agencyNameOf(pt: Pt, reports: Report[]): string {
+  const id = agencyIdOf(pt, reports)
+  return id ? findAgencyName(id) : ''
 }

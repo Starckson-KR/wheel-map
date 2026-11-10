@@ -32,6 +32,7 @@ export type ComplaintMode = 'link' | 'mock'
 export const COMPLAINT_MODE: ComplaintMode = 'link'
 
 export const DEADLINE_FALLBACK_DAYS = 14 // 기관별 기한이 자료에 없을 때의 일반 상한(조사 문서 5장)
+export const DEADLINE_SOON_DAYS = 3 // 부서별 화면: 처리기한이 이 일수 안으로 남으면 "기한 임박"
 export const LONG_UNRESOLVED_DAYS = 60 // 명세서 4-1(4): 접수 후 60일 이상 미조치
 export const BUKGU_OLD_CHANNEL_END = '2026-11-01T00:00:00+09:00' // 북구 주민생활불편신고 종료 다음 날
 

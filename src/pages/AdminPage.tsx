@@ -1,23 +1,27 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AdminDashboard, AdminPriority } from '../components/AdminDashboard'
 import AdminRoute from '../components/AdminRoute'
 import AdminPlan from '../components/AdminPlan'
+import AdminDept from '../components/AdminDept'
+import { lastExternal } from '../lib/externalStatus'
 import ReportDetail from '../components/ReportDetail'
 import ViewSettings from '../components/ViewSettings'
 import DemoTools, { MockStrip } from '../components/DemoTools'
 import { findAgencyName } from '../lib/agencyName'
-import { listAgencies } from '../lib/agencyGuide'
+import { listAgencies, listDepartments } from '../lib/agencyGuide'
 import { agencyOf, fmtDate, flagsOf, nextInspection, pendingTransfer, tabOf, type InboxTab } from '../lib/caseMetrics'
 import { STATUS_LABEL, nowMs, useReports } from '../lib/reportStore'
+import { parseHash } from '../lib/nav'
 import { loadBarriers } from '../lib/seed'
 import type { Report } from '../types'
 
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
 
-type Section = 'inbox' | 'route' | 'dash' | 'prio' | 'plan' | 'inspect'
+type Section = 'inbox' | 'dept' | 'route' | 'dash' | 'prio' | 'plan' | 'inspect'
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'inbox', label: '민원함' },
+  { id: 'dept', label: '부서별' },
   { id: 'route', label: '경로 보기' },
   { id: 'dash', label: '지역 현황' },
   { id: 'prio', label: '우선순위' },
@@ -31,6 +35,22 @@ const TABS: { id: InboxTab; label: string }[] = [
   { id: 'transfer', label: '이관 요청' },
 ]
 
+const DEPT_KEY = 'wheelmap.adminDept.v1'
+const DEPTS = listDepartments()
+const validDept = (id: string | null | undefined): id is string => !!id && DEPTS.some((d) => d.id === id)
+const deptFromHash = () => {
+  const id = new URLSearchParams(parseHash(location.hash).query).get('dept')
+  return validDept(id) ? id : null
+}
+const loadDept = () => {
+  try {
+    const v = localStorage.getItem(DEPT_KEY)
+    return validDept(v) ? v : ''
+  } catch {
+    return ''
+  }
+}
+
 const caseName = (r: Report) => (r.seedId ? `${r.seedId} · ${BY_ID.get(r.seedId)?.name ?? ''}` : `${r.type} (시민 제보)`)
 
 export default function AdminPage() {
@@ -39,11 +59,34 @@ export default function AdminPage() {
   const offset = useReports((s) => s.offsetDays)
   const decideTransfer = useReports((s) => s.decideTransfer)
   const resetAll = useReports((s) => s.resetAll)
-  const [section, setSection] = useState<Section>('inbox')
+  const [section, setSection] = useState<Section>(() => (deptFromHash() ? 'dept' : 'inbox'))
+  const [dept, setDept] = useState<string>(() => deptFromHash() ?? loadDept())
   const [tab, setTab] = useState<InboxTab>('new')
   const [agency, setAgency] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
   const officer = userId === 'officer'
+
+  // #/admin?dept=<id> 로 들어오면 그 부서와 "부서별" 구역을 연다(이미 행정 화면에 있을 때 주소만 바뀌어도 따라간다).
+  useEffect(() => {
+    const onHash = () => {
+      const id = deptFromHash()
+      if (id) {
+        setDept(id)
+        setSection('dept')
+      }
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+  const pickDept = (id: string) => {
+    setDept(id)
+    try {
+      if (id) localStorage.setItem(DEPT_KEY, id)
+    } catch {
+      /* 저장소를 못 써도 화면 상태는 유지한다 */
+    }
+    if (id) history.replaceState(null, '', `#/admin?dept=${encodeURIComponent(id)}`)
+  }
   void offset // 시간 앞당기기가 바뀌면 다시 계산
   const now = nowMs()
 
@@ -85,6 +128,7 @@ export default function AdminPage() {
             <span className="bm-meta">
               {r.type} · 접수 {c ? fmtDate(new Date(c.submittedAt).getTime()) : '—'} · 처리기한{' '}
               {c ? fmtDate(new Date(c.submittedAt).getTime() + c.deadlineDays * 86400000) : '—'} · {findAgencyName(agencyOf(r) ?? '')}
+              {c ? ` · 접수번호 ${c.receiptNo}` : ''}
             </span>
             {t && (
               <span className="bm-meta">
@@ -99,6 +143,7 @@ export default function AdminPage() {
                 ⚠ {f}
               </span>
             ))}
+            {lastExternal(r) && <span className="adm-ext">바깥 진행: {lastExternal(r)?.stage}</span>}
             {r.demo && <span className="adm-demo">시연 데이터</span>}
           </span>
         </button>
@@ -166,6 +211,18 @@ export default function AdminPage() {
                   ))}
                 </select>
               </label>
+              {validDept(agency) && (
+                <button
+                  type="button"
+                  className="adm-link"
+                  onClick={() => {
+                    pickDept(agency)
+                    setSection('dept')
+                  }}
+                >
+                  이 부서 화면 보기
+                </button>
+              )}
               {overdue > 0 && (
                 <p className="ps-flag" role="alert">
                   ⚠ 처리기한이 지난 민원이 {overdue}건 있어요.
@@ -187,6 +244,31 @@ export default function AdminPage() {
             </div>
           )}
 
+          {section === 'dept' && (
+            <div className="adm-sec">
+              <label className="rf-field adm-agency">
+                부서
+                <select value={dept} onChange={(e) => pickDept(e.target.value)}>
+                  <option value="">부서를 골라 주세요</option>
+                  {DEPTS.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <AdminDept
+                deptId={dept}
+                barriers={BARRIERS}
+                officer={officer}
+                selected={selected}
+                caseName={caseName}
+                onOpen={setSelected}
+                onGoPlan={() => setSection('plan')}
+                onGoDash={() => setSection('dash')}
+              />
+            </div>
+          )}
           {section === 'route' && <AdminRoute barriers={BARRIERS} onOpen={setSelected} />}
           {section === 'dash' && <AdminDashboard barriers={BARRIERS} />}
           {section === 'prio' && <AdminPriority barriers={BARRIERS} />}
@@ -231,6 +313,7 @@ export default function AdminPage() {
             onClose={() => setSelected(null)}
             onOpenReport={setSelected}
             onOpenSeed={() => (location.hash = '#/map')}
+            readOnlyExternal
           />
         )}
       </div>

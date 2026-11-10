@@ -16,11 +16,12 @@ type Props = {
   onClose: () => void
   onOpenReport: (id: string) => void
   onOpenSeed: (id: string) => void
+  readOnlyExternal?: boolean // 행정 화면에서는 바깥 처리 상황을 읽기만 한다
 }
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
 
-export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpenReport, onOpenSeed }: Props) {
+export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpenReport, onOpenSeed, readOnlyExternal }: Props) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const vote = useReports((s) => s.vote)
@@ -245,7 +246,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       )}
 
       {r.status === 'verified' && <ComplaintGuide report={r} seeds={seeds} />}
-      <ProcessSection report={r} />
+      <ProcessSection report={r} readOnlyExternal={readOnlyExternal} />
     </aside>
   )
 }

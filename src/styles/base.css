@@ -179,7 +179,8 @@ h4 {
 .bm textarea,
 .bm input[type='number'],
 .bm input[type='text'],
-.bm input[type='search'] {
+.bm input[type='search'],
+.bm input[type='date'] {
   box-sizing: border-box;
   width: 100%;
   min-height: 48px;
@@ -346,6 +347,7 @@ h4 {
 .cg-tag,
 .adm-flag,
 .adm-demo,
+.adm-ext,
 .bm-unplaced {
   display: inline-flex;
   align-items: center;
@@ -417,6 +419,11 @@ h4 {
 .bm-unplaced {
   background: var(--amber-50);
   color: var(--amber-700);
+}
+
+.adm-ext {
+  background: var(--blue-50);
+  color: var(--blue-700);
 }
 
 .adm-demo {

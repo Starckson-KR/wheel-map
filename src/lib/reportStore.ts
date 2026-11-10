@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Barrier, Rating, Report, ReportCategory, ReportStatus } from '../types'
+import type { Barrier, ExternalStage, Rating, Report, ReportCategory, ReportStatus } from '../types'
 import { COMPLAINT_MODE, TEMP_VALID_HOURS, VOTES_REQUIRED, canVerifierConfirm, canVote, type ComplaintMode } from './config'
 import { clearPhotos } from './photoStore'
 import { agencyOf, pendingTransfer } from './caseMetrics'
@@ -104,6 +104,7 @@ type State = {
   setComplaintMode: (m: ComplaintMode) => void
   startSeedFlow: (seed: Barrier, type: string, locationKind: string, rating?: Rating) => Report
   fileComplaint: (id: string, c: NonNullable<Report['complaint']>, by?: string) => Result
+  addExternalUpdate: (id: string, u: { stage: ExternalStage; at: string; agencyName?: string; memo?: string }, by?: string) => Result
   assign: (id: string, agencyId: string) => Result
   startAction: (id: string) => Result
   completeAction: (id: string, description: string, before: string[], after: string[]) => Result
@@ -268,6 +269,23 @@ export const useReports = create<State>((set, get) => {
         const filed = log({ ...x, complaint: { ...c } }, 'filed', `${c.channel} 접수번호 ${c.receiptNo}${c.mode === 'mock' ? ' (시연용 모의 접수)' : ''}`, by)
         if (c.assignedAgencyId && c.mode === 'mock') return log(filed, 'assigned', '모의 접수 응답: 담당 기관 배정', 'mock-api')
         return filed
+      })
+      return { ok: true }
+    },
+
+    // 앱 밖에서 진행된 처리 상황을 시민이 적어 둔다. 앱 안의 처리 상태(status·history)는 바꾸지 않는다. 모의 조회('mock-api')만 공무원 선택 상태에서도 쓴다.
+    addExternalUpdate: (id, u, by) => {
+      const r = find(id)
+      if (!r || !r.complaint) return { ok: false, message: '접수된 민원을 찾을 수 없습니다.' }
+      const who = by ?? me().id
+      if (who !== 'mock-api' && me().role === 'officer') return { ok: false, message: '바깥 처리 상황은 시민이 기록해요. 시연 도구에서 시민이나 검증자로 바꿔 주세요.' }
+      if (Number.isNaN(new Date(u.at).getTime())) return { ok: false, message: '날짜를 확인해 주세요.' }
+      const agencyName = u.agencyName?.trim().slice(0, 60)
+      const memo = u.memo?.trim().slice(0, 500)
+      const entry = { stage: u.stage, at: u.at, ...(agencyName ? { agencyName } : {}), ...(memo ? { memo } : {}), by: who }
+      update(id, (x) => {
+        const c = x.complaint as NonNullable<Report['complaint']>
+        return { ...x, complaint: { ...c, external: { updates: [...(c.external?.updates ?? []), entry], lastCheckedAt: new Date(nowMs()).toISOString() } } }
       })
       return { ok: true }
     },

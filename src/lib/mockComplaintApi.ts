@@ -14,6 +14,15 @@
 //       assignedAgencyId: string,        // 담당 기관 배정 결과
 //       processingDays: number }         // 처리기한(일)
 // 접수번호는 실제 번호처럼 보이지 않도록 항상 'DEMO-' 접두어를 붙인다.
+//
+// [가정한 API 형식] — 처리 상황 조회. 공개 조회 API가 있다고 가정했을 때의 모습이며, 실제 API 명세가 아니다.
+//   요청  GET /complaints/{receiptNo}/status
+//   응답  200
+//     { receiptNo: string,
+//       stage: '접수 확인' | '처리 중' | '답변 완료',   // 앱 안의 현재 상태(history)를 바탕으로 만든 모의 값
+//       checkedAt: string,                              // ISO 8601
+//       agencyName?: string,
+//       summary?: string }                              // 답변 요약(있을 때)
 
 export type MockComplaintRequest = {
   channel: string
@@ -51,5 +60,42 @@ export function submitMockComplaint(req: MockComplaintRequest): Promise<MockComp
         processingDays: req.processingDays,
       })
     }, delay)
+  })
+}
+
+export type MockStatusRequest = {
+  receiptNo: string
+  history: { status: string; at: string; memo?: string }[]
+  agencyName?: string
+  nowMs: number
+}
+
+export type MockStatusResponse = {
+  receiptNo: string
+  stage: '접수 확인' | '처리 중' | '답변 완료'
+  checkedAt: string
+  agencyName?: string
+  summary?: string
+}
+
+// 모의 처리 상황 조회. 네트워크 호출 없이 앱 안의 처리 기록(history)만 보고 단계를 돌려주며, 1초쯤 기다린 뒤 응답한다.
+export function getMockStatus(req: MockStatusRequest): Promise<MockStatusResponse> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (!req.receiptNo.toUpperCase().startsWith('DEMO-')) {
+        reject(new Error('모의 접수번호(DEMO-로 시작)만 모의 조회할 수 있어요.'))
+        return
+      }
+      const last = req.history[req.history.length - 1]?.status
+      const stage: MockStatusResponse['stage'] = last === 'resolved' || last === 'rechecked' ? '답변 완료' : last === 'in_progress' ? '처리 중' : '접수 확인'
+      const summary = stage === '답변 완료' ? [...req.history].reverse().find((h) => h.status === 'resolved')?.memo : undefined
+      resolve({
+        receiptNo: req.receiptNo,
+        stage,
+        checkedAt: new Date(req.nowMs).toISOString(),
+        ...(req.agencyName ? { agencyName: req.agencyName } : {}),
+        ...(summary ? { summary } : {}),
+      })
+    }, 1000)
   })
 }

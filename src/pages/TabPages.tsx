@@ -4,6 +4,7 @@ import DemoTools, { MockStrip } from '../components/DemoTools'
 import ViewSettings from '../components/ViewSettings'
 import ReportsPanel from '../components/ReportsPanel'
 import MyRewards from '../components/MyRewards'
+import ReceiptLookup from '../components/ReceiptLookup'
 import { listAgencies } from '../lib/agencyGuide'
 import { TO, go } from '../lib/nav'
 import { computeRewards } from '../lib/rewards'
@@ -47,6 +48,10 @@ export function ReportTab({ query }: { query: string }) {
         <button type="button" className="rf-primary pg-wide" onClick={() => go(TO.newReport)}>
           문제 신고하기
         </button>
+      </section>
+      <section className="pg-card">
+        <h2>접수번호로 찾기</h2>
+        <ReceiptLookup onOpen={(id) => go(TO.openReport(id))} />
       </section>
       <section className="pg-card">
         <h2>내 민원 진행 상황</h2>

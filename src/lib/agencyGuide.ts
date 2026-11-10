@@ -102,6 +102,25 @@ export function channelLinks(agencies: Agency[], nowMs: number): ChannelLink[] {
   return out
 }
 
+// 접수 채널 이름 → 그 누리집의 첫 페이지 주소(같은 사이트의 루트). 조회 메뉴 주소는 확인되지 않아 만들지 않는다. 주소가 없는 채널(문자·전화)은 null.
+export function channelHome(label: string): string | null {
+  const url = label.startsWith('안전신문고')
+    ? URLS.safety
+    : label.startsWith('국민신문고')
+      ? URLS.epeople
+      : label.startsWith('120')
+        ? URLS.c120
+        : label.startsWith('북구청 누리집') || label.startsWith('북구 주민생활불편신고')
+          ? URLS.bukguCivil
+          : null
+  if (!url) return null
+  try {
+    return new URL(url).origin + '/'
+  } catch {
+    return null
+  }
+}
+
 export type Deadline = { days: number; basis: string }
 
 // 처리기한: 소관 기관 자료의 deadlineDays가 있으면 그 값, 없으면 조사 문서의 일반 상한(안전신문고 7일 또는 14일, 건의민원 14일).
@@ -118,3 +137,6 @@ export const hasTodoLaw = (a: Agency) => a.legalBasis.length === 0 || a.legalBas
 // 행정 화면용: 처리 기관 목록(채널 항목과 유형이 비어 있는 항목은 제외).
 export const listAgencies = (): Agency[] => AGENCIES.filter((a) => !a.id.startsWith('channel-') && a.types.length > 0)
 export const agencyById = (id: string) => AGENCIES.find((a) => a.id === id)
+
+// 부서별 화면용: 실제 행정기관·부서만(신고 창구와 민간 시설주는 뺀다). 전남대 시설 부서는 이관·배정 대상이라 넣고 "소관 확인 필요"로 보여 준다.
+export const listDepartments = (): Agency[] => listAgencies().filter((a) => a.level !== '기관')

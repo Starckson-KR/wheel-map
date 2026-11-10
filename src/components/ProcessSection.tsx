@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ReportPhotos from './ReportPhotos'
 import BeforeAfter from './BeforeAfter'
 import { MockBadge } from './ComplaintGuide'
+import ExternalStatus from './ExternalStatus'
 import { resizeImage, savePhoto } from '../lib/photoStore'
 import { STATUS_LABEL, nowMs, useReports, userName } from '../lib/reportStore'
 import { findAgencyName } from '../lib/agencyName'
@@ -21,7 +22,7 @@ const STEPS: { label: string; on: (s: Report['status']) => boolean }[] = [
 ]
 const ORDER = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
-export default function ProcessSection({ report: r }: { report: Report }) {
+export default function ProcessSection({ report: r, readOnlyExternal = false }: { report: Report; readOnlyExternal?: boolean }) {
   const userId = useReports((s) => s.userId)
   const offset = useReports((s) => s.offsetDays)
   void offset // 시간 앞당기기가 바뀌면 다시 그려진다
@@ -133,6 +134,8 @@ export default function ProcessSection({ report: r }: { report: Report }) {
           ))}
         </div>
       )}
+
+      {c && <ExternalStatus report={r} readOnly={readOnlyExternal} />}
 
       {r.action && (
         <div className="rf-card">
@@ -248,7 +251,7 @@ export default function ProcessSection({ report: r }: { report: Report }) {
       {pendingTransfer(r) && <p className="ps-flag">이관을 요청했어요. {findAgencyName(pendingTransfer(r)?.toAgencyId ?? '')}가 수락하기를 기다리고 있어요.</p>}
 
       {r.status === 'resolved' && (
-        <div className="rf-card" aria-label="재확인">
+        <div className="rf-card" id="ps-recheck" aria-label="재확인">
           <strong>재확인: 이제 지나갈 수 있나요?</strong>
           {officer ? (
             <p className="bm-meta">재확인은 시민이나 검증자가 해요. 시연 도구에서 사용자를 바꿔 주세요.</p>

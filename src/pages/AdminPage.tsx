@@ -3,6 +3,8 @@ import { AdminDashboard, AdminPriority } from '../components/AdminDashboard'
 import AdminRoute from '../components/AdminRoute'
 import AdminPlan from '../components/AdminPlan'
 import AdminDept from '../components/AdminDept'
+import AdminReport from '../components/AdminReport'
+import { useRecurrence } from '../lib/useRecurrence'
 import { lastExternal } from '../lib/externalStatus'
 import ReportDetail from '../components/ReportDetail'
 import ViewSettings from '../components/ViewSettings'
@@ -18,7 +20,7 @@ import type { Report } from '../types'
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
 
-type Section = 'inbox' | 'dept' | 'route' | 'dash' | 'prio' | 'plan' | 'inspect'
+type Section = 'inbox' | 'dept' | 'route' | 'dash' | 'prio' | 'plan' | 'inspect' | 'report'
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'inbox', label: '민원함' },
   { id: 'dept', label: '부서별' },
@@ -27,6 +29,7 @@ const SECTIONS: { id: Section; label: string }[] = [
   { id: 'prio', label: '우선순위' },
   { id: 'plan', label: '개선계획·예산' },
   { id: 'inspect', label: '사후 점검' },
+  { id: 'report', label: '보고서' },
 ]
 const TABS: { id: InboxTab; label: string }[] = [
   { id: 'new', label: '신규' },
@@ -65,6 +68,7 @@ export default function AdminPage() {
   const [agency, setAgency] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
   const officer = userId === 'officer'
+  const recur = useRecurrence()
 
   // #/admin?dept=<id> 로 들어오면 그 부서와 "부서별" 구역을 연다(이미 행정 화면에 있을 때 주소만 바뀌어도 따라간다).
   useEffect(() => {
@@ -144,6 +148,7 @@ export default function AdminPage() {
               </span>
             ))}
             {lastExternal(r) && <span className="adm-ext">바깥 진행: {lastExternal(r)?.stage}</span>}
+            {recur.byId.has(r.id) && <span className="adm-recur">재발</span>}
             {r.demo && <span className="adm-demo">시연 데이터</span>}
           </span>
         </button>
@@ -273,6 +278,8 @@ export default function AdminPage() {
           {section === 'dash' && <AdminDashboard barriers={BARRIERS} />}
           {section === 'prio' && <AdminPriority barriers={BARRIERS} />}
           {section === 'plan' && <AdminPlan barriers={BARRIERS} />}
+
+          {section === 'report' && <AdminReport caseName={caseName} onOpen={setSelected} />}
 
           {section === 'inspect' && (
             <div className="adm-sec">

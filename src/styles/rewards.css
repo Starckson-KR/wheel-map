@@ -300,3 +300,48 @@
     transition: none;
   }
 }
+
+/* ───── 참여 랭킹·이번 주 챌린지(혜택알림 탭). 카드(--bg) 안쪽 줄은 --bg-sub + 테두리로 구분한다 ───── */
+.rk-seg { display: flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-full); background: var(--bg-page); }
+.bm .rk-seg > button { flex: 1; min-height: 40px; padding: 0 var(--s-3); border-radius: var(--r-full); background: none; color: var(--text); font-size: var(--fs-small); font-weight: 700; }
+.rk-seg > button[aria-selected='true'] { background: var(--text-strong); color: var(--bg); }
+.rk-panel { display: flex; flex-direction: column; gap: var(--s-2); }
+.rk-panel > p { margin: 0; }
+.rk-list { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.rk-row { display: flex; align-items: center; gap: var(--s-3); min-width: 0; padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-sub); }
+.rk-row.rk-mine { border-color: var(--primary); background: var(--primary-weak); }
+:root[data-theme='dark'] .rk-row.rk-mine { background: var(--bg-page); }
+.rk-out { margin-top: var(--s-1); }
+.rk-no { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-full); background: var(--bg); border: 1px solid var(--line); color: var(--text-strong); font-weight: 800; font-variant-numeric: tabular-nums; }
+.rk-who { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.rk-who strong { color: var(--text-strong); overflow-wrap: anywhere; }
+.rk-sub { color: var(--text-sub); font-size: var(--fs-caption); overflow-wrap: anywhere; }
+.rk-me { margin-left: var(--s-2); padding: 1px var(--s-2); border-radius: var(--r-full); background: var(--primary); color: var(--on-primary); font-size: var(--fs-caption); font-weight: 700; }
+.rk-pts { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; color: var(--text-strong); font-size: var(--fs-small); }
+.rk-pts b { font-size: var(--fs-sub); font-variant-numeric: tabular-nums; }
+.rk-chg { color: var(--text-sub); font-size: var(--fs-caption); font-weight: 700; }
+.rk-up { color: var(--green-700); }
+.rk-down { color: var(--red-700); }
+:root[data-theme='dark'] .rk-up { color: #5fd0a0; }
+:root[data-theme='dark'] .rk-down { color: #ff8b84; }
+.rk-empty, .rk-idle { margin: 0; }
+.rk-notes { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+
+.ch-list { display: flex; flex-direction: column; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.ch-row { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; padding: var(--s-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-sub); }
+.ch-row p { margin: 0; }
+.ch-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
+.ch-head strong { color: var(--text-strong); }
+.ch-num { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.ch-done { color: var(--green-700); font-weight: 800; }
+:root[data-theme='dark'] .ch-done { color: #5fd0a0; }
+.ch-track { height: 8px; overflow: hidden; border-radius: var(--r-full); background: var(--line); }
+.ch-track i { display: block; height: 100%; border-radius: var(--r-full); background: var(--primary); transition: width var(--t-sheet) var(--ease-out); }
+.ch-row.is-done .ch-track i { background: var(--green-700); }
+.ch-sub { color: var(--text); font-size: var(--fs-small); }
+.ch-wait { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.bm button.ch-go { align-self: flex-start; max-width: 100%; min-height: 40px; padding: 0 var(--s-4); border-radius: var(--r-full); font-size: var(--fs-small); overflow-wrap: anywhere; text-align: left; }
+
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-force) .ch-track i { transition: none; }
+}

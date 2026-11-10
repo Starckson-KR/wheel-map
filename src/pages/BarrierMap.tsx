@@ -149,7 +149,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const startSeedFlow = useReports((s) => s.startSeedFlow)
   const seedOverride = useMemo(() => {
     const m = new Map<string, Rating | undefined>()
-    for (const r of reports) if (r.seedId) m.set(r.seedId, r.verification.rating)
+    for (const r of reports) if (r.seedId && !m.has(r.seedId)) m.set(r.seedId, r.verification.rating) // 같은 지점의 민원이 여러 건이어도 첫 건의 평가를 쓴다(ratingOfBarrier의 find와 같은 기준)
     return m
   }, [reports])
   const resetAll = useReports((s) => s.resetAll)

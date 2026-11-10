@@ -348,6 +348,7 @@ h4 {
 .adm-flag,
 .adm-demo,
 .adm-ext,
+.adm-recur,
 .bm-unplaced {
   display: inline-flex;
   align-items: center;
@@ -419,6 +420,11 @@ h4 {
 .bm-unplaced {
   background: var(--amber-50);
   color: var(--amber-700);
+}
+
+.adm-recur {
+  background: var(--red-50);
+  color: var(--red-700);
 }
 
 .adm-ext {

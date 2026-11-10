@@ -10,6 +10,7 @@ import { agencyIdOf } from '../lib/priority'
 import { RATING_STYLE } from '../lib/rating'
 import { nowMs, useReports } from '../lib/reportStore'
 import { usePriority } from '../lib/usePriority'
+import { useRecurrence } from '../lib/useRecurrence'
 import type { Barrier, Report } from '../types'
 
 const PLAN_PREVIEW = 8
@@ -36,6 +37,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
   const decideTransfer = useReports((s) => s.decideTransfer)
   const entries = usePlan((s) => s.entries)
   const { rows: cands, data, err } = usePriority(barriers)
+  const recur = useRecurrence()
   const [more, setMore] = useState(false)
   void offset // 시간 앞당기기가 바뀌면 다시 계산
   const now = nowMs()
@@ -67,6 +69,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
   const overdueN = mine.filter((r) => (deadlineOf(r, now)?.overdueDays ?? 0) > 0).length
   const longN = mine.filter((r) => (deadlineOf(r, now)?.longDays ?? 0) > 0).length
   const avgDays = avgProcessDays(mine.filter((r) => r.action?.doneAt))
+  const recurN = mine.filter((r) => recur.byId.has(r.id)).length
 
   // 오늘 할 일: 이관을 보내고 답을 기다리는 건은 뺀다.
   const tasks: Task[] = []
@@ -103,9 +106,10 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
               </span>
             )}
           </span>
-          {(note || lastExternal(r)) && (
+          {(note || lastExternal(r) || recur.byId.has(r.id)) && (
             <span className="adm-badges">
               {note && <span className="adm-flag">{note}</span>}
+              {recur.byId.has(r.id) && <span className="adm-recur">재발</span>}
               {lastExternal(r) && <span className="adm-ext">바깥 진행: {lastExternal(r)?.stage}</span>}
             </span>
           )}
@@ -126,6 +130,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
     ['평균 처리 기간', avgDays === null ? '자료 없음' : `${avgDays.toFixed(1)}일`, '접수부터 조치 완료까지'],
     ['받은 이관', `${gotN}회`, `수락 대기 ${incoming.length}건`],
     ['보낸 이관', `${sentN}회`],
+    ['재발', `${recurN}건`, '조치 뒤 다시 신고된 건'],
   ]
 
   return (

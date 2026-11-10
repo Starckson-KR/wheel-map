@@ -15,6 +15,8 @@ type Spec = {
   steps: Step[] // 접수 이후 단계(오래된 순)
   transfer?: { toAgencyId: string; reason: string; daysAgo: number; decision?: 'accepted' | 'rejected' }
   recheckPass?: boolean
+  tag?: string // 같은 지점에 건이 둘 이상일 때 접수번호 뒤에 붙인다(예: R19-2)
+  note?: string // 설명 문구(없으면 지점 이름)
 }
 
 const S = (status: ReportStatus, daysAgo: number, by: string, memo: string): Step => ({ status, daysAgo, by, memo: `(시연) ${memo}` })
@@ -31,6 +33,15 @@ const SPECS: Spec[] = [
     submittedDaysAgo: 40,
     steps: [S('assigned', 38, 'officer', '기관 배정 확인'), S('in_progress', 35, 'officer', '현장 확인·조치 시작'), S('resolved', 25, 'officer', '판석 균열 부분을 정비했습니다'), S('rechecked', 20, 'citizen-b', '재확인: 실제로 통과 가능')],
     recheckPass: true,
+  },
+  {
+    // 재발 사례: R19는 위에서 재확인까지 끝난 지점이다. 그 뒤 같은 곳에 같은 유형으로 다시 접수된 건.
+    owner: 'citizen-b', seedId: 'R19', tag: '2',
+    type: '파손 노면',
+    kind: '대학 캠퍼스 내부',
+    submittedDaysAgo: 3,
+    steps: [S('assigned', 2, 'officer', '기관 배정 확인')],
+    note: '(시연) 정비했던 판석 주변에 다시 균열',
   },
   {
     owner: 'citizen-a', seedId: 'B03',
@@ -74,7 +85,7 @@ export function buildDemoReports(seeds: Barrier[], now: number, newId: () => str
     const submittedAt = iso(sp.submittedDaysAgo)
     const history: Report['history'] = [
       { status: 'verified', at: submittedAt, by: sp.owner, memo: '(시연) 팀 현장조사 지점에서 시작(검증 완료로 간주)' },
-      { status: 'filed', at: submittedAt, by: sp.owner, memo: '(시연) 안전신문고 접수번호 DEMO-SIM-' + sp.seedId },
+      { status: 'filed', at: submittedAt, by: sp.owner, memo: `(시연) 안전신문고 접수번호 DEMO-SIM-${sp.seedId}${sp.tag ? '-' + sp.tag : ''}` },
     ]
     let status: ReportStatus = 'filed'
     for (const st of sp.steps) {
@@ -93,14 +104,14 @@ export function buildDemoReports(seeds: Barrier[], now: number, newId: () => str
       type: sp.type,
       category: ['쓰레기', '킥보드·자전거', '입간판·노점', '공사 자재', '불법 주정차'].includes(sp.type) ? 'temporary' : 'fixed',
       photos: [],
-      description: `(시연) 팀 현장조사 지점 ${b.id} · ${b.name}`,
+      description: sp.note ?? `(시연) 팀 현장조사 지점 ${b.id} · ${b.name}`,
       locationKind: sp.kind,
       status,
       verification: { votes: 0, voterIds: [], verifierId: 'team-survey', result: 'confirmed', ...(sp.recheckPass ? { rating: 'O' as Rating } : rating ? { rating } : {}) },
       history,
       complaint: {
         channel: '안전신문고',
-        receiptNo: `DEMO-SIM-${sp.seedId}`,
+        receiptNo: `DEMO-SIM-${sp.seedId}${sp.tag ? '-' + sp.tag : ''}`,
         submittedAt,
         mode: 'mock',
         agencyIds,

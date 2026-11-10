@@ -4,6 +4,8 @@ import DemoTools, { MockStrip } from '../components/DemoTools'
 import ViewSettings from '../components/ViewSettings'
 import ReportsPanel from '../components/ReportsPanel'
 import MyRewards from '../components/MyRewards'
+import ParticipationRanking from '../components/ParticipationRanking'
+import ParticipationChallenge from '../components/ParticipationChallenge'
 import ReceiptLookup from '../components/ReceiptLookup'
 import { listAgencies } from '../lib/agencyGuide'
 import { TO, go } from '../lib/nav'
@@ -188,6 +190,8 @@ export function AlertsTab() {
         )}
         <button type="button" className="pg-wide" onClick={() => go(TO.me)}>내 기여 자세히 보기</button>
       </section>
+      <ParticipationRanking />
+      <ParticipationChallenge />
       <section className="pg-card" aria-labelledby="al-h">
         <h2 id="al-h">알림</h2>
         <div className="al-chips" role="group" aria-label="알림 종류">

@@ -100,3 +100,15 @@ export const REWARD_GRADE_RULES = {
 }
 // 유형별 엠블럼: 명세서에는 이름 예시만 있고 조건이 없어 "해당 유형의 검증된 제보 N건"(안)으로 둔다.
 export const REWARD_TYPE_EMBLEM_MIN = 2
+
+// 재발 판정: 앞선 민원이 조치 완료(또는 재확인 완료)된 뒤, 같은 곳에 새 민원이 접수되면 "재발"로 본다. 아래 값은 팀이 정하는 값이다.
+export const RECURRENCE_RADIUS_M = 30 // 같은 곳으로 보는 거리(지점 id가 같으면 거리와 상관없이 같은 곳)
+export const RECURRENCE_SAME_TYPE = true // true면 민원 유형이 같을 때만 재발로 본다
+
+// 참여 챌린지(보조 기능). 아래 목표 수치와 거리는 모두 팀이 정하는 값이다. 챌린지를 채워도 점수는 새로 주지 않는다.
+export const CHALLENGE_WEEKLY = {
+  infoGap: 1, // 정보가 부족한 곳 근처에서 이번 주 검증된 제보
+  recheck: 2, // 이번 주 조치 결과 재확인
+  newReport: 2, // 이번 주 검증된 새 장애요인 제보
+}
+export const CHALLENGE_NEAR_RADIUS_M = 50 // "정보가 부족한 곳 근처"로 보는 거리(팀이 정하는 값)

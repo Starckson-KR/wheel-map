@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../components/Icon'
 import { MockStrip } from '../components/DemoTools'
 import { TO, go } from '../lib/nav'
-import { computeRewards } from '../lib/rewards'
-import { nowMs, useReports } from '../lib/reportStore'
+import { computeRanking } from '../lib/ranking'
+import { DEMO_USERS, nowMs, useReports } from '../lib/reportStore'
 import { prefersCalm } from '../lib/viewPrefs'
 
 const TILES = [
@@ -124,13 +124,15 @@ export default function HomePage() {
     const mine = reports.filter((r) => r.userId === userId)
     const doing = mine.filter((r) => ['verified', 'filed', 'assigned', 'in_progress'].includes(r.status)).length
     const recheck = mine.filter((r) => r.status === 'resolved').length
-    const week = nowMs() - 7 * 86400000
-    const rw = computeRewards(reports, [userId])[userId]
-    const pts = rw.events.filter((e) => new Date(e.at).getTime() >= week).reduce((s, e) => s + e.points, 0)
+    // 이번 주(월~일) 점수와 순위는 혜택알림의 참여 랭킹과 같은 계산을 쓴다
+    const ids = DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id)
+    const row = computeRanking(reports, ids.includes(userId) ? ids : [...ids, userId], 'week', nowMs(), 0, false).rows.find((x) => x.userId === userId)
+    const pts = row?.points ?? 0
+    const myRank = row?.rank
     const wait = reports.filter((r) => r.userId !== userId && r.status === 'pending').length
     return [
       { tone: 'blue', t: doing > 0 ? `처리 중인 내 민원이 ${doing}건 있어요` : '처리 중인 내 민원이 아직 없어요', to: TO.report },
-      { tone: 'green', t: `이번 주 참여 점수 ${pts}점을 모았어요`, to: TO.alerts },
+      { tone: 'green', t: myRank ? `이번 주 내 순위 ${myRank}위예요 · ${pts}점을 모았어요` : `이번 주 참여 점수 ${pts}점을 모았어요`, to: TO.alerts },
       { tone: 'amber', t: recheck > 0 ? `재확인을 기다리는 민원이 ${recheck}건 있어요` : '재확인을 기다리는 민원이 없어요', to: TO.report },
       { tone: 'purple', t: wait > 0 ? `확인을 기다리는 제보가 ${wait}건 있어요` : '확인을 기다리는 제보가 없어요', to: TO.report },
     ]

@@ -5,6 +5,8 @@ import ComplaintGuide from './ComplaintGuide'
 import ProcessSection from './ProcessSection'
 import { VERIFY_MODE, VERIFY_MODE_TEXT, VOTES_REQUIRED, canVerifierConfirm, canVote } from '../lib/config'
 import { RATING_STYLE } from '../lib/rating'
+import { fmtDate } from '../lib/caseMetrics'
+import { useRecurrence } from '../lib/useRecurrence'
 import { CATEGORY_LABEL, REJECT_REASONS } from '../lib/reportTypes'
 import { DEMO_USERS, STATUS_LABEL, isExpired, useReports, userName } from '../lib/reportStore'
 import type { Barrier, Rating } from '../types'
@@ -30,6 +32,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
   const [rating, setRating] = useState<Rating | null>(null)
   const [reason, setReason] = useState<string>(REJECT_REASONS[0])
   const [msg, setMsg] = useState('')
+  const recurrence = useRecurrence()
 
   const r = reports.find((x) => x.id === reportId)
   if (!r) {
@@ -95,6 +98,15 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
               {r.barrierId} {seedLabel ? `· ${seedLabel}` : ''}
             </button>
           )}
+        </p>
+      )}
+
+      {recurrence.byId.get(r.id) && (
+        <p className="rf-notice adm-recur-note" role="status">
+          이 곳은 {fmtDate(recurrence.byId.get(r.id)?.priorActionMs ?? 0)}에 조치된 뒤 다시 신고됐어요(재발 {recurrence.byId.get(r.id)?.nth}회).{' '}
+          <button type="button" className="adm-link" onClick={() => onOpenReport(recurrence.byId.get(r.id)?.priorId ?? r.id)}>
+            앞선 건 보기
+          </button>
         </p>
       )}
 

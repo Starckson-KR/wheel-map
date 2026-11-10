@@ -444,7 +444,8 @@
 }
 
 /* ───── 부서별 ───── */
-.adm-body .adm-dept-sec {
+.adm-body .adm-dept-sec,
+.adm-body .adm-report-sec {
   background: var(--bg-sub);
   border: 1px solid var(--grey-100);
   box-shadow: none;
@@ -542,5 +543,188 @@
 
   :root:not([data-view='mobile']) .adm-dept-dl dt {
     margin-top: 0;
+  }
+}
+
+/* ───── 보고서 ───── */
+.adm-report {
+  min-width: 0;
+}
+
+.adm-report-print {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-3);
+}
+
+.adm-report-head {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.adm-report-head h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--fs-title);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.adm-report-head .rf-notice {
+  margin: var(--s-2) 0 0;
+}
+
+.adm-report-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.adm-report-pick .rf-field {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.adm-report-sum {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.adm-report-sum p {
+  margin: 0;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.adm-report-kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.adm-report-kpis strong {
+  font-size: 24px;
+  overflow-wrap: anywhere;
+}
+
+.adm-delta {
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.adm-formula {
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.adm-report-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+
+.adm-report-table th,
+.adm-report-table td {
+  padding: var(--s-2) 4px;
+  border-bottom: 1px solid var(--grey-100);
+  text-align: right;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.adm-report-table thead th {
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adm-report-table th:first-child {
+  width: 34%;
+  text-align: left;
+}
+
+.adm-report-table tbody th {
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.adm-report-sites {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-report-sites .adm-row {
+  justify-content: flex-start;
+}
+
+.adm-recur-note {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 720px) {
+  :root:not([data-view='mobile']) .adm-report-kpis {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+/* 인쇄·PDF 저장: 보고서 영역만, 흰 바탕에 검은 글자로 */
+@media print {
+  html.print-report,
+  html.print-report body,
+  html.print-report #root,
+  html.print-report .app,
+  html.print-report .app-page,
+  html.print-report .app-view,
+  html.print-report .adm,
+  html.print-report .adm-main,
+  html.print-report .adm-body,
+  html.print-report .adm-wrap {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    animation: none !important;
+    background: #fff !important;
+    color-scheme: light;
+  }
+
+  html.print-report .tabbar,
+  html.print-report .adm-top,
+  html.print-report .adm-head,
+  html.print-report .adm-sections,
+  html.print-report .adm-noprint,
+  html.print-report .bm-detail,
+  html.print-report .dev-badge,
+  html.print-report .rw-toasts,
+  html.print-report .mock-strip {
+    display: none !important;
+  }
+
+  html.print-report .adm-report-print,
+  html.print-report .adm-report-print * {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html.print-report .adm-report-print .rf-card {
+    border: 1px solid #888 !important;
+    break-inside: avoid;
+  }
+
+  html.print-report .adm-report-print .adm-report-table th,
+  html.print-report .adm-report-print .adm-report-table td {
+    border-bottom: 1px solid #bbb !important;
   }
 }

@@ -73,7 +73,7 @@ h4 {
   background: var(--grey-100);
   color: var(--grey-800);
   font: inherit;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
@@ -81,8 +81,8 @@ h4 {
   touch-action: manipulation;
   transition:
     transform var(--t-press) var(--ease-out),
-    background-color var(--t-fast) ease,
-    box-shadow var(--t-fast) ease;
+    background-color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
 }
 
 .bm button:active:not(:disabled) {
@@ -116,7 +116,7 @@ h4 {
 
 @media (hover: hover) and (pointer: fine) {
   .bm button.rf-primary:hover:not(:disabled) {
-    background: var(--blue-700);
+    background: var(--primary-hover);
   }
 }
 
@@ -132,6 +132,7 @@ h4 {
 
 /* 닫기: 글자는 화면 읽기용으로 남기고 보이는 것은 × 아이콘 */
 .bm button.bm-close {
+  position: relative;
   flex: none;
   width: 36px;
   min-height: 36px;
@@ -152,7 +153,7 @@ h4 {
   border-radius: var(--r-md);
   background: var(--blue-50);
   color: var(--blue-700);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
@@ -192,9 +193,9 @@ h4 {
   font: inherit;
   font-size: var(--fs-body);
   transition:
-    border-color var(--t-fast) ease,
-    background-color var(--t-fast) ease,
-    box-shadow var(--t-fast) ease;
+    border-color var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
 }
 
 .bm select {
@@ -292,7 +293,7 @@ h4 {
 
 .bm .rf-seg button {
   flex: 1;
-  min-height: 40px;
+  min-height: var(--touch);
   border-radius: var(--r-sm);
   background: transparent;
   color: var(--text-sub);
@@ -313,7 +314,7 @@ h4 {
 /* 탭(밑줄) */
 .rp-tabs {
   display: flex;
-  gap: var(--s-5);
+  gap: var(--s-2);
   overflow-x: auto;
   border-bottom: 1px solid var(--line);
   scrollbar-width: none;
@@ -326,13 +327,14 @@ h4 {
 .bm .rp-tabs button {
   flex: none;
   min-height: 44px;
-  padding: 0 2px;
+  min-width: var(--touch);
+  padding: 0 var(--s-2);
   border-radius: 0;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   background: transparent;
   color: var(--text-sub);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .bm .rp-tabs button.on {
@@ -356,7 +358,7 @@ h4 {
   height: 24px;
   padding: 0 var(--s-2);
   border-radius: var(--r-sm);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   font-style: normal;
   white-space: nowrap;
@@ -367,7 +369,7 @@ h4 {
   color: #fff;
   height: 28px;
   padding: 0 10px;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .rp-badge {
@@ -586,11 +588,40 @@ h4 {
   border-radius: 0 0 8px 8px;
   background: rgb(255 255 255 / 0.92);
   color: #b3261e;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   line-height: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;
+}
+
+/* 글자 크기 "크게": rem 기준을 키워 글자 전체가 따라온다(설정 시트 → viewPrefs.ts) */
+html[data-text='large'] {
+  font-size: 118.75%;
+}
+
+/* 보이는 크기는 작아도 누르는 영역은 44px 이상으로 넓힌다(작은 원형·알약 버튼) */
+.bm button.bm-close::after,
+.bm button.hm-tool::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+.bm button.pg-set .hm-tool::after,
+.pg-set .hm-tool::after {
+  inset: 0;
+}
+.bm button.bm-back,
+.bm button.hm-focus-btn,
+.bm .rt-head-btns button:not(.bm-close) {
+  position: relative;
+}
+.bm button.bm-back::after,
+.bm button.hm-focus-btn::after,
+.bm .rt-head-btns button:not(.bm-close)::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
 }

@@ -132,7 +132,7 @@
   z-index: 4;
   margin: auto calc(var(--gutter) * -1) 0;
   padding: var(--s-3) var(--gutter) calc(var(--safe-bottom) + var(--s-4));
-  background: linear-gradient(to bottom, rgb(255 255 255 / 0), var(--bg) 20px);
+  background: linear-gradient(to bottom, transparent, var(--bg) 10px);
   flex-wrap: nowrap;
 }
 
@@ -195,7 +195,7 @@
   height: 44px;
   border-radius: var(--r-md);
   background: var(--bg);
-  font-size: 24px;
+  font-size: 1.5rem;
 }
 
 .rf-type-text {
@@ -276,7 +276,7 @@
 }
 
 .bm .rf-photo button {
-  min-height: 36px;
+  min-height: var(--touch);
   font-size: var(--fs-small);
 }
 
@@ -375,7 +375,7 @@
   box-shadow: inset 0 0 0 1px var(--grey-200);
   color: var(--text-strong);
   font-weight: 600;
-  transition: box-shadow var(--t-fast) ease;
+  transition: box-shadow var(--t-fast) var(--ease-out);
 }
 
 .rf-rate label.on {

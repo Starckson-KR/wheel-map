@@ -321,7 +321,7 @@
   color: var(--text-strong);
 }
 .bm button.pg-ic span {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
@@ -610,7 +610,7 @@
 .al-sum-main p { margin: 0; }
 .al-sum-ic { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--r-full); background: var(--amber-50); color: var(--amber-700); }
 .al-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.bm button.al-chip { min-height: 40px; padding: 0 var(--s-4); border-radius: var(--r-full); font-size: var(--fs-small); }
+.bm button.al-chip { min-height: var(--touch); padding: 0 var(--s-4); border-radius: var(--r-full); font-size: var(--fs-small); }
 .bm button.al-chip[aria-pressed='true'] { background: var(--text-strong); color: var(--bg); }
 .al-empty { margin: 0; padding: var(--s-4) 0; }
 .bm button.al-item { align-items: center; }

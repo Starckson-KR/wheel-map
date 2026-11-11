@@ -35,7 +35,7 @@
 .bus-dir,
 .bus-load,
 .bus-refresh {
-  min-height: 40px;
+  min-height: var(--touch);
   padding: 0 var(--s-3);
   border: 1px solid var(--line);
   border-radius: var(--r-full);
@@ -116,7 +116,7 @@
   height: 22px;
   padding: 0 var(--s-2);
   border-radius: var(--r-sm);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -223,7 +223,7 @@
   border-radius: var(--r-sm);
   background: var(--r-n-soft);
   color: var(--r-n-text);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 

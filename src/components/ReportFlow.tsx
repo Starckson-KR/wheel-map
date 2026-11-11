@@ -35,6 +35,10 @@ const STEP_Q: Record<Step, { q: string; sub?: string }> = {
   4: { q: '이 내용으로 등록할까요?' },
 }
 
+// 사진 임시 번호(화면 표시용). 렌더 밖에서 만들어 순수성 규칙을 지킨다.
+let photoSeq = 0
+const newPhotoId = () => `p${++photoSeq}-${crypto.randomUUID()}`
+
 const num = (s: string) => (s.trim() === '' ? undefined : Number(s))
 
 export default function ReportFlow({ location, onLocation, onPickStart, hidden, seeds, onClose, onOpenReport }: Props) {
@@ -88,7 +92,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
     for (const f of files.slice(0, Math.max(room, 0))) {
       try {
         const blob = await resizeImage(f)
-        const p: Photo = { id: `${Date.now()}-${Math.random()}`, blob, url: URL.createObjectURL(blob) }
+        const p: Photo = { id: newPhotoId(), blob, url: URL.createObjectURL(blob) }
         setPhotos((prev) => (prev.length >= PHOTO_MAX_COUNT ? prev : [...prev, p]))
       } catch (err) {
         setPhotoMsg(err instanceof Error ? err.message : '사진을 처리하지 못했어요.')

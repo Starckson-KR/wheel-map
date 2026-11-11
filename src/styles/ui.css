@@ -15,7 +15,7 @@
 .cs-actions button {
   flex: 1; min-height: 52px; padding: 0 var(--s-4); border: 0; border-radius: var(--r-lg);
   font: inherit; font-size: var(--fs-body); font-weight: 700; cursor: pointer;
-  transition: transform var(--t-press) var(--ease-out), background var(--t-fast) ease;
+  transition: transform var(--t-press) var(--ease-out), background var(--t-fast) var(--ease-out);
 }
 .cs-actions button:active { transform: scale(0.97); }
 .cs-actions button:focus-visible { outline: none; box-shadow: var(--focus-ring); }

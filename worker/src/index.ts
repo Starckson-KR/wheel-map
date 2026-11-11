@@ -10,11 +10,13 @@ import {
   parseOrigins,
   sanitizeQuestion,
 } from './intents.ts'
+import { applyRules, isNonsense } from './rules.ts'
 import type { ApiBody } from './intents.ts'
 import type { Env } from './types'
 
 const DEFAULT_MODEL = '@cf/meta/llama-3.2-3b-instruct'
-const MODEL_TIMEOUT_MS = 8000
+const MODEL_TIMEOUT_MS = 8000 // 첫 호출과 재시도를 합친 총 제한
+const MIN_RETRY_MS = 1500 // 남은 시간이 이보다 적으면 재시도하지 않는다
 
 type Limiter = ReturnType<typeof createRateLimiter>
 type Deps = { limiter?: Limiter; now?: () => number }
@@ -90,35 +92,60 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
   if (!cleaned) return json(fallbackBody('bad_request'), 400, origin)
   if ([...question.trim()].length > MAX_QUESTION_CHARS) return json(fallbackBody('too_long'), 400, origin)
 
+  // 뜻 없는 입력(자음·모음뿐, 한글 음절 2개 미만)은 모델을 부르지 않고 바로 unknown.
+  if (isNonsense(cleaned)) return json(okBody({ intent: 'unknown', slots: {}, confidence: 0.9 }), 200, origin)
+
+  const startedAt = Date.now()
+  const model = env.AI_MODEL || DEFAULT_MODEL
+  const ask = async (strict: boolean, timeoutMs: number): Promise<unknown> => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      return await Promise.race([
+        env.AI.run(model, {
+          messages: [
+            { role: 'system', content: buildSystemPrompt(strict) },
+            { role: 'user', content: cleaned },
+          ],
+          max_tokens: 120,
+          temperature: 0,
+        }),
+        new Promise<never>((_, rej) => {
+          timer = setTimeout(() => rej(new Error('timeout')), timeoutMs)
+        }),
+      ])
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
   let output: unknown
-  let timer: ReturnType<typeof setTimeout> | undefined
   try {
-    output = await Promise.race([
-      env.AI.run(env.AI_MODEL || DEFAULT_MODEL, {
-        messages: [
-          { role: 'system', content: buildSystemPrompt() },
-          { role: 'user', content: cleaned },
-        ],
-        max_tokens: 120,
-        temperature: 0,
-      }),
-      new Promise<never>((_, rej) => {
-        timer = setTimeout(() => rej(new Error('timeout')), MODEL_TIMEOUT_MS)
-      }),
-    ])
+    output = await ask(false, MODEL_TIMEOUT_MS)
   } catch (e) {
     logError(e instanceof Error && e.message === 'timeout' ? 'model_timeout' : 'model_error')
     return json(fallbackBody('model_error'), 200, origin)
-  } finally {
-    clearTimeout(timer)
   }
 
-  const result = parseModelOutput(output)
+  let result = parseModelOutput(output, cleaned)
+  let retried = false
   if (!result) {
-    logError('bad_output')
-    return json(fallbackBody('bad_output'), 200, origin)
+    // JSON이 깨졌으면 "JSON만"을 강조해 1회만 다시 부른다(총 8초 안). 재시도도 하루 호출량에 센다.
+    const left = MODEL_TIMEOUT_MS - (Date.now() - startedAt)
+    if (left >= MIN_RETRY_MS) {
+      retried = true
+      limiter.charge((deps.now ?? Date.now)())
+      try {
+        result = parseModelOutput(await ask(true, left), cleaned)
+      } catch (e) {
+        logError(e instanceof Error && e.message === 'timeout' ? 'model_timeout' : 'model_error')
+      }
+    }
+    if (!result) {
+      logError('bad_output')
+      return json(fallbackBody('bad_output', retried), 200, origin)
+    }
   }
-  return json(okBody(result), 200, origin)
+  return json(okBody(applyRules(cleaned, result), retried), 200, origin)
 }
 
 export default {

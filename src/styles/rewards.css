@@ -8,9 +8,9 @@
   line-height: 1;
 }
 
-.emb-sm { width: 32px; height: 32px; font-size: 16px; }
-.emb-md { width: 52px; height: 52px; font-size: 26px; }
-.emb-lg { width: 72px; height: 72px; font-size: 36px; }
+.emb-sm { width: 32px; height: 32px; font-size: 1rem; }
+.emb-md { width: 52px; height: 52px; font-size: 1.625rem; }
+.emb-lg { width: 72px; height: 72px; font-size: 2.25rem; }
 
 .emb-green { background: var(--green-50); border-color: var(--green-700); }
 .emb-blue { background: var(--blue-50); border-color: var(--blue-500); }
@@ -303,7 +303,7 @@
 
 /* ───── 참여 랭킹·이번 주 챌린지(혜택알림 탭). 카드(--bg) 안쪽 줄은 --bg-sub + 테두리로 구분한다 ───── */
 .rk-seg { display: flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-full); background: var(--bg-page); }
-.bm .rk-seg > button { flex: 1; min-height: 40px; padding: 0 var(--s-3); border-radius: var(--r-full); background: none; color: var(--text); font-size: var(--fs-small); font-weight: 700; }
+.bm .rk-seg > button { flex: 1; min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-full); background: none; color: var(--text); font-size: var(--fs-small); font-weight: 700; }
 .rk-seg > button[aria-selected='true'] { background: var(--text-strong); color: var(--bg); }
 .rk-panel { display: flex; flex-direction: column; gap: var(--s-2); }
 .rk-panel > p { margin: 0; }
@@ -340,7 +340,7 @@
 .ch-row.is-done .ch-track i { background: var(--green-700); }
 .ch-sub { color: var(--text); font-size: var(--fs-small); }
 .ch-wait { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
-.bm button.ch-go { align-self: flex-start; max-width: 100%; min-height: 40px; padding: 0 var(--s-4); border-radius: var(--r-full); font-size: var(--fs-small); overflow-wrap: anywhere; text-align: left; }
+.bm button.ch-go { align-self: flex-start; max-width: 100%; min-height: var(--touch); padding: 0 var(--s-4); border-radius: var(--r-full); font-size: var(--fs-small); overflow-wrap: anywhere; text-align: left; }
 
 @media (prefers-reduced-motion: reduce) {
   html:not(.motion-force) .ch-track i { transition: none; }

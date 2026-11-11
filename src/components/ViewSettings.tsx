@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getTheme, getView, setTheme, setView, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
+import { getTextSize, getTheme, getView, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
 import SheetHandle from './SheetHandle'
 
 const VIEWS: { id: ViewMode; label: string }[] = [
@@ -14,11 +14,17 @@ const THEMES: { id: ThemeMode; label: string }[] = [
   { id: 'dark', label: '다크' },
 ]
 
+const TEXTS: { id: TextSize; label: string }[] = [
+  { id: 'normal', label: '보통' },
+  { id: 'large', label: '크게' },
+]
+
 // 화면 설정(보기 방식·화면 색). 처음부터 팝업으로 띄우지 않고, 버튼을 눌렀을 때만 열린다.
 export default function ViewSettings({ floating = false }: { floating?: boolean }) {
   const [open, setOpen] = useState(false)
   const [view, setV] = useState(getView)
   const [theme, setT] = useState(getTheme)
+  const [text, setTx] = useState(getTextSize)
   return (
     <>
       <button type="button" className={floating ? 'hm-tool vs-float' : 'hm-tool'} onClick={() => setOpen(true)} aria-haspopup="dialog">
@@ -78,6 +84,26 @@ export default function ViewSettings({ floating = false }: { floating?: boolean 
                   ))}
                 </div>
                 <p className="bm-meta">지도 바탕은 그대로 밝게 보여요.</p>
+              </div>
+              <div className="ms-sec">
+                <h3>글자 크기</h3>
+                <div className="rf-seg" role="group" aria-label="글자 크기">
+                  {TEXTS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      className={text === v.id ? 'on' : ''}
+                      aria-pressed={text === v.id}
+                      onClick={() => {
+                        setTextSize(v.id)
+                        setTx(v.id)
+                      }}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="bm-meta">크게를 고르면 화면 전체 글자가 커져요.</p>
               </div>
             </div>
           </>,

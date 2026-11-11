@@ -3,10 +3,12 @@
 // data-theme: 'light' | 'dark' (시스템이면 OS 설정을 따라 둘 중 하나로 바뀐다)
 export type ViewMode = 'auto' | 'mobile' | 'desktop'
 export type ThemeMode = 'system' | 'light' | 'dark'
+export type TextSize = 'normal' | 'large'
 
 const VIEW_KEY = 'wheelmap.view'
 const THEME_KEY = 'wheelmap.theme'
 const MOTION_KEY = 'wheelmap.motionForce'
+const TEXT_KEY = 'wheelmap.textSize'
 
 function read(key: string): string | null {
   try {
@@ -70,7 +72,23 @@ export function prefersCalm(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
+
+// 글자 크기: 보통/크게. <html data-text="large">면 rem 기준이 커져 화면 전체가 따라온다.
+export function getTextSize(): TextSize {
+  return read(TEXT_KEY) === 'large' ? 'large' : 'normal'
+}
+export function applyTextSize(t: TextSize) {
+  const el = document.documentElement
+  if (t === 'large') el.setAttribute('data-text', 'large')
+  else el.removeAttribute('data-text')
+}
+export function setTextSize(t: TextSize) {
+  write(TEXT_KEY, t)
+  applyTextSize(t)
+}
+
 export function initPrefs() {
+  applyTextSize(getTextSize())
   applyView(getView())
   applyMotionForce(getMotionForce())
   applyTheme(getTheme())

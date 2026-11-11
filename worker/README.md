@@ -28,6 +28,8 @@ curl -s -X POST https://wheelmap-ai.<계정>.workers.dev/intent \
 ```json
 { "ok": true, "intent": "report_new", "slots": { "type": "경사로" }, "confidence": 0.9, "fallback": false, "notice": "AI 답변은 참고용이에요" }
 ```
+모델을 한 번 더 불렀으면(첫 출력이 JSON이 아니었을 때) 응답에 선택 필드 `"retried": true`가 붙습니다(성공·실패 모두). 재시도가 없으면 이 필드는 아예 없습니다. 재시도도 하루 상한(`DAILY_LIMIT`) 호출량에 1회로 더해 셉니다.
+
 실패(앱은 키워드 검색으로 대체):
 ```json
 { "ok": false, "intent": "unknown", "slots": {}, "confidence": 0, "fallback": true, "reason": "model_error", "notice": "AI 답변은 참고용이에요" }
@@ -57,6 +59,12 @@ curl -s -X POST https://wheelmap-ai.<계정>.workers.dev/intent \
 | unknown | - | 이동 없음(추천 질문·키워드 검색) |
 
 모델이 목록에 없는 값을 내면 무조건 `unknown`으로 바뀌고, 허용되지 않은 필드(기관·법령 등)는 버립니다. `confidence`가 0.3 미만이어도 `unknown`입니다. 빈칸은 의도별 허용 이름만, 20자 이하, 링크·마스킹 표시가 든 값은 버립니다.
+
+## 분류 정확도 보정 (모델 답 앞뒤의 규칙)
+- 모델 호출 전: 한글 음절이 2개 미만인 입력(`ㅇㅅㅇ`, `??` 등)은 모델을 부르지 않고 바로 `unknown`(confidence 0.9).
+- JSON 파싱: 코드펜스·앞뒤 설명·`<think>`·작은따옴표·따옴표 없는 키·끝 쉼표·잘린 꼬리를 보정하고, 그래도 안 되면 `intent` 등만 정규식으로 건집니다. 그래도 실패하면 1회 재시도(프롬프트에 「JSON 객체 하나만」 강조, 첫 호출과 합쳐 총 8초 안, 남은 시간이 1.5초 미만이면 생략). 재시도 후에도 실패하면 `bad_output` fallback.
+- 빈칸 정리: 허용 키만, 값은 한글·숫자·공백 2~20자. `type`은 앱의 제보 유형 12개·위치 성격 8개(`src/rules.ts`에 복사, 앱 목록이 바뀌면 같이 고침)로 정규화하고(구멍→파손 노면, 턱→계단·턱, 횡단보도→횡단보도·신호) 목록에 없으면 뺍니다. `place`·`from`·`to`는 질문에 실제로 있는 구절만 남깁니다. type과 같은 값이거나 유형 낱말인 `place`는 뺍니다.
+- 후처리(모델 답 뒤): 「이전 지시」·「프롬프트」·`ignore` 등은 무조건 `unknown`. 처리기한·며칠·언제까지·법령·조문·전화번호·연락처를 묻는 말은 `unknown`(신고·길찾기·버스·접수번호 찾기 제외). `help`는 「어떻게 써」·「사용법」·「도움말」·「처음」·「뭐 할 수」 단서가 있을 때만 허용. 그 밖의 의도는 신뢰도를 깎지 않습니다.
 
 ## 보안·남용 방지
 - CORS: `ALLOWED_ORIGINS`(쉼표 목록, 기본 `https://starckson-kr.github.io`, `http://localhost:5173`)에 있는 출처만 허용. 그 외 403. 사전 요청(OPTIONS)도 같습니다.

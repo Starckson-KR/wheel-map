@@ -9,7 +9,7 @@
   --blue-50: #e8f3ff;
   --blue-100: #c9e2ff;
   --blue-500: #3182f6;
-  --blue-600: #2272eb;
+  --blue-600: #1f6de3;
   --blue-700: #1b64da;
 
   /* 회색 */
@@ -19,7 +19,7 @@
   --grey-200: #e5e8eb;
   --grey-300: #d1d6db;
   --grey-500: #8b95a1;
-  --grey-600: #6b7684;
+  --grey-600: #5d6877;
   --grey-700: #4e5968;
   --grey-800: #333d4b;
   --grey-900: #191f28;
@@ -31,7 +31,7 @@
   --amber-50: #fff3d6;
   --amber-700: #8a5a00;
   --green-50: #e6f6ee;
-  --green-700: #0f7f55;
+  --green-700: #0b6845;
   --purple-50: #f1ecfb;
   --purple-700: #5b3fb8;
 
@@ -45,6 +45,7 @@
   --line: var(--grey-200);
   --primary: var(--blue-600);
   --primary-weak: var(--blue-50);
+  --primary-hover: var(--blue-700);
   --on-primary: #ffffff;
   --danger: var(--red-600);
   --focus-ring: 0 0 0 3px rgb(49 130 246 / 0.4);
@@ -89,12 +90,12 @@
   --pg-plan-text: #5b3fb8;
 
   /* 글자 크기(px). 본문은 16 이상으로 둔다 */
-  --fs-title: 24px;
-  --fs-head: 20px;
-  --fs-sub: 17px;
-  --fs-body: 16px;
-  --fs-small: 14px;
-  --fs-caption: 13px;
+  --fs-title: 1.5rem;
+  --fs-head: 1.25rem;
+  --fs-sub: 1.0625rem;
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-caption: 0.8125rem;
 
   /* 간격(4px 단위) */
   --s-1: 4px;
@@ -165,6 +166,8 @@
   --grey-900: #f9fafb;
   --blue-50: #1c2b44;
   --blue-100: #243a5c;
+  --blue-700: #8fc2ff;
+  --primary-hover: #1a5ccc;
   --red-50: #3a1f1f;
   --red-700: #ff8a80;
   --amber-50: #3a2f14;

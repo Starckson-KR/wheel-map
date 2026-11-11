@@ -468,7 +468,7 @@ export default function RoutePanel(props: Props) {
 
   return (
     <div className={'rp rt' + (picking ? ' rt-hidden' : '')} data-sheet role="dialog" aria-label="길찾기" hidden={!!picking}>
-      <SheetHandle onDown={() => (result ? setCollapsed(true) : onClose())} />
+      <SheetHandle exit={!result} onDown={() => (result ? setCollapsed(true) : onClose())} />
       <div className="rf-head">
         <h2>길찾기</h2>
         <span className="rt-head-btns">

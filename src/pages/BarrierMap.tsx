@@ -161,6 +161,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const lastFit = useRef(0)
   const pickingRef = useRef(false)
   const keepRef = useRef<{ lat: number; lng: number; level: number } | null>(null)
+  const drawnLevel = useRef<number | null>(null) // 직전에 핀을 그린 줌 단계(줌이 바뀐 때만 핀을 부드럽게 나타낸다)
   useEffect(() => {
     pickingRef.current = picking
   }, [picking])
@@ -477,6 +478,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     }
 
     const level = map.getLevel()
+    const fade = drawnLevel.current !== null && drawnLevel.current !== level ? ' bm-fade-in' : ''
+    drawnLevel.current = level
     const proj = (map as unknown as { getProjection(): { containerPointFromCoords(c: kakao.maps.LatLng): { x: number; y: number } } }).getProjection()
     const px = items.map((it) => proj.containerPointFromCoords(new k.maps.LatLng(it.lat, it.lng)))
     const prio = (it: PinItem) => (it.sel ? 100 : 0) + (it.small ? 0 : 5) + (it.pg ? ({ overdue: 3, agency: 2, intake: 2, done: 1, rechecked: 1, plan: 1 } as Record<string, number>)[it.pg.stage] : ({ X: 3, TRIANGLE: 2, none: 1, O: 0 } as Record<string, number>)[it.rating])
@@ -572,7 +575,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       if (it.pg) {
         // 개선 현황 핀: 색 + 글자(접·처·!·완·확·계)로 단계를 구분하고, 가까이에서는 단계 이름도 쓴다.
         const pe = document.createElement('div')
-        pe.className = `bm-pin bm-pin--${mode} bm-pin-pg pg-${it.pg.stage}` + (it.sel ? ' bm-pin-sel' : '')
+        pe.className = `bm-pin bm-pin--${mode} bm-pin-pg pg-${it.pg.stage}` + (it.sel ? ' bm-pin-sel' : '') + fade
         const text = `${it.name} · ${PROGRESS_INFO[it.pg.stage].label}`
         pe.title = text
         pe.setAttribute('role', 'button')
@@ -603,7 +606,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       }
       const st = styleOf(it.impact ?? 'passage', it.rating)
       const el = document.createElement('div')
-      el.className = `bm-pin bm-pin--${mode}` + (it.small ? ' bm-pin-small' : '') + (it.sel ? ' bm-pin-sel' : '') + (it.route ? ' bm-pin-route' : '') + (it.citizen ? ' bm-pin-citizen' : '') + (it.expired ? ' bm-pin-expired' : '') + (it.prov ? ' bm-pin-prov' : '') + (it.dim ? ' bm-pin-dim' : '')
+      el.className = `bm-pin bm-pin--${mode}` + (it.small ? ' bm-pin-small' : '') + (it.sel ? ' bm-pin-sel' : '') + (it.route ? ' bm-pin-route' : '') + (it.citizen ? ' bm-pin-citizen' : '') + (it.expired ? ' bm-pin-expired' : '') + (it.prov ? ' bm-pin-prov' : '') + (it.dim ? ' bm-pin-dim' : '') + fade
       el.style.background = st.color
       el.style.color = st.ink
       const kindText = it.impact ? IMPACT_INFO[it.impact].label : ''
@@ -662,7 +665,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       const lat = ms.reduce((s, m) => s + m.lat, 0) / ms.length
       const lng = ms.reduce((s, m) => s + m.lng, 0) / ms.length
       const el = document.createElement('div')
-      el.className = 'bm-cluster' + (cl.cit ? ' bm-cluster--cit' : '') + (ms.every((m) => m.dim) ? ' bm-pin-dim' : '')
+      el.className = 'bm-cluster' + (cl.cit ? ' bm-cluster--cit' : '') + (ms.every((m) => m.dim) ? ' bm-pin-dim' : '') + fade
       const d = diaOf(total)
       el.style.width = el.style.height = `${d}px`
       el.style.fontSize = total >= 100 ? '0.8125rem' : '0.875rem'

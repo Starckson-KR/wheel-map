@@ -492,8 +492,19 @@
   background: var(--bg);
   box-shadow: var(--shadow-sheet);
   transform: translateY(calc(100% - var(--vis-min)));
-  transition: transform var(--t-sheet) var(--ease-drawer);
-  will-change: transform;
+  transition: transform var(--t-sheet) var(--ease-drawer); /* 단계 이동은 useSheetSnap의 스프링이 맡는다. 이 전환은 시트가 다시 나타날 때만 쓴다 */
+  will-change: transform; /* 시트 하나뿐인 층을 미리 만들어 둔다: 처음 잡는 순간 층을 새로 만들며 생기던 24~40ms 끊김이 사라진다(측정) */
+}
+
+/* 펼침 단계에서 위로 더 끌 때(저항 최대 8px) 생기는 아래쪽 틈을 시트 색으로 메운다 */
+.hm-sheet::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 16px;
+  background: var(--bg);
 }
 
 .hm-sheet[data-snap='1'] {
@@ -1209,6 +1220,10 @@
     transform: none;
   }
 
+  :root:not([data-view='mobile']) .hm-sheet::after {
+    display: none;
+  }
+
   :root:not([data-view='mobile']) .hm-sheet.is-open {
     transform: none;
   }
@@ -1305,6 +1320,9 @@
     box-shadow: var(--shadow-2);
     transform: none;
   }
+:root[data-view='desktop'] .hm-sheet::after {
+    display: none;
+  }
 :root[data-view='desktop'] .hm-sheet.is-open {
     transform: none;
   }
@@ -1383,7 +1401,22 @@
   }
 }
 
+/* 줌으로 핀이 합쳐지거나 갈라질 때 새로 그려진 핀·묶음이 뚝 나타나지 않게 투명도만 짧게 올린다(합성 전용) */
+.bm-fade-in {
+  animation: bm-pin-in var(--t-fast) var(--ease-out) backwards;
+}
+
+@keyframes bm-pin-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html:not(.motion-force) .bm-fade-in {
+    animation: none;
+  }
+
   html:not(.motion-force) .hm-sheet,
   html:not(.motion-force) .bm-detail,
   html:not(.motion-force) .ms,

@@ -4,7 +4,7 @@ import type { Report } from '../types'
 import { EMBLEM_BY_ID, computeRewards, diffRewards, type RewardChange, type UserReward } from '../lib/rewards'
 
 // 점수·칭호가 늘어난 순간 화면 아래에 짧게 알려 준다. 점수는 제보 기록에서 계산하므로, 기록이 바뀔 때마다 이전 계산과 비교한다.
-type Toast = { id: number; title: string; sub?: string }
+type Toast = { id: number; title: string; sub?: string; ms: number }
 const USER_IDS = DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id)
 
 function describe(c: RewardChange, mine: boolean): Toast {
@@ -16,7 +16,8 @@ function describe(c: RewardChange, mine: boolean): Toast {
     parts.push(e.grade || id === 'special' ? `'${e.name}' 칭호와 엠블럼을 받았어요` : `'${e.name}' 엠블럼을 받았어요`)
   }
   const head = parts.join(', ')
-  return { id: 0, title: mine ? head : `${userName(c.userId)}님 ${head}`, sub: c.reasons[0] }
+  // 점수만 오른 작은 일은 짧게(3초), 칭호·엠블럼을 받은 큰 일은 길게(5초) 보여 준다.
+  return { id: 0, title: mine ? head : `${userName(c.userId)}님 ${head}`, sub: c.reasons[0], ms: c.newEmblems.length > 0 ? 5200 : 3000 }
 }
 
 export default function RewardToasts() {
@@ -40,7 +41,7 @@ export default function RewardToasts() {
         }
         if (made.length > 0) {
           setToasts((t) => [...t, ...made].slice(-3))
-          for (const m of made) window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== m.id)), 5200)
+          for (const m of made) window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== m.id)), m.ms)
         }
       }
       prev.current = next

@@ -1,0 +1,16 @@
+name = "wheelmap-ai"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+# Workers AI 바인딩(키 없음). 코드에서는 env.AI.run(...)으로 부른다.
+[ai]
+binding = "AI"
+
+[vars]
+# 모델 이름: 나중에 바꾸기 쉽게 여기에 둔다(카탈로그: https://developers.cloudflare.com/workers-ai/models/)
+AI_MODEL = "@cf/meta/llama-3.2-3b-instruct"
+# 허용 출처(쉼표로 구분, 끝의 / 없이). 그 외는 403
+ALLOWED_ORIGINS = "https://starckson-kr.github.io,http://localhost:5173"
+# IP별 분당 횟수, 전체 하루 상한(문자열로 적는다)
+RATE_PER_MINUTE = "10"
+DAILY_LIMIT = "500"

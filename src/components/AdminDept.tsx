@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import Skeleton from './Skeleton'
 import { agencyById, hasTodoLaw, legalLines } from '../lib/agencyGuide'
 import { findAgencyName } from '../lib/agencyName'
 import { DAY, agencyOf, deadlineOf, fmtDate, pct, pendingTransfer, tabOf } from '../lib/caseMetrics'
@@ -232,7 +233,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
       <section className="rf-card adm-dept-sec" aria-labelledby="dept-plan-h">
         <h3 id="dept-plan-h">소관 지점의 개선계획 ({plan.length})</h3>
         {err && <p className="rf-warn">{err}</p>}
-        {!data && !err && <p className="bm-meta">이용 수요 자료를 불러오고 있어요…</p>}
+        {!data && !err && <Skeleton rows={3} label="이용 수요 자료를 불러오고 있어요" />}
         {data && plan.length === 0 && <p className="rp-empty">이 부서 소관으로 확실한 지점이 아직 없어요.</p>}
         {planShown.length > 0 && (
           <ol className="adm-dept-plan">

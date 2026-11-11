@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CENTER_ADDRESS_CANDIDATES, geocode, loadKakao } from '../lib/kakao'
 import { loadBarriers } from '../lib/seed'
+import { confirmSheet, toast } from '../lib/uiStore'
 import type { Barrier, Geometry, LatLng, Rating } from '../types'
 import { RATING_STYLE } from '../lib/rating'
 import { CATEGORY_INFO, CATEGORY_ORDER, IMPACT_INFO, categoryOf, styleOf, impactLine, impactOf, obstacleName, shortName, type Category, type ImpactKey } from '../lib/display'
@@ -845,13 +846,14 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     setDraftPos(null)
   }
   const onReset = async () => {
-    if (!window.confirm('시연 중에 만든 제보와 사진을 모두 지워요. 팀 조사 데이터는 그대로예요. 계속할까요?')) return
+    if (!(await confirmSheet({ title: '시연 데이터를 모두 지울까요?', body: '시연 중에 만든 제보와 사진을 모두 지워요. 팀 조사 데이터는 그대로예요.', confirmLabel: '모두 지우기', danger: true }))) return
     closeFlow()
     setSelectedReportId(null)
     setPanelOpen(false)
     setRewardsOpen(false)
     const err = await resetAll()
-    if (err) window.alert(err)
+    if (err) toast(err)
+    else toast('시연 데이터를 모두 지웠어요.')
   }
 
   const pubStatus: Partial<Record<PubLayerId, 'loading' | 'error'>> = {}
@@ -1063,7 +1065,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         </header>
         {!overlayOpen && (
           <section ref={sheetRef} className={'hm-sheet' + (listOpen ? ' is-open' : '') + (behind ? ' is-behind' : '')} data-sheet aria-label="이 지역 요약">
-            <SheetHandle onUp={() => setListOpen(true)} onDown={() => setListOpen(false)} />
+            <SheetHandle onUp={() => setListOpen(true)} onDown={() => setListOpen(false)} expanded={listOpen} onToggle={() => setListOpen((v) => !v)} />
             <button type="button" className="hm-locate" onClick={locateMe} aria-label="내 위치로 이동">
               내 위치
             </button>

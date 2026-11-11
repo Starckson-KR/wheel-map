@@ -1,0 +1,98 @@
+/* 확인 시트·토스트·스낵바·스켈레톤 같은 공통 UI. 색은 tokens.css의 토큰만 쓴다. */
+
+/* ───── 확인 시트 ───── */
+.cs-root { position: fixed; inset: 0; z-index: 110; display: flex; align-items: flex-end; justify-content: center; }
+.cs-dim { position: absolute; inset: 0; background: rgb(25 31 40 / 0.48); animation: cs-fade var(--t-sheet) var(--ease-out); }
+.cs-sheet {
+  position: relative; box-sizing: border-box; width: 100%; max-width: 480px;
+  padding: var(--s-6) var(--s-5) calc(var(--safe-bottom) + var(--s-5));
+  border-radius: var(--r-xl) var(--r-xl) 0 0; background: var(--bg); box-shadow: var(--shadow-sheet);
+  animation: cs-up var(--t-sheet) var(--ease-drawer);
+}
+.cs-sheet h2 { margin: 0; color: var(--text-strong); font-size: var(--fs-head); font-weight: 800; line-height: 1.35; }
+.cs-sheet p { margin: var(--s-2) 0 0; color: var(--text-sub); font-size: var(--fs-body); line-height: 1.5; }
+.cs-actions { display: flex; gap: var(--s-2); margin-top: var(--s-5); }
+.cs-actions button {
+  flex: 1; min-height: 52px; padding: 0 var(--s-4); border: 0; border-radius: var(--r-lg);
+  font: inherit; font-size: var(--fs-body); font-weight: 700; cursor: pointer;
+  transition: transform var(--t-press) var(--ease-out), background var(--t-fast) ease;
+}
+.cs-actions button:active { transform: scale(0.97); }
+.cs-actions button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.cs-cancel { background: var(--grey-100); color: var(--text); }
+.cs-ok { background: var(--blue-600); color: var(--on-primary); }
+.cs-ok.danger { background: var(--danger); }
+@keyframes cs-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes cs-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ───── 토스트(2초)·스낵바(되돌리기) ───── */
+.nt-lane {
+  position: fixed; z-index: 105; right: var(--gutter); left: var(--gutter);
+  bottom: calc(var(--safe-bottom) + 80px); display: flex; justify-content: center; pointer-events: none;
+}
+.nt-item {
+  display: flex; align-items: center; gap: var(--s-3); box-sizing: border-box; max-width: 420px;
+  min-height: 48px; padding: var(--s-2) var(--s-4); border-radius: var(--r-lg);
+  background: #2b323c; box-shadow: var(--shadow-2); color: #ffffff;
+  font-size: var(--fs-small); line-height: 1.4; pointer-events: auto;
+  animation: nt-in var(--t-sheet) var(--ease-out);
+}
+.nt-item button {
+  flex: none; min-width: 44px; min-height: 44px; margin: 0 calc(var(--s-2) * -1) 0 0; padding: 0 var(--s-3);
+  border: 0; border-radius: var(--r-md); background: none; color: #8ec1ff;
+  font: inherit; font-size: var(--fs-small); font-weight: 800; cursor: pointer;
+}
+.nt-item button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(142 193 255 / 0.6); }
+@keyframes nt-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-force) .cs-dim,
+  html:not(.motion-force) .cs-sheet,
+  html:not(.motion-force) .nt-item { animation: none; }
+}
+
+/* ───── 빈 화면 다음 행동 버튼 ───── */
+.empty-act { display: flex; justify-content: center; margin-top: var(--s-3); }
+.empty-act > button { min-height: 48px; padding: 0 var(--s-5); }
+.rl .empty-act { flex-direction: column; align-items: stretch; gap: var(--s-2); }
+
+/* ───── 인라인 오류·진행 표시·비활성 사유 ───── */
+.rf-err { margin: 0; color: var(--red-700); font-size: var(--fs-small); font-weight: 600; line-height: 1.45; }
+.rf-err::before { content: '! '; font-weight: 800; }
+.bm [aria-invalid='true'] { border-color: var(--danger) !important; box-shadow: 0 0 0 1px var(--danger); }
+.bm [aria-invalid='true']:focus-visible { box-shadow: 0 0 0 1px var(--danger), var(--focus-ring); }
+.rf-why { margin: 0; text-align: center; }
+.rf-step { margin-left: var(--s-2); color: var(--text-sub); font-size: var(--fs-small); font-weight: 700; }
+.rf-pos:focus-visible, #rf-f-photos:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rf-spin {
+  display: inline-block; width: 16px; height: 16px; margin-right: var(--s-2); vertical-align: -3px;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: rf-spin 0.8s linear infinite;
+}
+@keyframes rf-spin { to { transform: rotate(360deg); } }
+.bm button.rf-primary.is-busy:disabled { background: var(--blue-600); color: var(--on-primary); opacity: 0.75; }
+.bm button:focus-visible, .bm .pg-wide:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* ───── 스켈레톤 ───── */
+.sk-card { display: grid; gap: var(--s-2); padding: var(--s-4); border-radius: var(--r-lg); background: var(--bg-sub); }
+.sk-bar { display: block; height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--grey-100) 0%, var(--grey-200) 50%, var(--grey-100) 100%); background-size: 200% 100%; animation: sk-shimmer 1.4s ease-in-out infinite; }
+.sk-w40 { width: 40%; height: 18px; }
+.sk-w70 { width: 70%; }
+.sk-w100 { width: 100%; }
+@keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+/* ───── 시트 손잡이 버튼 대안, 사진 이전/다음 ───── */
+.sheet-handle { position: relative; }
+.sheet-handle-btn {
+  position: absolute; top: 0; right: var(--s-5); min-width: 44px; height: 44px; padding: 0 var(--s-2);
+  border: 0; border-radius: var(--r-md); background: none; color: var(--text-sub);
+  font: inherit; font-size: var(--fs-caption); font-weight: 700; cursor: pointer; touch-action: manipulation;
+}
+.sheet-handle-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.bm-lightbox-nav { display: flex; justify-content: space-between; gap: var(--s-2); margin-top: var(--s-2); }
+.bm-lightbox-nav button { flex: 1; min-height: 48px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-force) .sk-bar { animation: none; }
+  html:not(.motion-force) .rf-spin { animation-duration: 2.4s; }
+}

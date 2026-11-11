@@ -1,16 +1,25 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { DEMO_USERS, useReports } from '../lib/reportStore'
 import type { Barrier } from '../types'
 import SheetHandle from './SheetHandle'
+import { confirmSheet, toast } from '../lib/uiStore'
 import { getMotionForce, setMotionForce } from '../lib/viewPrefs'
+import { loadPubDataset } from '../lib/publicLayers'
+import { BADGE_TEXT, FILE_MAX_BYTES, pickCandidates } from '../lib/demoLarge'
 
 // 시연용 모의 연동 표시: 모의 접수 모드에서는 어느 화면에서나 계속 보인다.
 export function MockStrip() {
   const mode = useReports((s) => s.complaintMode)
   const storageError = useReports((s) => s.storageError)
+  const hasLarge = useReports((s) => s.reports.some((r) => r.demoSet === 'large'))
   return (
     <>
+      {hasLarge && (
+        <div className="mock-strip mock-strip-large" role="note">
+          {BADGE_TEXT}
+        </div>
+      )}
       {mode === 'mock' && (
         <div className="mock-strip" role="note">
           시연용 모의 연동 · 실제 접수는 되지 않아요
@@ -43,6 +52,62 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
   const offset = useReports((s) => s.offsetDays)
   const advanceDays = useReports((s) => s.advanceDays)
   const fillDemo = useReports((s) => s.fillDemo)
+  const fillLargeDemo = useReports((s) => s.fillLargeDemo)
+  const exportDemo = useReports((s) => s.exportDemo)
+  const importDemo = useReports((s) => s.importDemo)
+  const [busy, setBusy] = useState(false)
+  const [shift, setShift] = useState(true)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  // 대규모 시연 데이터: 용봉동 안 횡단보도·정류장·편의시설 위치에 가상 지점을 얹는다(위치 자료는 이 버튼을 누를 때 불러온다).
+  const onFillLarge = async () => {
+    setBusy(true)
+    setMsg('위치 자료를 불러와 가상 데이터를 만드는 중이에요…')
+    try {
+      const [cw, bus, fac] = await Promise.all([loadPubDataset('crosswalk'), loadPubDataset('bus'), loadPubDataset('facility')])
+      const n = fillLargeDemo(pickCandidates({ crosswalk: cw.items, bus: bus.items, facility: fac.items }), barriers)
+      setMsg('')
+      toast(n > 0 ? `대규모 시연 데이터 ${n}건을 채웠어요. 모두 가상이고, 초기화하면 지워져요.` : '대규모 시연 데이터가 이미 있어요.')
+    } catch {
+      setMsg('위치 자료를 불러오지 못해 만들지 못했어요. 인터넷 연결을 확인해 주세요.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onExport = () => {
+    const json = exportDemo()
+    if (!json) {
+      setMsg('내보낼 시연 데이터가 없어요.')
+      return
+    }
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `wheelmap-demo-${new Date().toLocaleDateString('sv-SE').replace(/-/g, '')}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    setMsg('')
+    toast(`시연 데이터 파일을 내보냈어요(${Math.round(json.length / 1024)}KB).`)
+  }
+
+  const onImport = async (file: File | undefined) => {
+    if (!file) return
+    if (file.size > FILE_MAX_BYTES) {
+      setMsg(`파일이 너무 커요(${Math.round(FILE_MAX_BYTES / 1048576)}MB까지).`)
+      return
+    }
+    if (!(await confirmSheet({ title: '시연 데이터를 바꿀까요?', body: '지금 있는 시연 데이터가 파일 내용으로 바뀌어요. 직접 만든 제보는 그대로예요.', confirmLabel: '바꾸기' }))) return
+    try {
+      const res = importDemo(await file.text(), shift)
+      if (res.ok) {
+        setMsg('')
+        toast(`시연 데이터 ${res.count}건을 가져왔어요${res.replaced > 0 ? ` (기존 ${res.replaced}건은 바뀌었어요)` : ''}${shift ? ` · 날짜를 ${res.shiftedDays}일 옮겼어요` : ''}.`)
+      } else setMsg(res.message)
+    } catch {
+      setMsg('파일을 읽지 못했어요.')
+    }
+  }
   const officer = userId === 'officer'
 
   return (
@@ -130,6 +195,9 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                 >
                   시연 데이터 채우기
                 </button>
+                <button type="button" disabled={busy} onClick={onFillLarge}>
+                  대규모 시연 데이터 채우기
+                </button>
                 <button
                   type="button"
                   className="rf-danger"
@@ -141,6 +209,29 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                   초기화
                 </button>
               </div>
+              <div className="rf-actions">
+                <button type="button" onClick={onExport}>
+                  시연 데이터 내보내기
+                </button>
+                <button type="button" onClick={() => fileRef.current?.click()}>
+                  시연 데이터 가져오기
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".json,application/json"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    e.target.value = ''
+                    void onImport(f)
+                  }}
+                />
+              </div>
+              <label className="bm-meta">
+                <input type="checkbox" checked={shift} onChange={(e) => setShift(e.target.checked)} /> 가져올 때 날짜를 오늘 기준으로 옮기기
+              </label>
+              <p className="bm-meta">대규모 데이터는 가상 사용자 약 300명의 가상 제보예요. 파일은 data/demo/large-demo.json에서 받을 수 있어요.</p>
               {msg && (
                 <p className="rf-notice" role="status">
                   {msg}

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import Skeleton from './Skeleton'
+import CountUp from './CountUp'
 import { avgProcessDays } from '../lib/progress'
 import { listAgencies } from '../lib/agencyGuide'
 import { agencyOf, deadlineOf, pct } from '../lib/caseMetrics'
@@ -6,7 +8,7 @@ import { PRIORITY_DEMAND_RADIUS_M, PRIORITY_REPORT_RADIUS_M, PRIORITY_WEIGHTS } 
 import { collectPoints } from '../lib/priority'
 import { usePriority } from '../lib/usePriority'
 import { RATING_STYLE } from '../lib/rating'
-import { dongKey, loadDongs } from '../lib/regions'
+import { dongKey, loadDongsDetailed } from '../lib/regions'
 import { nowMs, useReports } from '../lib/reportStore'
 import { computeRewards } from '../lib/rewards'
 import { ROUTES, routeStats } from '../lib/routeStats'
@@ -38,8 +40,18 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
 
   useEffect(() => {
     let cancelled = false
-    loadDongs([...pts, ...reports].map((p) => ({ lat: p.lat, lng: p.lng })))
-      .then((d) => !cancelled && setDongs(d))
+    loadDongsDetailed([...pts, ...reports].map((p) => ({ lat: p.lat, lng: p.lng })))
+      .then((d) => {
+        if (cancelled) return
+        setDongs(d.dongs)
+        setDongErr(
+          d.sdkFailed
+            ? '카카오 지도를 불러오지 못해서 동 이름을 찾지 못했어요. 찾지 못한 곳은 "확인 필요"로 묶었어요.'
+            : d.missing > 0
+              ? `일부(${d.missing}곳)는 시간 안에 동을 찾지 못해서 "확인 필요"로 묶었어요. 다시 열면 이어서 찾아요.`
+              : '',
+        )
+      })
       .catch(() => !cancelled && setDongErr('행정동을 찾지 못했어요. 카카오 지도 설정을 확인해 주세요.'))
     return () => {
       cancelled = true
@@ -98,7 +110,7 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
       <div className="adm-kpis">
         <div className="rf-card">
           <span className="bm-meta">접수된 민원</span>
-          <strong>{cases.length}건</strong>
+          <strong><CountUp value={cases.length} />건</strong>
         </div>
         <div className="rf-card">
           <span className="bm-meta">평균 처리 기간</span>
@@ -107,11 +119,11 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
         </div>
         <div className="rf-card">
           <span className="bm-meta">처리기한 경과</span>
-          <strong>{overdueN}건</strong>
+          <strong><CountUp value={overdueN} />건</strong>
         </div>
         <div className="rf-card">
           <span className="bm-meta">장기 미조치(60일+)</span>
-          <strong>{longN}건</strong>
+          <strong><CountUp value={longN} />건</strong>
         </div>
         <div className="rf-card">
           <span className="bm-meta">기관 간 이관</span>
@@ -212,7 +224,7 @@ export function AdminPriority({ barriers }: { barriers: Barrier[] }) {
         </p>
         <p className="bm-meta">길찾기에서 우회 경로를 찾지 못해 기록된 X 지점은 점수를 더해요(출발·도착 지점 자체는 빼요). 기록이 없거나 아직 검색하지 않은 지점은 0점이에요.</p>
         {err && <p className="rf-warn">{err}</p>}
-        {!data && !err && <p className="bm-meta">이용 수요 자료를 불러오고 있어요…</p>}
+        {!data && !err && <Skeleton rows={3} label="이용 수요 자료를 불러오고 있어요" />}
         <ol className="adm-prio">
           {rows.slice(0, 15).map((c, i) => (
             <li key={c.pt.key}>

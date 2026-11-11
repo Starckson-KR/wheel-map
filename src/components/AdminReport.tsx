@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { findAgencyName } from '../lib/agencyName'
 import { agencyOf, fmtDate, pct } from '../lib/caseMetrics'
 import { downloadText, toCsv } from '../lib/csv'
-import { dongKey, loadDongs } from '../lib/regions'
+import { dongKey, loadDongsDetailed } from '../lib/regions'
 import { CHOICE_LABEL, isOngoing, periodRange, previousRange, quarterOf, type PeriodChoice } from '../lib/reportPeriod'
 import { agencyKey, buildKpis, buildSummary, groupStats, inPeriod, periodSites, prevWord, reportCsvName, reportCsvRows, statsOf, type GroupRow, type Stats } from '../lib/reportStats'
 import { nowMs, useReports } from '../lib/reportStore'
@@ -46,11 +46,17 @@ export default function AdminReport({ caseName, onOpen }: Props) {
   useEffect(() => {
     let cancelled = false
     if (list.length === 0) return
-    loadDongs(list.map((r) => ({ lat: r.lat, lng: r.lng })))
+    loadDongsDetailed(list.map((r) => ({ lat: r.lat, lng: r.lng })))
       .then((d) => {
         if (cancelled) return
-        setDongs(d)
-        setDongErr('')
+        setDongs(d.dongs)
+        setDongErr(
+          d.sdkFailed
+            ? '카카오 지도를 불러오지 못해서 동 이름을 찾지 못했어요. 카카오 지도 설정을 확인해 주세요. 찾지 못한 곳은 "확인 필요"로 묶었어요.'
+            : d.missing > 0
+              ? `일부(${d.missing}곳)는 시간 안에 동을 찾지 못해서 "확인 필요"로 묶었어요. 다시 열면 이어서 찾아요.`
+              : '',
+        )
       })
       .catch(() => !cancelled && setDongErr('행정동을 찾지 못해서 동별 표를 건너뛰었어요. 카카오 지도 설정을 확인해 주세요.'))
     return () => {
@@ -192,7 +198,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
             <section className="rf-card adm-report-sec" aria-labelledby="rep-dong-h">
               <h3 id="rep-dong-h">동별</h3>
               {dongErr && <p className="rf-warn">{dongErr}</p>}
-              {!dongRows && !dongErr && <p className="bm-meta">행정동을 찾고 있어요…</p>}
+              {!dongRows && !dongErr && <p role="status" className="bm-meta">행정동을 찾고 있어요…</p>}
               {dongRows && <GroupTable label="동" caption="동별 접수·해결·개선율·재발" rows={dongRows.map((g) => ({ name: g.key, stats: g.stats }))} />}
             </section>
 

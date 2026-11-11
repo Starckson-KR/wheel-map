@@ -16,6 +16,7 @@ import { STATUS_LABEL, nowMs, useReports } from '../lib/reportStore'
 import { parseHash } from '../lib/nav'
 import { loadBarriers } from '../lib/seed'
 import type { Report } from '../types'
+import { confirmSheet, toast } from '../lib/uiStore'
 
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
@@ -58,6 +59,7 @@ const caseName = (r: Report) => (r.seedId ? `${r.seedId} · ${BY_ID.get(r.seedId
 
 export default function AdminPage() {
   const reports = useReports((s) => s.reports)
+  const fillDemo = useReports((s) => s.fillDemo)
   const userId = useReports((s) => s.userId)
   const offset = useReports((s) => s.offsetDays)
   const decideTransfer = useReports((s) => s.decideTransfer)
@@ -114,10 +116,11 @@ export default function AdminPage() {
   const overdue = scoped.filter((r) => flagsOf(r, now).some((f) => f.startsWith('처리기한'))).length
 
   const onReset = async () => {
-    if (!window.confirm('시연 중에 만든 제보와 시연 데이터, 사진을 모두 지워요. 팀 조사 데이터는 그대로예요. 계속할까요?')) return
+    if (!(await confirmSheet({ title: '시연 데이터를 모두 지울까요?', body: '시연 중에 만든 제보와 시연 데이터, 사진을 모두 지워요. 팀 조사 데이터는 그대로예요.', confirmLabel: '모두 지우기', danger: true }))) return
     setSelected(null)
     const err = await resetAll()
-    if (err) window.alert(err)
+    if (err) toast(err)
+    else toast('시연 데이터를 모두 지웠어요.')
   }
 
   const row = (r: Report) => {
@@ -241,7 +244,20 @@ export default function AdminPage() {
                 ))}
               </div>
               {list.length === 0 ? (
-                <p className="rp-empty">이 상태의 민원이 없어요.<br />접수된 민원이 없다면 시연 도구에서 '시연 데이터 채우기'를 눌러 보세요.</p>
+                <div className="rp-empty">
+                  <p>이 상태의 민원이 없어요.<br />접수된 민원이 없다면 시연 데이터를 채워 볼 수 있어요.</p>
+                  <div className="empty-act">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const n = fillDemo(BARRIERS)
+                        toast(n > 0 ? `시연 데이터 ${n}건을 채웠어요.` : '시연 데이터가 이미 있어요.')
+                      }}
+                    >
+                      시연 데이터 채우기
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <ul className="rp-list">{list.map(row)}</ul>
               )}

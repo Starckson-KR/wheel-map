@@ -5,11 +5,14 @@ type Props = {
   onUp?: () => void
   /** 아래로 밀거나 빠르게 튕기면 부른다(없으면 아래로는 저항만 준다) */
   onDown?: () => void
+  /** 끌기 대신 누르거나 키보드로 펼치고 접는 버튼(위·아래 둘 다 되는 시트용) */
+  expanded?: boolean
+  onToggle?: () => void
 }
 
 // 바텀시트 손잡이. 잡고 끌면 시트가 손가락을 따라가고, 놓을 때 멀리 갔거나 빠르면 위·아래 동작을 부른다.
 // 시트는 가장 가까운 [data-sheet] 요소다. 움직임은 transform만 바꿔 그래픽 가속을 쓴다.
-export default function SheetHandle({ onUp, onDown }: Props) {
+export default function SheetHandle({ onUp, onDown, expanded, onToggle }: Props) {
   const drag = useRef<{ id: number; y0: number; t0: number; base: number; el: HTMLElement } | null>(null)
 
   const down = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -47,11 +50,23 @@ export default function SheetHandle({ onUp, onDown }: Props) {
   return (
     <div
       className="sheet-handle"
-      role="presentation"
+      role={onToggle ? undefined : 'presentation'}
       onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
       onPointerCancel={up}
-    />
+    >
+      {onToggle && (
+        <button
+          type="button"
+          className="sheet-handle-btn"
+          aria-expanded={!!expanded}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={onToggle}
+        >
+          {expanded ? '접기' : '펼치기'}
+        </button>
+      )}
+    </div>
   )
 }

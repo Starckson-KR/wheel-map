@@ -5,6 +5,7 @@ import { clearPhotos } from './photoStore'
 import { agencyOf, pendingTransfer } from './caseMetrics'
 import { findAgencyName } from './agencyName'
 import { buildDemoReports } from './demoData'
+import { avoidFromBarriers, buildLargeDemo, makeDemoFile, parseDemoFile, shiftDates, type Candidate } from './demoLarge'
 import { usePlan } from './planStore'
 
 // 시연용 제보 저장소. 서버가 없으므로 제보 기록은 localStorage에 둔다(사진은 IndexedDB, photoStore.ts).
@@ -20,7 +21,34 @@ export const DEMO_USERS: DemoUser[] = [
   { id: 'officer', name: '담당 공무원(데모)', role: 'officer' },
 ]
 const SYSTEM_NAMES: Record<string, string> = { 'mock-api': '모의 접수 API(시연)', 'team-survey': '팀 현장조사' }
-export const userName = (id: string) => DEMO_USERS.find((u) => u.id === id)?.name ?? SYSTEM_NAMES[id] ?? id
+
+// 대규모 시연 데이터의 가상 사용자 명부(id → 닉네임). 별도 저장 키에 두고, 초기화 때 함께 비운다.
+const CROWD_KEY = 'wheelmap.demoCrowd.v1'
+type Crowd = { generatedAt: string; users: Record<string, string> }
+function loadCrowd(): Crowd | null {
+  try {
+    const raw = localStorage.getItem(CROWD_KEY)
+    if (!raw) return null
+    const v: unknown = JSON.parse(raw)
+    if (typeof v === 'object' && v !== null && typeof (v as Crowd).generatedAt === 'string' && typeof (v as Crowd).users === 'object' && (v as Crowd).users !== null) return v as Crowd
+  } catch {
+    /* 명부를 못 읽어도 id로 보여 주면 된다 */
+  }
+  return null
+}
+let crowd: Crowd | null = loadCrowd()
+function setCrowd(c: Crowd | null) {
+  crowd = c
+  try {
+    if (c) localStorage.setItem(CROWD_KEY, JSON.stringify(c))
+    else localStorage.removeItem(CROWD_KEY)
+  } catch {
+    /* 저장 실패는 무시(새로고침하면 id로 보임) */
+  }
+}
+export const userName = (id: string) => DEMO_USERS.find((u) => u.id === id)?.name ?? crowd?.users[id] ?? SYSTEM_NAMES[id] ?? id
+// 순위에 올릴 사용자: 시민·검증자(행정 담당 계정 제외) + 가상 사용자 명부
+export const rankingUserIds = () => [...DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id), ...Object.keys(crowd?.users ?? {})]
 
 export const STATUS_LABEL: Record<ReportStatus, string> = {
   submitted: '제보됨',
@@ -93,6 +121,7 @@ export type NewReport = {
 }
 
 type Result = { ok: true } | { ok: false; message: string }
+export type ImportResult = { ok: true; count: number; replaced: number; shiftedDays: number } | { ok: false; message: string }
 
 type State = {
   reports: Report[]
@@ -112,6 +141,9 @@ type State = {
   requestTransfer: (id: string, toAgencyId: string, reason: string) => Result
   decideTransfer: (id: string, accept: boolean) => Result
   fillDemo: (seeds: Barrier[]) => number
+  fillLargeDemo: (candidates: Candidate[], barriers: Barrier[]) => number
+  exportDemo: () => string | null
+  importDemo: (text: string, shift: boolean) => ImportResult
   setUser: (id: string) => void
   addReport: (input: NewReport, mergeInto?: string) => Report
   vote: (id: string) => Result
@@ -383,12 +415,49 @@ export const useReports = create<State>((set, get) => {
       return made.length
     },
 
+    // 대규모 시연 데이터(가상 사용자 약 300명). demoSet:'large' 건이 이미 있으면 다시 만들지 않는다. 기존 시연 10건은 건드리지 않는다.
+    fillLargeDemo: (candidates, barriers) => {
+      if (get().reports.some((x) => x.demoSet === 'large')) return 0
+      const now = nowMs()
+      const res = buildLargeDemo({ now, candidates, avoid: avoidFromBarriers(barriers) })
+      if (res.reports.length === 0) return 0
+      setCrowd({ generatedAt: new Date(now).toISOString(), users: Object.fromEntries(res.users.map((u) => [u.id, u.nickname])) })
+      set((s) => ({ reports: [...s.reports, ...res.reports] }))
+      return res.reports.length
+    },
+
+    // 시연 데이터(demo 건)와 가상 사용자 명부를 파일(JSON)로 내보낸다. 실제로 만든 제보는 넣지 않는다.
+    exportDemo: () => {
+      const list = get().reports.filter((r) => r.demo)
+      if (list.length === 0) return null
+      const users = Object.entries(crowd?.users ?? {}).map(([id, nickname]) => ({ id, nickname }))
+      return JSON.stringify(makeDemoFile(users, list, crowd?.generatedAt ?? new Date(nowMs()).toISOString()))
+    },
+
+    // 파일을 가져온다. 기존 시연 데이터(demo 건)만 파일 내용으로 바꾸고, 실제로 만든 제보는 그대로 둔다. shift면 모든 날짜를 지금 기준으로 옮긴다.
+    importDemo: (text, shift) => {
+      const parsed = parseDemoFile(text)
+      if (!parsed.ok) return { ok: false, message: parsed.message }
+      const { file } = parsed
+      const now = nowMs()
+      const delta = shift ? now - new Date(file.generatedAt).getTime() : 0
+      const incoming = shift ? file.reports.map((r) => shiftDates(r, delta)) : file.reports
+      const keep = get().reports.filter((r) => !r.demo)
+      const keepIds = new Set(keep.map((r) => r.id))
+      if (incoming.some((r) => keepIds.has(r.id))) return { ok: false, message: '지금 있는 실제 제보와 id가 겹쳐서 가져올 수 없어요.' }
+      const replaced = get().reports.length - keep.length
+      setCrowd(file.users.length > 0 ? { generatedAt: shift ? new Date(now).toISOString() : file.generatedAt, users: Object.fromEntries(file.users.map((u) => [u.id, u.nickname])) } : null)
+      set({ reports: [...keep, ...incoming] })
+      return { ok: true, count: incoming.length, replaced, shiftedDays: Math.round(delta / 86400000) }
+    },
+
     resetAll: async () => {
       let err: string | null = null
       try {
         localStorage.removeItem(KEY)
         localStorage.removeItem(USER_KEY)
         localStorage.removeItem(OFFSET_KEY)
+        localStorage.removeItem(CROWD_KEY)
       } catch {
         err = '제보 기록을 지우지 못했습니다.'
       }
@@ -399,6 +468,7 @@ export const useReports = create<State>((set, get) => {
       }
       usePlan.getState().reset() // 개선계획·예산 입력도 함께 비운다
       offsetDays = 0
+      crowd = null
       set({ reports: [], userId: DEMO_USERS[0].id, storageError: err, offsetDays: 0 })
       return err
     },

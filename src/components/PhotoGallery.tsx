@@ -44,6 +44,16 @@ export default function PhotoGallery({ barrierId }: { barrierId: string }) {
                 ({(openIndex ?? 0) + 1}/{photos.length} · 출처: {current.source} · Esc로 닫고 ←→로 넘겨요)
               </span>
             </figcaption>
+            {photos.length > 1 && (
+              <div className="bm-lightbox-nav">
+                <button type="button" onClick={() => setOpenIndex((i) => (i === null ? i : (i - 1 + photos.length) % photos.length))}>
+                  이전 사진
+                </button>
+                <button type="button" onClick={() => setOpenIndex((i) => (i === null ? i : (i + 1) % photos.length))}>
+                  다음 사진
+                </button>
+              </div>
+            )}
             <button type="button" className="bm-lightbox-close" onClick={() => setOpenIndex(null)}>
               닫기
             </button>

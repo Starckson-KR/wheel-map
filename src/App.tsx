@@ -8,6 +8,7 @@ import TabBar from './components/TabBar'
 import ViewSettings from './components/ViewSettings'
 import DevBadge from './components/DevBadge'
 import RewardToasts from './components/RewardToasts'
+import UiLayer from './components/UiLayer'
 import { parseHash } from './lib/nav'
 
 // 지도는 한 번 만든 뒤 탭을 바꿔도 남겨 두고 숨기기만 한다(위치·확대·고른 지점·길찾기 결과 유지).
@@ -59,6 +60,7 @@ export default function App() {
       </div>
       {page === 'verify' && <ViewSettings floating />}
       <RewardToasts />
+      <UiLayer />
       <DevBadge />
     </>
   )

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { computeRanking, rankDelta, type RankPeriod, type RankRow } from '../lib/ranking'
-import { DEMO_USERS, nowMs, userName, useReports } from '../lib/reportStore'
+import { DEMO_USERS, nowMs, rankingUserIds, userName, useReports } from '../lib/reportStore'
 
 const TOP_N = 10
 const PERIODS: { id: RankPeriod; tab: string; idle: string }[] = [
@@ -45,15 +45,17 @@ export default function ParticipationRanking() {
   const offsetDays = useReports((s) => s.offsetDays)
   const [period, setPeriod] = useState<RankPeriod>('week')
   const tabs = useRef<(HTMLButtonElement | null)[]>([])
-  // 순위에 올릴 사용자: 시민과 검증자(행정 담당 계정은 제외)
+  // 순위에 올릴 사용자: 시민과 검증자(행정 담당 계정은 제외) + 대규모 시연 데이터의 가상 사용자
   const res = useMemo(
-    () => computeRanking(reports, DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id), period, nowMs()),
+    () => computeRanking(reports, rankingUserIds(), period, nowMs()),
     // offsetDays: 시연 도구로 시간을 앞당기면 기간이 바뀌므로 다시 계산한다
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [reports, period, offsetDays],
   )
   const def = PERIODS.find((p) => p.id === period) ?? PERIODS[0]
   const top = res.ranked.filter((r) => (r.rank ?? 99) <= TOP_N).slice(0, TOP_N)
+  // 기록 없는 사람 이름은 시연 사용자만 나열한다(가상 사용자 수백 명을 다 적지 않는다)
+  const idleShown = res.idle.filter((r) => DEMO_USERS.some((u) => u.id === r.userId))
   const mine = res.rows.find((r) => r.userId === userId)
   const mineOut = mine && mine.rank !== null && !top.includes(mine) ? mine : null
 
@@ -107,9 +109,10 @@ export default function ParticipationRanking() {
             <Line row={mineOut} me />
           </div>
         )}
-        {res.idle.length > 0 && (
+        {idleShown.length > 0 && (
           <p className="bm-meta rk-idle">
-            {def.idle}: {res.idle.map((r) => (r.userId === userId ? `${userName(r.userId)}(나)` : userName(r.userId))).join(', ')}
+            {def.idle}: {idleShown.map((r) => (r.userId === userId ? `${userName(r.userId)}(나)` : userName(r.userId))).join(', ')}
+            {res.idle.length > idleShown.length && ` 외 ${res.idle.length - idleShown.length}명`}
           </p>
         )}
       </div>

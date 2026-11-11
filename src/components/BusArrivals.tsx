@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Skeleton from './Skeleton'
 import type { BoardingWarn } from '../lib/bus/boarding.ts'
 import { getArrivals, getLineLow, LIVE_AVAILABLE, hasSnapshot } from '../lib/bus/provider.ts'
 import { nextLow, arrivalText, type Arrival, type ArrivalResult, type LineLowResult } from '../lib/bus/types.ts'
@@ -79,9 +80,7 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
           {LIVE_AVAILABLE ? '다음 저상버스 보기' : hasSnapshot(cur.stationId) ? '예시 도착 정보 보기' : '저상버스 정보 보기'}
         </button>
       ) : loading && !res ? (
-        <p className="bm-meta" role="status">
-          도착 정보를 불러오고 있어요…
-        </p>
+        <Skeleton rows={2} label="도착 정보를 불러오고 있어요" />
       ) : res && !res.ok ? (
         <p className="bus-none" role="status">
           {res.reason === 'no-snapshot' || res.reason === 'unavailable'

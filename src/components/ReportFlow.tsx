@@ -6,6 +6,7 @@ import { resizeImage, savePhoto } from '../lib/photoStore'
 import { CATEGORY_LABEL, REPORT_TYPES } from '../lib/reportTypes'
 import { newReportId, nowMs, useReports, userName } from '../lib/reportStore'
 import type { Barrier } from '../types'
+import { confirmSheet, toast } from '../lib/uiStore'
 
 export type Loc = { lat: number; lng: number }
 type Photo = { id: string; blob: Blob; url: string }
@@ -52,7 +53,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const [gpsBusy, setGpsBusy] = useState(false)
   const [gpsMsg, setGpsMsg] = useState('')
   const [photoMsg, setPhotoMsg] = useState('')
-  const [errors, setErrors] = useState<string[]>([])
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<{ id: string; merged: boolean; photoFailed: boolean } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -77,6 +78,10 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
+    if (files.length > 0) {
+      setErr('photos', '')
+      toast('사진을 추가했어요')
+    }
     e.target.value = ''
     const room = PHOTO_MAX_COUNT - photos.length
     setPhotoMsg(files.length > room ? `사진은 최대 ${PHOTO_MAX_COUNT}장까지 올릴 수 있어서 앞의 ${room}장만 썼어요.` : '')
@@ -119,28 +124,53 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
     )
   }
 
-  const validateLocation = () => {
-    const errs: string[] = []
-    if (!location) errs.push('위치를 정해 주세요("현재 위치" 또는 "지도에서 선택").')
-    if (!locationKind) errs.push('어떤 곳인지 골라 주세요(소관 기관을 안내하는 데 써요).')
+  // 오류는 해당 칸 바로 아래에 보여 주고, 제출 때는 첫 오류 칸으로 포커스를 옮긴다.
+  const fieldErr = {
+    widthM: (v: string) => {
+      const w = num(v)
+      return w !== undefined && !(w > 0 && w <= 10) ? '폭은 0보다 크고 10m 이하의 숫자로 적어 주세요.' : ''
+    },
+    curbCm: (v: string) => {
+      const c = num(v)
+      return c !== undefined && !(c >= 0 && c <= 100) ? '턱 높이는 0~100cm 사이의 숫자로 적어 주세요.' : ''
+    },
+  }
+  const setErr = (key: string, msg: string) =>
+    setErrors((e) => {
+      if (!msg) {
+        if (!(key in e)) return e
+        const { [key]: _drop, ...rest } = e
+        return rest
+      }
+      return { ...e, [key]: msg }
+    })
+  const failWith = (errs: Record<string, string>) => {
     setErrors(errs)
-    return errs.length === 0
+    const first = Object.keys(errs)[0]
+    if (first) requestAnimationFrame(() => document.getElementById('rf-f-' + first)?.focus())
+    return !first
+  }
+
+  const validateLocation = () => {
+    const errs: Record<string, string> = {}
+    if (!location) errs.location = '위치를 정해 주세요. "현재 위치"나 "지도에서 선택"을 눌러 주세요.'
+    if (!locationKind) errs.locationKind = '어떤 곳인지 골라 주세요. 소관 기관을 안내하는 데 써요.'
+    return failWith(errs)
   }
 
   const validateDetail = () => {
-    const errs: string[] = []
-    if (photos.length < 1) errs.push('사진을 1장 이상 올려 주세요.')
-    if (!description.trim()) errs.push('설명을 적어 주세요.')
-    const w = num(widthM)
-    const c = num(curbCm)
-    if (w !== undefined && !(w > 0 && w <= 10)) errs.push('폭은 0보다 크고 10m 이하의 숫자로 적어 주세요.')
-    if (c !== undefined && !(c >= 0 && c <= 100)) errs.push('턱 높이는 0~100cm 사이의 숫자로 적어 주세요.')
-    setErrors(errs)
-    return errs.length === 0
+    const errs: Record<string, string> = {}
+    if (photos.length < 1) errs.photos = '사진을 1장 이상 올려 주세요.'
+    if (!description.trim()) errs.description = '설명을 적어 주세요.'
+    const w = fieldErr.widthM(widthM)
+    const c = fieldErr.curbCm(curbCm)
+    if (w) errs.widthM = w
+    if (c) errs.curbCm = c
+    return failWith(errs)
   }
 
   const go = (n: Step) => {
-    setErrors([])
+    setErrors({})
     setStep(n)
   }
 
@@ -179,8 +209,8 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
     setDone({ id: r.id, merged: !!mergeInto, photoFailed })
   }
 
-  const cancel = () => {
-    if (!done && (type || photos.length || description) && !window.confirm('작성 중인 내용이 사라져요. 닫을까요?')) return
+  const cancel = async () => {
+    if (!done && (type || photos.length || description) && !(await confirmSheet({ title: '제보를 그만 쓸까요?', body: '작성 중인 내용이 사라져요.', confirmLabel: '닫기', cancelLabel: '계속 쓰기', danger: true }))) return
     onClose()
   }
 
@@ -195,13 +225,13 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
             이전
           </button>
         )}
-        <h2>제보하기</h2>
+        <h2>제보하기{!done && <span className="rf-step" aria-hidden="true">{step}/4</span>}</h2>
         <button type="button" className="bm-close" onClick={cancel}>
           닫기
         </button>
       </div>
       {!done && (
-        <div className="rf-progress" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} aria-label={`4단계 중 ${step}단계`}>
+        <div className="rf-progress" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} aria-valuetext={`4단계 중 ${step}단계`} aria-label="제보 진행 단계">
           <i style={{ transform: `scaleX(${step / 4})` }} />
         </div>
       )}
@@ -265,7 +295,12 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 </fieldset>
               ))}
               <div className="rf-actions">
-                <button type="button" className="rf-primary" disabled={!type} onClick={() => go(2)}>
+                {!type && (
+                  <p id="rf-why-1" className="bm-meta rf-why">
+                    유형을 하나 고르면 다음으로 갈 수 있어요.
+                  </p>
+                )}
+                <button type="button" className="rf-primary" disabled={!type} aria-describedby={!type ? 'rf-why-1' : undefined} onClick={() => go(2)}>
                   다음
                 </button>
               </div>
@@ -291,9 +326,21 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     지도에서 선택
                   </button>
                 </div>
-                <div className={'rf-pos' + (location ? ' ok' : '')} role="status">
+                <div
+                  id="rf-f-location"
+                  tabIndex={-1}
+                  className={'rf-pos' + (location ? ' ok' : '')}
+                  role="status"
+                  aria-invalid={!!errors.location}
+                  aria-describedby={errors.location ? 'rf-e-location' : undefined}
+                >
                   {location ? `위치를 정했어요 · 위도 ${location.lat.toFixed(5)}, 경도 ${location.lng.toFixed(5)}` : '아직 위치를 정하지 않았어요.'}
                 </div>
+                {errors.location && !location && (
+                  <p id="rf-e-location" className="rf-err" role="alert">
+                    {errors.location}
+                  </p>
+                )}
                 {gpsMsg && (
                   <p className={locSource === 'gps' && !location ? 'rf-warn' : 'bm-meta'} role="status">
                     {gpsMsg}
@@ -304,7 +351,16 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
               <section className="rf-sec">
                 <label className="rf-field">
                   어떤 곳인가요?
-                  <select value={locationKind} onChange={(e) => setLocationKind(e.target.value)}>
+                  <select
+                    id="rf-f-locationKind"
+                    value={locationKind}
+                    aria-invalid={!!errors.locationKind}
+                    aria-describedby={errors.locationKind ? 'rf-e-locationKind' : undefined}
+                    onChange={(e) => {
+                      setLocationKind(e.target.value)
+                      if (e.target.value) setErr('locationKind', '')
+                    }}
+                  >
                     <option value="">골라 주세요</option>
                     {LOCATION_KINDS.map((k) => (
                       <option key={k} value={k}>
@@ -313,16 +369,15 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     ))}
                   </select>
                 </label>
-                <span className="bm-meta">어느 기관이 맡는 곳인지 안내하는 데 써요.</span>
+                {errors.locationKind ? (
+                  <p id="rf-e-locationKind" className="rf-err" role="alert">
+                    {errors.locationKind}
+                  </p>
+                ) : (
+                  <span className="bm-meta">어느 기관이 맡는 곳인지 안내하는 데 써요.</span>
+                )}
               </section>
 
-              {errors.length > 0 && (
-                <ul className="rf-errors" role="alert">
-                  {errors.map((e) => (
-                    <li key={e}>{e}</li>
-                  ))}
-                </ul>
-              )}
               <div className="rf-actions">
                 <button
                   type="button"
@@ -339,7 +394,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
           {step === 3 && info && (
             <>
-              <section className="rf-sec">
+              <section id="rf-f-photos" tabIndex={-1} className="rf-sec" aria-describedby={errors.photos ? 'rf-e-photos' : undefined}>
                 <h3>
                   사진 <span className="bm-meta">1~{PHOTO_MAX_COUNT}장</span>
                 </h3>
@@ -361,8 +416,13 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 {photos.length < PHOTO_MAX_COUNT && (
                   <label className="rf-btn">
                     사진 추가 ({photos.length}/{PHOTO_MAX_COUNT})
-                    <input className="rf-file" type="file" accept="image/*" capture="environment" multiple onChange={onFiles} />
+                    <input className="rf-file" type="file" accept="image/*" capture="environment" multiple onChange={onFiles} aria-invalid={!!errors.photos} aria-describedby={errors.photos ? 'rf-e-photos' : undefined} />
                   </label>
+                )}
+                {errors.photos && photos.length === 0 && (
+                  <p id="rf-e-photos" className="rf-err" role="alert">
+                    {errors.photos}
+                  </p>
                 )}
                 {photoMsg && (
                   <p className="rf-warn" role="status">
@@ -374,8 +434,24 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
               <section className="rf-sec">
                 <label className="rf-field">
                   설명
-                  <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="어떤 점이 휠체어로 지나가기 어려운가요?" />
+                  <textarea
+                    id="rf-f-description"
+                    rows={3}
+                    value={description}
+                    aria-invalid={!!errors.description}
+                    aria-describedby={errors.description ? 'rf-e-description' : undefined}
+                    onChange={(e) => {
+                      setDescription(e.target.value)
+                      if (e.target.value.trim()) setErr('description', '')
+                    }}
+                    placeholder="예: 보도 가운데 전봇대가 있어 휠체어가 지나갈 수 없어요"
+                  />
                 </label>
+                {errors.description && (
+                  <p id="rf-e-description" className="rf-err" role="alert">
+                    {errors.description}
+                  </p>
+                )}
               </section>
 
               <section className="rf-sec">
@@ -385,22 +461,53 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 <div className="rf-two">
                   <label className="rf-field">
                     폭 (m)
-                    <input type="number" inputMode="decimal" step="0.01" min="0" value={widthM} onChange={(e) => setWidthM(e.target.value)} />
+                    <input
+                      id="rf-f-widthM"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      value={widthM}
+                      aria-invalid={!!errors.widthM}
+                      aria-describedby={errors.widthM ? 'rf-e-widthM' : undefined}
+                      onChange={(e) => {
+                        setWidthM(e.target.value)
+                        if (!fieldErr.widthM(e.target.value)) setErr('widthM', '')
+                      }}
+                      onBlur={() => setErr('widthM', fieldErr.widthM(widthM))}
+                    />
+                    {errors.widthM && (
+                      <span id="rf-e-widthM" className="rf-err" role="alert">
+                        {errors.widthM}
+                      </span>
+                    )}
                   </label>
                   <label className="rf-field">
                     턱 높이 (cm)
-                    <input type="number" inputMode="decimal" step="0.1" min="0" value={curbCm} onChange={(e) => setCurbCm(e.target.value)} />
+                    <input
+                      id="rf-f-curbCm"
+                      type="number"
+                      inputMode="decimal"
+                      step="0.1"
+                      min="0"
+                      value={curbCm}
+                      aria-invalid={!!errors.curbCm}
+                      aria-describedby={errors.curbCm ? 'rf-e-curbCm' : undefined}
+                      onChange={(e) => {
+                        setCurbCm(e.target.value)
+                        if (!fieldErr.curbCm(e.target.value)) setErr('curbCm', '')
+                      }}
+                      onBlur={() => setErr('curbCm', fieldErr.curbCm(curbCm))}
+                    />
+                    {errors.curbCm && (
+                      <span id="rf-e-curbCm" className="rf-err" role="alert">
+                        {errors.curbCm}
+                      </span>
+                    )}
                   </label>
                 </div>
               </section>
 
-              {errors.length > 0 && (
-                <ul className="rf-errors" role="alert">
-                  {errors.map((e) => (
-                    <li key={e}>{e}</li>
-                  ))}
-                </ul>
-              )}
               <div className="rf-actions">
                 <button
                   type="button"
@@ -472,7 +579,8 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 </dl>
               </section>
               <div className="rf-actions">
-                <button type="button" className="rf-primary" disabled={busy} onClick={() => submit()}>
+                <button type="button" className={'rf-primary' + (busy ? ' is-busy' : '')} disabled={busy} aria-busy={busy} onClick={() => submit()}>
+                  {busy && <span className="rf-spin" aria-hidden="true" />}
                   {busy ? '등록하고 있어요…' : duplicates.length > 0 ? '새로 등록하기' : '등록하기'}
                 </button>
               </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import Skeleton from './Skeleton'
 import { buildCsv, csvFileName, type CsvRow } from '../lib/planCsv'
 import { STAGES, entryOf, usePlan, type Stage } from '../lib/planStore'
 import { agencyNameOf, type Cand } from '../lib/priority'
@@ -96,7 +97,7 @@ export default function AdminPlan({ barriers }: { barriers: Barrier[] }) {
         <p className="bm-meta">금액과 사업은 담당자가 입력해요. 앱이 금액을 정하지 않아요. 순위는 우선순위(안) 점수가 높은 순이고, 위치가 확정되지 않은 지점은 빠져 있어요. 입력한 내용은 이 브라우저에만 저장돼요.</p>
         {storageError && <p className="rf-warn">{storageError}</p>}
         {err && <p className="rf-warn">{err}</p>}
-        {!data && !err && <p className="bm-meta">이용 수요 자료를 불러오고 있어요…</p>}
+        {!data && !err && <Skeleton rows={3} label="이용 수요 자료를 불러오고 있어요" />}
         <div className="adm-kpis">
           {STAGES.map((s) => (
             <div key={s} className="rf-card">

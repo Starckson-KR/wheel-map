@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../components/Icon'
-import { MockStrip } from '../components/DemoTools'
+import DemoTools, { MockStrip } from '../components/DemoTools'
+import ViewSettings from '../components/ViewSettings'
+import SheetHandle from '../components/SheetHandle'
+import { loadBarriers } from '../lib/seed'
 import { TO, go } from '../lib/nav'
 import { computeRanking } from '../lib/ranking'
-import { DEMO_USERS, nowMs, useReports } from '../lib/reportStore'
+import { nowMs, rankingUserIds, useReports } from '../lib/reportStore'
 import { prefersCalm } from '../lib/viewPrefs'
+import { confirmSheet, toast } from '../lib/uiStore'
+import { CountText } from '../components/CountUp'
 
 const TILES = [
   { icon: 'report', label: '문제 신고하기', to: TO.newReport },
@@ -97,11 +102,61 @@ function MenuSheet({ onClose }: { onClose: () => void }) {
   )
 }
 
+const BARRIERS = loadBarriers()
+
+// 설정 시트: 화면 설정과 시연 도구(기존 컴포넌트 재사용), 행정 화면 입구
+function SettingsSheet({ onClose }: { onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const resetAll = useReports((s) => s.resetAll)
+  const onReset = async () => {
+    if (!(await confirmSheet({ title: '시연 데이터를 모두 지울까요?', body: '시연 중에 만든 제보와 사진을 모두 지워요. 팀 조사 데이터는 그대로예요.', confirmLabel: '모두 지우기', danger: true }))) return
+    const err = await resetAll()
+    if (err) toast(err)
+    else toast('시연 데이터를 모두 지웠어요.')
+  }
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>('.bm-close')?.focus()
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [onClose])
+  return (
+    <>
+      <div className="ms-dim" onClick={onClose} />
+      <div ref={ref} className="ms" data-sheet role="dialog" aria-modal="true" aria-label="설정">
+        <SheetHandle onDown={onClose} />
+        <div className="ms-head">
+          <div>
+            <h2>설정</h2>
+            <p className="ms-sub">이 기기에 저장돼요.</p>
+          </div>
+          <button type="button" className="bm-close" onClick={onClose}>닫기</button>
+        </div>
+        <ul className="pg-set">
+          <li>
+            <span>화면 설정<small>다크·라이트, 앱·PC 보기</small></span>
+            <ViewSettings />
+          </li>
+          <li>
+            <span>시연 도구<small>발표용 설정이에요</small></span>
+            <DemoTools page="map" onReset={onReset} barriers={BARRIERS} />
+          </li>
+          <li>
+            <span>행정 화면<small>담당 공무원용 화면이에요</small></span>
+            <button type="button" className="hm-tool" onClick={() => { onClose(); go(TO.admin) }}>열기</button>
+          </li>
+        </ul>
+      </div>
+    </>
+  )
+}
+
 export default function HomePage() {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const [gid, setGid] = useState(GUIDES[0].id)
   const [menu, setMenu] = useState(false)
+  const [settings, setSettings] = useState(false)
   const [notice, setNotice] = useState(false)
   const [more, setMore] = useState(false)
   const chipsRef = useRef<HTMLUListElement>(null)
@@ -125,7 +180,7 @@ export default function HomePage() {
     const doing = mine.filter((r) => ['verified', 'filed', 'assigned', 'in_progress'].includes(r.status)).length
     const recheck = mine.filter((r) => r.status === 'resolved').length
     // 이번 주(월~일) 점수와 순위는 혜택알림의 참여 랭킹과 같은 계산을 쓴다
-    const ids = DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id)
+    const ids = rankingUserIds()
     const row = computeRanking(reports, ids.includes(userId) ? ids : [...ids, userId], 'week', nowMs(), 0, false).rows.find((x) => x.userId === userId)
     const pts = row?.points ?? 0
     const myRank = row?.rank
@@ -150,7 +205,8 @@ export default function HomePage() {
             <div className="pg-icons">
               <button type="button" className="pg-ic" aria-label="혜택알림" onClick={() => go(TO.alerts)}><Icon name="bell" size={22} /><span>알림</span></button>
               <button type="button" className="pg-ic" aria-label="내 정보" onClick={() => go(TO.me)}><Icon name="user" size={22} /><span>내 정보</span></button>
-              <button type="button" className="pg-ic" aria-label="전체메뉴 열기" aria-haspopup="dialog" onClick={() => setMenu(true)}><Icon name="menu" size={22} /><span>전체메뉴</span></button>
+              <button type="button" className="pg-ic" aria-label="설정" aria-haspopup="dialog" onClick={() => { setMenu(false); setSettings(true) }}><Icon name="gear" size={22} /><span>설정</span></button>
+              <button type="button" className="pg-ic" aria-label="전체메뉴 열기" aria-haspopup="dialog" onClick={() => { setSettings(false); setMenu(true) }}><Icon name="menu" size={22} /><span>전체메뉴</span></button>
             </div>
           </header>
 
@@ -163,7 +219,7 @@ export default function HomePage() {
             {notice && <p role="note">발표용 시연 프로토타입이에요. 민원 접수는 실제로 보내지지 않아요.</p>}
           </div>
 
-          <button type="button" className="hp-search" aria-label="어디로 가세요? 휠체어 길찾기" onClick={() => go(TO.route)}>
+          <button type="button" className="hp-search" aria-label="어디로 가세요? 휠체어 길찾기 화면 열기" onClick={() => go(TO.route)}>
             <span><span className="hp-search-in">어디로 가세요? 휠체어 길찾기</span><Icon name="search" size={22} /></span>
           </button>
 
@@ -191,7 +247,7 @@ export default function HomePage() {
                 {news.map((n) => (
                   <li key={n.t}>
                     <button type="button" className={'hp-n hp-n-' + n.tone} onClick={() => go(n.to)}>
-                      <span>{n.t}</span>
+                      <span><CountText text={n.t} /></span>
                     </button>
                   </li>
                 ))}
@@ -238,6 +294,7 @@ export default function HomePage() {
         </div>
       </div>
       {menu && <MenuSheet onClose={() => setMenu(false)} />}
+      {settings && <SettingsSheet onClose={() => setSettings(false)} />}
     </div>
   )
 }

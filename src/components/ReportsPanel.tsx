@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { go, TO } from '../lib/nav'
 import { ReportThumb } from './ReportPhotos'
 import { STATUS_LABEL, isDone, useReports, userName } from '../lib/reportStore'
 import type { Report } from '../types'
@@ -67,11 +68,18 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
             ))}
           </div>
           {shown.length === 0 ? (
-            <p className="rp-empty">
-              {tab === 'all' ? '아직 올린 제보가 없어요.' : '이 상태의 제보가 없어요.'}
-              <br />
-              지도에서 &apos;문제 제보하기&apos;를 눌러 첫 제보를 남겨 보세요.
-            </p>
+            <div className="rp-empty">
+              <p>
+                {tab === 'all' ? '아직 올린 제보가 없어요.' : '이 상태의 제보가 없어요.'}
+                <br />
+                {tab === 'all' ? '첫 제보를 남겨 보세요.' : '다른 상태 탭을 눌러 보세요.'}
+              </p>
+              {tab === 'all' && (
+                <div className="empty-act">
+                  <button type="button" className="rf-primary" onClick={() => go(TO.newReport)}>문제 신고하러 가기</button>
+                </div>
+              )}
+            </div>
           ) : (
             <ul className="rp-list">{shown.map(row)}</ul>
           )}
@@ -82,7 +90,12 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
       ) : (
         <>
           {todo.length === 0 ? (
-            <p className="rp-empty">검증을 기다리는 제보가 없어요.</p>
+            <div className="rp-empty">
+              <p>검증을 기다리는 제보가 없어요.</p>
+              <div className="empty-act">
+                <button type="button" className="rf-primary" onClick={() => go(TO.map)}>지도 보기</button>
+              </div>
+            </div>
           ) : (
             <>
               <p className="bm-meta">다른 사용자가 올린 제보예요. 눌러서 확인하거나 검증할 수 있어요.</p>

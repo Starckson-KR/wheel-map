@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { go, TO } from '../lib/nav'
+import CountUp from './CountUp'
 import RewardEmblem from './RewardEmblem'
 import { DEMO_USERS, useReports, userName } from '../lib/reportStore'
 import { REWARD_DAILY_CAP } from '../lib/config'
@@ -58,7 +60,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
           <p className="bm-meta">{userName(userId)}</p>
           <h3>{rw.title || '아직 칭호가 없어요'}</h3>
           <p className="rw-score">
-            <b>{rw.total}</b>점
+            <b><CountUp value={rw.total} /></b>점
           </p>
         </div>
       </section>
@@ -138,7 +140,12 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
       {tab === 'points' && (
         <section>
           {events.length === 0 ? (
-            <p className="rp-empty">아직 쌓인 점수가 없어요.<br />제보가 검증되거나 다른 분의 제보를 확인하면 점수가 쌓여요.</p>
+            <div className="rp-empty">
+              <p>아직 쌓인 점수가 없어요.<br />제보가 검증되거나 다른 분의 제보를 확인하면 점수가 쌓여요.</p>
+              <div className="empty-act">
+                <button type="button" className="rf-primary" onClick={() => go(TO.newReport)}>문제 신고하러 가기</button>
+              </div>
+            </div>
           ) : (
             <ul className="rw-events">
               {events.map((e) => (
@@ -161,7 +168,12 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
       {tab === 'roads' && (
         <section>
           {roads.length === 0 ? (
-            <p className="rp-empty">아직 바꾼 길이 없어요.<br />내 제보가 조치된 뒤 재확인을 통과하면 여기에 모여요.</p>
+            <div className="rp-empty">
+              <p>아직 바꾼 길이 없어요.<br />내 제보가 조치된 뒤 재확인을 통과하면 여기에 모여요.</p>
+              <div className="empty-act">
+                <button type="button" className="rf-primary" onClick={() => go(TO.map)}>지도 보기</button>
+              </div>
+            </div>
           ) : (
             <ul className="rw-events">
               {roads.map((c) => (

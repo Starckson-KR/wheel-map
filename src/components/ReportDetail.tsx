@@ -76,6 +76,12 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       <p>
         <span className={'rp-badge rp-' + r.status}>{STATUS_LABEL[r.status]}</span>{' '}
         <span className={'rf-cat rf-cat-' + r.category}>{CATEGORY_LABEL[r.category]}</span>
+        {r.demoSet === 'large' && (
+          <>
+            {' '}
+            <span className="adm-demo">시연용 가상 데이터 · 실제 제보가 아니에요</span>
+          </>
+        )}
         {r.status === 'verified' && (
           <>
             {' '}

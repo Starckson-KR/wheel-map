@@ -114,6 +114,7 @@ export type Report = {
     external?: { updates: ExternalUpdate[]; lastCheckedAt?: string } // 없어도 동작(예전 저장 데이터)
   }
   demo?: boolean // 시연 데이터 채우기로 만든 건
+  demoSet?: 'large' // 대규모 시연 데이터(가상 사용자 약 300명)로 만든 건
   lastCheckedAt?: string // 사후 점검 기준일(조치 완료·재확인 통과 시 갱신)
   transfers?: {
     fromAgencyId: string

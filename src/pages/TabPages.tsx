@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Icon from '../components/Icon'
-import DemoTools, { MockStrip } from '../components/DemoTools'
-import ViewSettings from '../components/ViewSettings'
+import CountUp from '../components/CountUp'
+import { MockStrip } from '../components/DemoTools'
 import ReportsPanel from '../components/ReportsPanel'
 import MyRewards from '../components/MyRewards'
 import ParticipationRanking from '../components/ParticipationRanking'
@@ -76,39 +76,8 @@ export function ReportTab({ query }: { query: string }) {
 }
 
 export function MeTab() {
-  const resetAll = useReports((s) => s.resetAll)
-  const onReset = async () => {
-    if (!window.confirm('시연 중에 만든 제보와 사진을 모두 지워요. 팀 조사 데이터는 그대로예요. 계속할까요?')) return
-    const err = await resetAll()
-    if (err) window.alert(err)
-  }
   return (
     <Page title="내 정보">
-      <section className="pg-card">
-        <h2>설정</h2>
-        <ul className="pg-set">
-          <li>
-            <span>
-              화면 설정<small>다크·라이트, 앱·PC 보기</small>
-            </span>
-            <ViewSettings />
-          </li>
-          <li>
-            <span>
-              시연 도구<small>발표용 설정이에요</small>
-            </span>
-            <DemoTools page="map" onReset={onReset} barriers={BARRIERS} />
-          </li>
-          <li>
-            <span>
-              행정 화면<small>담당 공무원용 화면이에요</small>
-            </span>
-            <button type="button" className="hm-tool" onClick={() => go(TO.admin)}>
-              열기
-            </button>
-          </li>
-        </ul>
-      </section>
       <section className="pg-card">
         <h2>내 기여</h2>
         <MyRewards embedded barriers={BARRIERS} onOpenReports={() => go(TO.report)} onOpenReport={(id) => go(TO.openReport(id))} />
@@ -182,7 +151,7 @@ export function AlertsTab() {
           <span className="al-sum-ic" aria-hidden="true"><Icon name="star" size={24} /></span>
           <div>
             <p className="bm-meta">{userName(userId)}의 참여 점수</p>
-            <p className="pg-score"><b>{rw.total}</b>점 · {rw.title || '아직 칭호가 없어요'}</p>
+            <p className="pg-score"><b><CountUp value={rw.total} /></b>점 · {rw.title || '아직 칭호가 없어요'}</p>
           </div>
         </div>
         {rw.next && (
@@ -202,13 +171,20 @@ export function AlertsTab() {
           ))}
         </div>
         {shown.length === 0 ? (
-          <p className="bm-meta al-empty">
-            {filter === 'points'
-              ? '아직 받은 참여 점수가 없어요. 제보가 검증되면 점수가 쌓여요.'
-              : filter === 'report'
-                ? '아직 민원 알림이 없어요. 문제를 신고하면 처리 상태가 바뀔 때마다 여기에 알려 드려요.'
-                : '아직 받은 알림이 없어요. 문제를 신고하면 처리 상태와 참여 점수가 여기에 쌓여요.'}
-          </p>
+          <div className="al-empty">
+            <p className="bm-meta">
+              {filter === 'points'
+                ? '아직 받은 참여 점수가 없어요. 제보가 검증되면 점수가 쌓여요.'
+                : filter === 'report'
+                  ? '아직 민원 알림이 없어요. 문제를 신고하면 처리 상태가 바뀔 때마다 여기에 알려 드려요.'
+                  : '아직 받은 알림이 없어요. 문제를 신고하면 처리 상태와 참여 점수가 여기에 쌓여요.'}
+            </p>
+            <div className="empty-act">
+              <button type="button" className="rf-primary" onClick={() => go(filter === 'points' ? TO.map : TO.newReport)}>
+                {filter === 'points' ? '지도 보기' : '문제 신고하러 가기'}
+              </button>
+            </div>
+          </div>
         ) : (
           <ul className="pg-lines">
             {shown.map((c) => (

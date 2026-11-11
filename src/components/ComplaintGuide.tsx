@@ -5,6 +5,7 @@ import { loadKakao, reverseGeocode } from '../lib/kakao'
 import { submitMockComplaint } from '../lib/mockComplaintApi'
 import { nowMs, useReports } from '../lib/reportStore'
 import { RATING_STYLE } from '../lib/rating'
+import { toast } from '../lib/uiStore'
 import type { Barrier, Report } from '../types'
 
 export function MockBadge() {
@@ -69,7 +70,7 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text)
-      setCopied('문안을 복사했어요. 접수 화면에 붙여 넣어 주세요.')
+      toast('문안을 복사했어요. 접수 화면에 붙여 넣어 주세요.')
     } catch {
       const ta = document.getElementById('cg-text') as HTMLTextAreaElement | null
       ta?.select()

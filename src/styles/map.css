@@ -207,13 +207,20 @@
   box-shadow: var(--shadow-1);
 }
 
+/* 대규모 시연 데이터(가상)가 있는 동안 보이는 표시 */
+.mock-strip-large {
+  background: var(--amber-50);
+  color: var(--amber-700);
+  box-shadow: inset 0 0 0 1px var(--amber-700);
+}
+
 .mock-strip::before {
   content: '';
   flex: none;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #fff;
+  background: currentColor;
 }
 
 /* ───── 지도 위 표시(핀) ───── */

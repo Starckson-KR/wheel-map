@@ -359,31 +359,107 @@
   line-height: 1.5;
 }
 
-.bm button.hp-search {
-  display: block;
-  width: 100%;
-  min-height: 60px;
-  padding: 2px;
+/* AI 검색창: 질문 입력 → 이해한 화면 안내 카드 */
+.hp-ai { display: grid; gap: var(--s-3); }
+.hp-ai-tag { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); margin: 0; font-size: var(--fs-small); color: var(--text-sub); }
+.hp-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
   border-radius: var(--r-full);
-  background: linear-gradient(90deg, var(--hp-g1), var(--hp-g2));
+  background: var(--hp-panel);
+  color: var(--hp-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.hp-ask {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: 60px;
+  padding: 2px 6px 2px var(--s-5);
+  border: 2px solid transparent;
+  border-radius: var(--r-full);
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(90deg, var(--hp-g1), var(--hp-g2)) border-box;
   box-shadow: var(--shadow-1);
 }
-.hp-search > span {
+.hp-ask:focus-within { box-shadow: var(--focus-ring); }
+.bm .hp-ask .hp-ask-in:focus, .bm .hp-ask .hp-ask-in:focus-visible { box-shadow: none; outline: none; border: 0; background: none; }
+.bm .hp-ask .hp-ask-in {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.bm .hp-ask .hp-ask-in::placeholder { color: var(--text-sub); opacity: 1; }
+.bm button.hp-ask-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--touch);
+  min-width: var(--touch);
+  height: var(--touch);
+  padding: 0;
+  border-radius: var(--r-full);
+  background: none;
+  color: var(--hp-ink);
+}
+.bm button.hp-ask-go { background: var(--primary); color: var(--on-primary); }
+.bm button.hp-ask-go:disabled { background: var(--grey-200); color: var(--grey-500); }
+@media (hover: hover) and (pointer: fine) {
+  .bm button.hp-ask-btn:hover:not(:disabled) { background: var(--hp-panel); }
+  .bm button.hp-ask-go:hover:not(:disabled) { background: var(--primary-hover); }
+}
+.hp-ai-hint { margin: 0; padding: 0 var(--s-2); color: var(--text); font-size: var(--fs-small); line-height: 1.5; }
+.hp-ai-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.bm button.hp-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--touch);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-full);
+  background: var(--bg);
+  box-shadow: var(--shadow-1);
+  color: var(--text-strong);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.bm button.hp-ai-chip-route { color: var(--hp-ink); }
+.bm button.hp-ai-chip:disabled { color: var(--grey-500); }
+.hp-ai-card {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  box-shadow: var(--shadow-1);
+}
+.hp-ai-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); margin: 0; font-size: var(--fs-small); color: var(--text-sub); }
+.hp-ai-lead { margin: 0; font-size: var(--fs-small); color: var(--text-sub); }
+.hp-ai-what { margin: 0; font-size: var(--fs-sub); font-weight: 800; color: var(--text-strong); overflow-wrap: anywhere; }
+.hp-ai-slots { margin: 0; font-size: var(--fs-small); color: var(--text); overflow-wrap: anywhere; }
+.bm button.hp-ai-go { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1); width: 100%; }
+.hp-ai-cands { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.bm .hp-ai-cands button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s-3);
-  min-height: 56px;
-  padding: 0 var(--s-5);
-  border-radius: var(--r-full);
-  background: var(--bg);
-  color: var(--text-sub);
-  font-size: var(--fs-body);
-  font-weight: 500;
+  gap: var(--s-2);
+  width: 100%;
   text-align: left;
 }
-.hp-search-in { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hp-search svg { flex: none; color: var(--hp-g2); }
+.hp-ai-note { margin: 0; font-size: 0.75rem; line-height: 1.5; color: var(--text-sub); }
+.hp-ai-off { margin: 0; padding: 0 var(--s-2); font-size: var(--fs-small); color: var(--text-sub); }
 
 .hp-svc {
   padding: var(--s-4);

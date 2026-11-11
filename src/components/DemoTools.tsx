@@ -5,6 +5,7 @@ import type { Barrier } from '../types'
 import SheetHandle from './SheetHandle'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { getMotionForce, setMotionForce } from '../lib/viewPrefs'
+import { getAiEnabled, setAiEnabled } from '../lib/aiSearch/aiPref'
 import { loadPubDataset } from '../lib/publicLayers'
 import { BADGE_TEXT, FILE_MAX_BYTES, pickCandidates } from '../lib/demoLarge'
 
@@ -45,6 +46,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
   const [open, setOpen] = useState(false)
   const [msg, setMsg] = useState('')
   const [motion, setMotion] = useState(getMotionForce)
+  const [ai, setAi] = useState(getAiEnabled)
   const userId = useReports((s) => s.userId)
   const setUser = useReports((s) => s.setUser)
   const mode = useReports((s) => s.complaintMode)
@@ -181,6 +183,19 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                 </button>
               </div>
               <p className="bm-meta">기기에서 움직임 줄이기를 켜 두었어도, 시연용으로 화면 움직임을 보여 줘요.</p>
+            </div>
+
+            <div className="ms-sec">
+              <h3>AI 검색</h3>
+              <div className="rf-seg" role="group" aria-label="AI 검색">
+                <button type="button" className={ai ? 'on' : ''} aria-pressed={ai} onClick={() => { setAi(true); setAiEnabled(true) }}>
+                  켜짐
+                </button>
+                <button type="button" className={!ai ? 'on' : ''} aria-pressed={!ai} onClick={() => { setAi(false); setAiEnabled(false) }}>
+                  꺼짐(키워드만)
+                </button>
+              </div>
+              <p className="bm-meta">끄면 홈 검색창이 인터넷 없이 키워드로만 찾아요. 오프라인 리허설과 발표 대비용이에요.</p>
             </div>
 
             <div className="ms-sec">

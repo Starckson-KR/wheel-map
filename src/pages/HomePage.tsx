@@ -10,6 +10,7 @@ import { nowMs, rankingUserIds, useReports } from '../lib/reportStore'
 import { prefersCalm } from '../lib/viewPrefs'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { CountText } from '../components/CountUp'
+import AiSearch from '../components/AiSearch'
 
 const TILES = [
   { icon: 'report', label: '문제 신고하기', to: TO.newReport },
@@ -160,6 +161,14 @@ export default function HomePage() {
   const [notice, setNotice] = useState(false)
   const [more, setMore] = useState(false)
   const chipsRef = useRef<HTMLUListElement>(null)
+  const noticeRef = useRef<HTMLDivElement>(null)
+  // AI 검색의 「이용 안내」 결과: 홈의 이용 안내 확인하기를 펼치고 그 자리로 옮긴다
+  const openHelp = () => {
+    setNotice(true)
+    const el = noticeRef.current
+    el?.scrollIntoView({ block: 'center', behavior: prefersCalm() ? 'auto' : 'smooth' })
+    el?.querySelector('button')?.focus({ preventScroll: true })
+  }
   const guide = GUIDES.find((g) => g.id === gid) ?? GUIDES[0]
   const gi = GUIDES.findIndex((g) => g.id === guide.id)
   const lines = more ? guide.lines : guide.lines.slice(0, FOLDED)
@@ -210,7 +219,7 @@ export default function HomePage() {
             </div>
           </header>
 
-          <div className="hp-notice">
+          <div className="hp-notice" ref={noticeRef}>
             <button type="button" aria-expanded={notice} onClick={() => setNotice((v) => !v)}>
               <Icon name="bell" size={18} />
               <span>이용 안내 확인하기</span>
@@ -219,9 +228,7 @@ export default function HomePage() {
             {notice && <p role="note">발표용 시연 프로토타입이에요. 민원 접수는 실제로 보내지지 않아요.</p>}
           </div>
 
-          <button type="button" className="hp-search" aria-label="어디로 가세요? 휠체어 길찾기 화면 열기" onClick={() => go(TO.route)}>
-            <span><span className="hp-search-in">어디로 가세요? 휠체어 길찾기</span><Icon name="search" size={22} /></span>
-          </button>
+          <AiSearch onHelp={openHelp} />
 
           <section className="hp-svc" aria-labelledby="h-svc">
             <div className="hp-sh">

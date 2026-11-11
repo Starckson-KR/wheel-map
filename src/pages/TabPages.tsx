@@ -40,7 +40,12 @@ function Page({ title, children }: { title: string; children: React.ReactNode })
 export function ReportTab({ query }: { query: string }) {
   const agencies = useMemo(() => listAgencies().filter((a) => a.verified), [])
   useEffect(() => {
-    if (new URLSearchParams(query).get('section') === 'agency') document.getElementById('pg-agency')?.scrollIntoView({ block: 'start' })
+    // 구역 이동: agency(담당 기관 안내), receipt(접수번호로 찾기), mine(내 민원 진행 상황). AI 검색창이 이 주소로 안내한다.
+    const id = ({ agency: 'pg-agency', receipt: 'pg-receipt', mine: 'pg-mine' } as Record<string, string>)[new URLSearchParams(query).get('section') ?? '']
+    if (!id) return
+    const el = document.getElementById(id)
+    el?.scrollIntoView({ block: 'start' })
+    if (id === 'pg-receipt') document.getElementById('rl-q')?.focus({ preventScroll: true })
   }, [query])
   return (
     <Page title="민원신고">
@@ -51,11 +56,11 @@ export function ReportTab({ query }: { query: string }) {
           문제 신고하기
         </button>
       </section>
-      <section className="pg-card">
+      <section className="pg-card" id="pg-receipt">
         <h2>접수번호로 찾기</h2>
         <ReceiptLookup onOpen={(id) => go(TO.openReport(id))} />
       </section>
-      <section className="pg-card">
+      <section className="pg-card" id="pg-mine">
         <h2>내 민원 진행 상황</h2>
         <ReportsPanel embedded onOpen={(id) => go(TO.openReport(id))} />
       </section>

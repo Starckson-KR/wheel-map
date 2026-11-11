@@ -91,12 +91,30 @@ export function hasHelpCue(question: string): boolean {
   return HELP_RE.test(question)
 }
 
+// 점수·칭호·등수·순위를 묻는 말은 my_score, 「내가 올린 신고」 같은 내 민원의 결과·상황을 묻는 말은 my_reports다(개선 현황 progress와 구별).
+// 작은 모델이 이 두 계열을 unknown·progress로 틀린 적이 있어, 아래 뜻이 분명한 말만 보정한다.
+const SCORE_RE = /칭호|등수|몇\s*등|\d\s*등|순위|랭킹|포인트|점수/
+const MINE_REPORT_RE = /내가?\s*(올린|낸|한|보낸|남긴|접수한)?\s*(신고|민원|제보)[\s\S]{0,10}(결과|상황|처리|내역|목록|진행)|(신고|민원|제보)\s*(처리\s*)?(결과|상황)/
+export function hasScoreCue(question: string): boolean {
+  return SCORE_RE.test(question)
+}
+export function hasMineReportCue(question: string): boolean {
+  return MINE_REPORT_RE.test(question)
+}
+const REROUTE_FROM_MINE = new Set(['unknown', 'progress', 'alerts', 'report_new'])
+const REROUTE_FROM_SCORE = new Set(['unknown', 'progress', 'alerts', 'help'])
+
 type Like = { intent: string; slots: Record<string, string>; confidence: number }
 
 // 모델 답 뒤에 적용하는 안전 보정. 의도만 unknown으로 낮추고, 다른 값을 새로 만들지 않는다.
 export function applyRules<T extends Like>(question: string, r: T): T {
   const toUnknown = (): T => ({ ...r, intent: 'unknown', slots: {} })
   if (isInjection(question)) return r.intent === 'unknown' ? r : toUnknown()
+  if (!asksUnsupported(question)) {
+    const to = (intent: string): T => ({ ...r, intent, slots: {}, confidence: r.intent === 'unknown' ? Math.min(r.confidence, 0.7) : r.confidence })
+    if (hasMineReportCue(question) && REROUTE_FROM_MINE.has(r.intent)) return to('my_reports')
+    if (hasScoreCue(question) && REROUTE_FROM_SCORE.has(r.intent)) return to('my_score')
+  }
   if (r.intent === 'unknown') return r
   if (!UNSUPPORTED_EXEMPT.has(r.intent) && asksUnsupported(question)) return toUnknown()
   if (r.intent === 'help' && !hasHelpCue(question)) return toUnknown()

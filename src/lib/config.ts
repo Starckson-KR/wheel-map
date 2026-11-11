@@ -112,3 +112,7 @@ export const CHALLENGE_WEEKLY = {
   newReport: 2, // 이번 주 검증된 새 장애요인 제보
 }
 export const CHALLENGE_NEAR_RADIUS_M = 50 // "정보가 부족한 곳 근처"로 보는 거리(팀이 정하는 값)
+
+// AI 검색창(홈): 의도 분류 Worker 주소. 공개 주소라 비밀이 아니다. 다른 Worker를 쓰려면 VITE_AI_INTENT_URL로 덮어쓴다.
+// import.meta.env는 Vite 밖(Node 시험)에서는 없으므로 ?.로 읽는다.
+export const AI_INTENT_URL: string = import.meta.env?.VITE_AI_INTENT_URL || 'https://wheelmap-ai.wotjd0202329.workers.dev'

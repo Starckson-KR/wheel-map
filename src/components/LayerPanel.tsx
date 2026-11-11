@@ -1,5 +1,8 @@
 import { PUB_LAYERS, type LayerState, type PubDataset, type PubLayerId } from '../lib/publicLayers'
 import SheetHandle from './SheetHandle'
+import { DEFAULT_FILTER, STATUS_CHIPS, type KindKey, type MapFilter } from '../lib/mapFilter'
+import { IMPACT_INFO } from '../lib/display'
+import type { ReactNode } from 'react'
 
 type Props = {
   layers: LayerState
@@ -7,9 +10,17 @@ type Props = {
   loading: Partial<Record<PubLayerId, 'loading' | 'error'>>
   onChange: (patch: Partial<LayerState>) => void
   onClose: () => void
+  /** 시민 제보 핀 표시 규칙(표시만 바꾼다) */
+  filter: MapFilter
+  onFilter: (f: MapFilter) => void
+  citizen: { shown: number; total: number }
+  /** 화면 설정·시연 도구처럼 지도 위에 두지 않는 버튼들 */
+  extra?: ReactNode
 }
 
-export default function LayerPanel({ layers, data, loading, onChange, onClose }: Props) {
+const KINDS: KindKey[] = ['passage', 'boarding', 'entry', 'zone']
+
+export default function LayerPanel({ layers, data, loading, onChange, onClose, filter, onFilter, citizen, extra }: Props) {
   const set = (patch: Partial<LayerState>) => onChange(patch)
   return (
     <>
@@ -36,6 +47,38 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose }:
           </span>
           <span className="lp-state">{layers.team ? '켜짐' : '꺼짐'}</span>
         </button>
+
+        {layers.team && (
+          <div className="lp-filter">
+            <h3>시민 제보 핀 보기</h3>
+            <p className="bm-meta">
+              팀 조사 지점은 항상 보여요. 시민 제보 {citizen.total}건 중 {citizen.shown}건을 핀으로 보여 드려요.
+            </p>
+            <div className="lp-chips" role="group" aria-label="시민 제보 상태">
+              {STATUS_CHIPS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="lp-chip"
+                  aria-pressed={filter.status[c.id]}
+                  onClick={() => onFilter({ ...filter, status: { ...filter.status, [c.id]: !filter.status[c.id] } })}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <div className="lp-chips" role="group" aria-label="시민 제보 유형">
+              {KINDS.map((k) => (
+                <button key={k} type="button" className="lp-chip" aria-pressed={filter.kind[k]} onClick={() => onFilter({ ...filter, kind: { ...filter.kind, [k]: !filter.kind[k] } })}>
+                  {IMPACT_INFO[k].glyph} {IMPACT_INFO[k].label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="lp-reset" onClick={() => onFilter(DEFAULT_FILTER)}>
+              기본으로 되돌리기
+            </button>
+          </div>
+        )}
 
         <p className="bm-meta">공공데이터는 참고용이에요. 지나갈 수 있는지를 판정한 건 아니에요.</p>
         {PUB_LAYERS.map((l) => {
@@ -73,6 +116,7 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose }:
           )
         })}
         <p className="bm-meta">지도를 확대해야 보여요. 넓게 보면 안내만 나와요. 핀은 한 지점, 굵은 선은 구간, 반투명 면은 영역이에요.</p>
+        {extra && <div className="lp-extra">{extra}</div>}
       </div>
     </>
   )

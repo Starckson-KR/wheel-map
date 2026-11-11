@@ -11,7 +11,8 @@ import ReportDetail from '../components/ReportDetail'
 import ViewSettings from '../components/ViewSettings'
 import { isDesktopLayout } from '../lib/viewPrefs'
 import DemoTools, { MockStrip } from '../components/DemoTools'
-import SheetHandle from '../components/SheetHandle'
+import { useSheetSnap, type Snap } from '../components/useSheetSnap'
+import { DEFAULT_FILTER, showCitizen, type MapFilter } from '../lib/mapFilter'
 import ReportFlow, { type Loc } from '../components/ReportFlow'
 import ReportsPanel from '../components/ReportsPanel'
 import MyRewards from '../components/MyRewards'
@@ -25,7 +26,7 @@ import ProgressPanel from '../components/ProgressPanel'
 import { PROGRESS_INFO, PROGRESS_ORDER, PERIODS, buildProgress, type PeriodId, type ProgressItem, type ProgressStage } from '../lib/progress'
 import { usePlan } from '../lib/planStore'
 import { STATUS_LABEL, isExpired, nowMs, useReports } from '../lib/reportStore'
-import type { ReportStatus } from '../types'
+import type { Report, ReportStatus } from '../types'
 import {
   PUB_LAYERS,
   PUB_MAX_DRAW,
@@ -64,7 +65,7 @@ function ratingKeyOf(b: Barrier, override?: Map<string, Rating | undefined>): Ra
 type HomeRow = { key: string; kind: 'seed' | 'report'; id: string; title: string; sub: string; rating: Rating | 'none'; cat: Category; impact: ImpactKey }
 
 // 지도 핀: 줌에 따라 점(dot) → 점+종류(chip) → 이름까지(full)
-type PinMode = 'dot' | 'chip' | 'full'
+type PinMode = 'lite' | 'dot' | 'chip' | 'full'
 type PinItem = {
   key: string
   lat: number
@@ -79,6 +80,7 @@ type PinItem = {
   route: boolean
   citizen?: boolean
   expired?: boolean
+  count?: number // 같은 지점에 합쳐진 시민 제보 건수
   prov?: boolean // 위치 임시(카카오 검색 결과)
   pg?: { stage: ProgressStage; label: string } // 개선 현황 보기의 핀
   onClick: () => void
@@ -87,6 +89,28 @@ const DOT_PX = 30
 const PIN_H = 30
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
+
+// 아래 시트 단계(0 최소 · 1 기본 · 2 펼침). 처음엔 지도가 가장 잘 보이는 최소로 시작하고, 사용자가 고른 단계(최소·기본)는 기억한다.
+const SNAP_KEY = 'wheelmap.sheetSnap'
+function loadSnap(): Snap {
+  try {
+    return localStorage.getItem(SNAP_KEY) === '1' ? 1 : 0
+  } catch {
+    return 0
+  }
+}
+function saveSnap(s: Snap) {
+  try {
+    localStorage.setItem(SNAP_KEY, s === 0 ? '0' : '1') // 펼침(2)은 다음에 열 때 기본(1)으로
+  } catch {
+    /* 저장하지 못해도 화면은 그대로 쓴다 */
+  }
+}
+const SNAP_BTN: Record<Snap, { label: string; next: Snap; up: boolean }> = {
+  0: { label: '요약 보기', next: 1, up: true },
+  1: { label: '제보 목록 보기', next: 2, up: true },
+  2: { label: '지도 넓게 보기', next: 0, up: false },
+}
 
 export default function BarrierMap({ intent = '', active = true }: { intent?: string; active?: boolean }) {
   const [start] = useState(() => {
@@ -99,7 +123,13 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const mapRef = useRef<kakao.maps.Map | null>(null)
   const [state, setState] = useState<{ status: 'loading' | 'ready' } | { status: 'error'; message: string }>({ status: 'loading' })
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [listOpen, setListOpen] = useState(false)
+  const [snap, setSnapState] = useState<Snap>(loadSnap)
+  const setSnap = (s: Snap) => {
+    setSnapState(s)
+    saveSnap(s)
+  }
+  const [legendOpen, setLegendOpen] = useState(false)
+  const [filter, setFilter] = useState<MapFilter>(DEFAULT_FILTER)
   const [selectedReportId, setSelectedReportId] = useState<string | null>(start.report?.id ?? null)
   const [flowOpen, setFlowOpen] = useState(start.go === 'report')
   const [picking, setPicking] = useState(false)
@@ -313,7 +343,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             if (routePickRef.current || pickingRef.current) return
             setSelectedId(b.id)
             setSelectedReportId(null)
-            setListOpen(false)
           },
         })
         continue
@@ -338,7 +367,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         }
         setSelectedId(b.id)
         setSelectedReportId(null)
-        setListOpen(false)
       }
       const pickOrSelect = (e: kakao.maps.event.MapMouseEvent) => {
         if (routePickRef.current && e?.latLng) pickRoutePlace(e.latLng.getLat(), e.latLng.getLng(), `지도에서 고른 위치 (${e.latLng.getLat().toFixed(5)}, ${e.latLng.getLng().toFixed(5)})`)
@@ -388,8 +416,21 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       })
     }
     // 시민 제보 중 검증 완료된 건(source citizen). 판정 전이면 평가 없음 색으로 표시한다.
+    // 표시 규칙: 레이어 메뉴의 상태·유형 선택에 맞는 건만 핀으로 그리고, 같은 지점의 여러 건은 한 핀에 건수로 합친다.
+    const now = nowMs()
+    const spots = new Map<string, Report[]>()
     for (const r of reports) {
       if (progressMode || !SHOWN_ON_MAP.includes(r.status) || r.seedId || !layers.team) continue
+      if (!showCitizen(r, impactOfReport(r.type, r.locationKind), filter, now)) continue
+      const sk = `${r.lat.toFixed(5)},${r.lng.toFixed(5)}`
+      const g = spots.get(sk)
+      if (g) g.push(r)
+      else spots.set(sk, [r])
+    }
+    const sev = (r: Report) => ({ X: 3, TRIANGLE: 2, none: 1, O: 0 } as Record<string, number>)[r.verification.rating ?? 'none']
+    for (const group of spots.values()) {
+      const r = group.length > 1 ? group.slice().sort((a, b) => sev(b) - sev(a))[0] : group[0]
+      const n = group.length
       items.push({
         key: r.id,
         lat: r.lat,
@@ -397,13 +438,14 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         rating: r.verification.rating ?? 'none',
         impact: impactOfReport(r.type, r.locationKind),
         name: '시민 제보',
-        title: `시민 제보 · ${r.type}${r.verification.rating ? '' : ' · 판정 대기'}${r.status === 'verified' ? '' : ` · ${STATUS_LABEL[r.status]}`}${isExpired(r) ? ' · 만료' : ''}`,
+        title: `시민 제보 · ${r.type}${r.verification.rating ? '' : ' · 판정 대기'}${r.status === 'verified' ? '' : ` · ${STATUS_LABEL[r.status]}`}${isExpired(r) ? ' · 만료' : ''}${n > 1 ? ` · 같은 곳 ${n}건` : ''}`,
         small: false,
-        sel: r.id === selectedReportId,
+        sel: group.some((x) => x.id === selectedReportId),
         dim: !!routeIds,
         route: false,
         citizen: true,
         expired: isExpired(r),
+        count: n,
         onClick: () => {
           if (pickingRef.current) {
             setDraftPos({ lat: r.lat, lng: r.lng })
@@ -411,7 +453,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           }
           setSelectedReportId(r.id)
           setSelectedId(null)
-          setListOpen(false)
         },
       })
     }
@@ -439,43 +480,91 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const proj = (map as unknown as { getProjection(): { containerPointFromCoords(c: kakao.maps.LatLng): { x: number; y: number } } }).getProjection()
     const px = items.map((it) => proj.containerPointFromCoords(new k.maps.LatLng(it.lat, it.lng)))
     const prio = (it: PinItem) => (it.sel ? 100 : 0) + (it.small ? 0 : 5) + (it.pg ? ({ overdue: 3, agency: 2, intake: 2, done: 1, rechecked: 1, plan: 1 } as Record<string, number>)[it.pg.stage] : ({ X: 3, TRIANGLE: 2, none: 1, O: 0 } as Record<string, number>)[it.rating])
-    const order = items.map((_, i) => i).sort((i, j) => prio(items[j]) - prio(items[i]))
 
-    // 1) 점끼리 겹치면 묶음으로(선택한 핀은 묶지 않는다)
-    const used = new Set<number>()
-    const clusters: number[][] = []
-    const singles: number[] = []
-    for (const i of order) {
-      if (used.has(i)) continue
-      used.add(i)
-      const members = [i]
-      if (!items[i].sel) {
-        for (const j of order) {
-          if (used.has(j) || items[j].sel) continue
-          if (Math.hypot(px[i].x - px[j].x, px[i].y - px[j].y) < DOT_PX) {
-            used.add(j)
-            members.push(j)
+    // 1) 점끼리 가까우면 묶음으로(선택한 핀은 묶지 않는다). 멀리서 볼수록 더 크게 묶고, 시민 제보는 팀 조사 지점과 따로 더 크게 묶는다.
+    //    묶음 원은 건수에 따라 크기가 달라지고, 서로 겹치면 하나로 합쳐 숫자 원끼리 겹치지 않게 한다.
+    const baseR = level >= 6 ? 64 : level === 5 ? 54 : level === 4 ? 44 : level === 3 ? 34 : 26
+    const cnt = (m: number[]) => m.reduce((s, i) => s + (items[i].count ?? 1), 0)
+    const diaOf = (n: number) => Math.min(52, Math.round(28 + 7 * Math.log2(n)))
+    type Cl = { m: number[]; x: number; y: number }
+    const centroid = (m: number[]): Cl => ({ m, x: m.reduce((s, i) => s + px[i].x, 0) / m.length, y: m.reduce((s, i) => s + px[i].y, 0) / m.length })
+    const buildGroup = (idxs: number[], radius: number) => {
+      const sorted = idxs.slice().sort((a, b) => prio(items[b]) - prio(items[a]))
+      const used = new Set<number>()
+      const cls: Cl[] = []
+      const rest: number[] = []
+      for (const i of sorted) {
+        if (used.has(i)) continue
+        used.add(i)
+        const m = [i]
+        if (!items[i].sel) {
+          for (const j of sorted) {
+            if (used.has(j) || items[j].sel) continue
+            if (Math.hypot(px[i].x - px[j].x, px[i].y - px[j].y) < radius) {
+              used.add(j)
+              m.push(j)
+            }
           }
         }
+        if (m.length > 1) cls.push(centroid(m))
+        else rest.push(i)
       }
-      if (members.length > 1) clusters.push(members)
-      else singles.push(i)
+      const mergeAll = () => {
+        for (;;) {
+          let found = false
+          for (let a = 0; a < cls.length && !found; a++) {
+            for (let b = a + 1; b < cls.length; b++) {
+              if (Math.hypot(cls[a].x - cls[b].x, cls[a].y - cls[b].y) < (diaOf(cnt(cls[a].m)) + diaOf(cnt(cls[b].m))) / 2 + 3) {
+                cls[a] = centroid([...cls[a].m, ...cls[b].m])
+                cls.splice(b, 1)
+                found = true
+                break
+              }
+            }
+          }
+          if (!found) return
+        }
+      }
+      mergeAll()
+      // 남은 점이 묶음 원에 닿으면 그 묶음에 넣는다
+      const singles: number[] = []
+      for (const i of rest) {
+        const c = items[i].sel ? undefined : cls.find((cc) => Math.hypot(cc.x - px[i].x, cc.y - px[i].y) < diaOf(cnt(cc.m)) / 2 + 14)
+        if (c) c.m.push(i)
+        else singles.push(i)
+      }
+      mergeAll()
+      return { cls, singles }
     }
+    const all = items.map((_, i) => i)
+    const teamG = buildGroup(all.filter((i) => !items[i].citizen), baseR)
+    const citG = buildGroup(all.filter((i) => items[i].citizen), Math.round(baseR * 1.35))
+    const clusters = [...teamG.cls.map((c) => ({ m: c.m, x: c.x, y: c.y, cit: false })), ...citG.cls.map((c) => ({ m: c.m, x: c.x, y: c.y, cit: true }))]
+    // 팀 조사 지점 위에 겹치는 시민 제보 점·묶음은 그리지 않는다(팀 조사 지점이 항상 먼저 보이게)
+    const teamBoxes = [
+      ...teamG.cls.map((c) => ({ x: c.x, y: c.y, r: diaOf(cnt(c.m)) / 2 })),
+      ...teamG.singles.map((i) => ({ x: px[i].x, y: px[i].y, r: 15 })),
+    ]
+    const underTeam = (x: number, y: number, r: number) => teamBoxes.some((b) => Math.hypot(b.x - x, b.y - y) < b.r + r + 1)
+    for (let n = clusters.length - 1; n >= 0; n--) if (clusters[n].cit && underTeam(clusters[n].x, clusters[n].y, diaOf(cnt(clusters[n].m)) / 2)) clusters.splice(n, 1)
+    const singles = [...teamG.singles, ...citG.singles.filter((i) => items[i].sel || !underTeam(px[i].x, px[i].y, 7))]
 
-    // 2) 남은 핀은 줌 단계가 허용하는 가장 풍부한 모양으로, 다른 글자와 겹치면 한 단계씩 줄인다.
+    // 2) 남은 핀은 줌 단계가 허용하는 가장 풍부한 모양으로, 다른 글자와 겹치면 한 단계씩 줄인다. 시민 제보는 멀리서는 작은 색 점으로만 그린다.
     const allowed: PinMode[] = level >= 5 ? ['dot'] : level === 4 ? ['chip', 'dot'] : ['full', 'chip', 'dot']
     const placed: { x: number; y: number; w: number }[] = []
     const hit = (x: number, y: number, w: number) => placed.some((p) => Math.abs(p.x - x) < (p.w + w) / 2 + 3 && Math.abs(p.y - y) < PIN_H + 3)
-    const widthOf = (it: PinItem, m: PinMode) => (m === 'dot' ? DOT_PX : it.pg ? 38 + it.pg.label.length * 12.5 : m === 'chip' ? 58 : 30 + 29 + it.name.length * 13.5 + 12)
+    const widthOf = (it: PinItem, m: PinMode) => (m === 'lite' ? 14 : m === 'dot' ? DOT_PX : it.pg ? 38 + it.pg.label.length * 12.5 : m === 'chip' ? 58 : 30 + 29 + it.name.length * 13.5 + 12)
     const modeOf = new Map<number, PinMode>()
-    for (const i of singles) {
+    const teamOrder = singles.filter((i) => !items[i].citizen || items[i].sel).sort((i, j) => prio(items[j]) - prio(items[i]))
+    for (const i of teamOrder) {
       const it = items[i]
       const chipOnly = (a: PinMode[]) => a.map((x) => (x === 'full' ? ('chip' as PinMode) : x))
-      const tryModes: PinMode[] = it.pg ? (it.sel ? ['chip'] : chipOnly(allowed)) : it.sel ? ['full'] : it.small ? ['dot'] : allowed
+      const tryModes: PinMode[] = it.pg ? (it.sel ? ['chip'] : chipOnly(allowed)) : it.sel ? ['full'] : it.small ? ['dot'] : it.citizen ? ['dot'] : allowed
       const m = it.sel ? (it.pg ? 'chip' : 'full') : (tryModes.find((mm) => !hit(px[i].x, px[i].y, widthOf(it, mm))) ?? 'dot')
       modeOf.set(i, m)
       placed.push({ x: px[i].x, y: px[i].y, w: widthOf(it, m) })
     }
+    for (const i of singles) if (!modeOf.has(i)) modeOf.set(i, level >= 4 ? 'lite' : 'dot')
 
     for (const i of singles) {
       const it = items[i]
@@ -534,12 +623,18 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         t.textContent = '임시'
         el.appendChild(t)
       }
-      if (mode !== 'dot' && it.impact) {
+      if (mode !== 'dot' && mode !== 'lite' && it.impact) {
         const kk = document.createElement('span')
         kk.className = 'bm-pin-k'
         kk.textContent = IMPACT_INFO[it.impact].glyph
         kk.setAttribute('aria-hidden', 'true')
         el.appendChild(kk)
+      }
+      if (it.count && it.count > 1 && mode !== 'lite') {
+        const cc = document.createElement('span')
+        cc.className = 'bm-pin-cnt'
+        cc.textContent = `×${it.count}`
+        el.appendChild(cc)
       }
       if (mode === 'full') {
         const n = document.createElement('span')
@@ -561,17 +656,21 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(it.lat, it.lng), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: it.sel ? 10 : it.citizen ? 5 : 4 }))
     }
 
-    for (const members of clusters) {
-      const ms = members.map((i) => items[i])
+    for (const cl of clusters) {
+      const ms = cl.m.map((i) => items[i])
+      const total = ms.reduce((s, m) => s + (m.count ?? 1), 0)
       const lat = ms.reduce((s, m) => s + m.lat, 0) / ms.length
       const lng = ms.reduce((s, m) => s + m.lng, 0) / ms.length
       const el = document.createElement('div')
-      el.className = 'bm-cluster' + (ms.every((m) => m.dim) ? ' bm-pin-dim' : '')
-      el.textContent = String(ms.length)
-      el.title = `${ms.length}곳이 겹쳐 있어요. 누르면 확대해요.`
+      el.className = 'bm-cluster' + (cl.cit ? ' bm-cluster--cit' : '') + (ms.every((m) => m.dim) ? ' bm-pin-dim' : '')
+      const d = diaOf(total)
+      el.style.width = el.style.height = `${d}px`
+      el.style.fontSize = total >= 100 ? '0.8125rem' : '0.875rem'
+      el.textContent = String(total)
+      el.title = `${total}건이 모여 있어요. 누르면 확대해요.`
       el.setAttribute('role', 'button')
       el.tabIndex = 0
-      el.setAttribute('aria-label', `${ms.length}곳이 겹쳐 있어요. 누르면 확대해요.`)
+      el.setAttribute('aria-label', `${total}건이 모여 있어요. 누르면 확대해요.`)
       const zoomIn = () => {
         const b = new k.maps.LatLngBounds()
         ms.forEach((m) => b.extend(new k.maps.LatLng(m.lat, m.lng)))
@@ -588,10 +687,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           zoomIn()
         }
       })
-      shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(lat, lng), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 5 }))
+      shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(lat, lng), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: cl.cit ? 3 : 5 }))
     }
     return () => shapes.forEach((s) => s.setMap(null))
-  }, [ready, selectedId, layers.team, seedOverride, focusIds, reports, selectedReportId, routeIds, mapLevel, progressMode, pgShown])
+  }, [ready, selectedId, layers.team, seedOverride, focusIds, reports, selectedReportId, routeIds, mapLevel, progressMode, pgShown, filter, offsetDays])
 
   // 레이어를 켤 때 해당 데이터만 동적 import로 불러온다.
   useEffect(() => {
@@ -798,7 +897,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         setSelectedReportId(null)
         setPubSel(null)
         setLayerOpen(false)
-        setListOpen(false)
+        setSnapState((s) => (s === 2 ? 1 : s))
       }
     }
     window.addEventListener('keydown', onKey)
@@ -813,7 +912,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     setProgressOpen(false)
     setSelectedReportId(id)
     setSelectedId(null)
-    setListOpen(false)
     setPanelOpen(false)
     setRewardsOpen(false)
     setFlowOpen(false)
@@ -838,7 +936,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     setRewardsOpen(false)
     setSelectedId(null)
     setSelectedReportId(null)
-    setListOpen(false)
   }
   const closeFlow = () => {
     setFlowOpen(false)
@@ -898,6 +995,19 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return PROVISIONAL.filter((b) => b.provisional!.lat >= s && b.provisional!.lat <= n && b.provisional!.lng >= w && b.provisional!.lng <= e).length
   }, [view, layers.team])
   const hereCount = (c: Category) => here.filter((r) => r.cat === c).length
+  // 레이어 메뉴에 알려 줄 시민 제보 핀 표시 건수(표시 규칙에 맞는 건 / 지도에 나올 수 있는 전체)
+  const citizenStats = useMemo(() => {
+    void offsetDays // 시연 시각이 바뀌면 다시 센다
+    const now = nowMs()
+    let total = 0
+    let shown = 0
+    for (const r of reports) {
+      if (!SHOWN_ON_MAP.includes(r.status) || r.seedId) continue
+      total++
+      if (showCitizen(r, impactOfReport(r.type, r.locationKind), filter, now)) shown++
+    }
+    return { shown, total }
+  }, [reports, filter, offsetDays])
 
   const overlayOpen = flowOpen || panelOpen || routeOpen || picking || !!routePick || progressMode
   const behind = !!(selectedId || selectedReportId || pubSel)
@@ -927,17 +1037,42 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     )
   }
 
-  // 아래 시트가 접혀 있을 때 보이는 높이를 요약 부분의 실제 높이에 맞춘다(칩이 두 줄이 돼도 버튼이 잘리지 않게)
+  // 아래 시트 단계별로 보이는 높이를 내용의 실제 높이에 맞춘다(글자가 커지거나 줄이 바뀌어도 버튼이 잘리지 않게)
   useEffect(() => {
     const sheet = sheetRef.current
-    const peek = sheet?.querySelector('.hm-peek')
-    if (!sheet || !peek) return
-    const apply = () => sheet.style.setProperty('--peek', `calc(${Math.ceil(peek.getBoundingClientRect().height) + 28}px + 16px + var(--safe-bottom))`)
+    const cta = sheet?.querySelector<HTMLElement>('.hm-s-cta')
+    const mid = sheet?.querySelector<HTMLElement>('.hm-s-mid')
+    if (!sheet || !cta || !mid) return
+    const apply = () => {
+      const pb = parseFloat(getComputedStyle(sheet).paddingBottom) || 0
+      sheet.style.setProperty('--vis-min', `${Math.ceil(cta.offsetTop + cta.offsetHeight + pb)}px`)
+      sheet.style.setProperty('--vis-mid', `${Math.ceil(mid.offsetTop + mid.offsetHeight + pb)}px`)
+    }
     apply()
     const ro = new ResizeObserver(apply)
-    ro.observe(peek)
+    ro.observe(sheet)
+    ro.observe(cta)
+    ro.observe(mid)
     return () => ro.disconnect()
   }, [overlayOpen])
+  const { gripProps } = useSheetSnap(sheetRef, snap, setSnap, overlayOpen)
+  // 보이지 않는 단계의 버튼은 키보드로 닿지 않게 한다
+  useEffect(() => {
+    const sheet = sheetRef.current
+    if (!sheet) return
+    const apply = () => {
+      const sheetLike = getComputedStyle(sheet).transform !== 'none' // 큰 화면의 왼쪽 패널은 모두 보인다
+      sheet.querySelector('.hm-s-mid')?.toggleAttribute('inert', sheetLike && snap === 0)
+      sheet.querySelector('.hm-more')?.toggleAttribute('inert', sheetLike && snap !== 2)
+    }
+    apply()
+    window.addEventListener('resize', apply)
+    window.addEventListener('wheelmap:viewchange', apply)
+    return () => {
+      window.removeEventListener('resize', apply)
+      window.removeEventListener('wheelmap:viewchange', apply)
+    }
+  }, [snap, overlayOpen])
 
   useEffect(() => {
     openReportRef.current = openReport
@@ -954,7 +1089,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     closeFlow()
     setSelectedId(null)
     setSelectedReportId(null)
-    setListOpen(false)
   }
   const pickProgress = (it: ProgressItem) => {
     if (it.kind === 'report') openReport(it.id)
@@ -980,36 +1114,40 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         <header className={'hm-top' + (routeOpen || behind ? ' hm-top--route' : '')}>
           <MockStrip />
           <div className="hm-card">
-            <div className="hm-bar">
+            <div className="hm-bar hm-bar--desk">
               <h1 className="hm-brand">
                 <button type="button" className="hm-brand-btn" aria-label="북구동행지도 홈으로" onClick={() => { location.hash = '#/' }}>
                   북구동행지도
                 </button>
               </h1>
-              <div className="hm-tools">
-                <button type="button" className="hm-tool" onClick={() => setLayerOpen((v) => !v)} aria-expanded={layerOpen}>
-                  레이어
-                </button>
-                <ViewSettings />
-                <DemoTools page="map" onReset={onReset} barriers={BARRIERS} />
-              </div>
             </div>
-            <button
-              type="button"
-              className="hm-search"
-              aria-expanded={routeOpen}
-              onClick={() => {
-                leaveProgress()
-                setRouteOpen(true)
-                setRoutePick(null)
-                setPanelOpen(false)
-                setRewardsOpen(false)
-              }}
-            >
-              어디로 가세요? 길찾기
-            </button>
+            <div className="hm-searchrow">
+              <button
+                type="button"
+                className="hm-search"
+                aria-expanded={routeOpen}
+                onClick={() => {
+                  leaveProgress()
+                  setRouteOpen(true)
+                  setRoutePick(null)
+                  setPanelOpen(false)
+                  setRewardsOpen(false)
+                }}
+              >
+                어디로 가세요? 길찾기
+              </button>
+              <button type="button" className="hm-iconbtn" onClick={() => setLayerOpen((v) => !v)} aria-expanded={layerOpen} aria-label="지도 레이어와 화면 설정" title="레이어·설정">
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M11 3 2.5 7.5 11 12l8.5-4.5L11 3Z" />
+                  <path d="m2.5 11.5 8.5 4.5 8.5-4.5M2.5 15.5 11 20l8.5-4.5" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <ul className="hm-legend" aria-label={progressMode ? '범례: 색과 글자는 개선 진행 단계' : '범례: 색과 ○△X는 정도, 길·승·입·◆는 영향 종류'}>
+          <button type="button" className="hm-legend-toggle" aria-expanded={legendOpen} onClick={() => setLegendOpen((v) => !v)}>
+            범례<span aria-hidden="true"> {legendOpen ? '▴' : '▾'}</span>
+          </button>
+          <ul className={'hm-legend' + (legendOpen ? '' : ' hm-legend--shut')} aria-label={progressMode ? '범례: 색과 글자는 개선 진행 단계' : '범례: 색과 ○△X는 정도, 길·승·입·◆는 영향 종류'}>
             {progressMode &&
               PROGRESS_ORDER.map((s) => (
                 <li key={s}>
@@ -1064,16 +1202,71 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           )}
         </header>
         {!overlayOpen && (
-          <section ref={sheetRef} className={'hm-sheet' + (listOpen ? ' is-open' : '') + (behind ? ' is-behind' : '')} data-sheet aria-label="이 지역 요약">
-            <SheetHandle onUp={() => setListOpen(true)} onDown={() => setListOpen(false)} expanded={listOpen} onToggle={() => setListOpen((v) => !v)} />
+          <section ref={sheetRef} className={'hm-sheet' + (behind ? ' is-behind' : '')} data-sheet data-snap={snap} aria-label="이 지역 요약">
+            <div className="hm-grip" {...gripProps}>
+              <span className="hm-grip-bar" aria-hidden="true" />
+              <div className="hm-s-head">
+                <h2 className="hm-title">
+                  {!view ? '지도를 불러오고 있어요' : here.length > 0 ? `장애요소 ${here.length}곳${hereCount('hard') > 0 ? ` · 어려운 곳 ${hereCount('hard')}` : ''}` : '여기에는 등록된 장애요소가 없어요'}
+                </h2>
+                <button type="button" className="hm-snapbtn" aria-expanded={snap > 0} onClick={() => setSnap(SNAP_BTN[snap].next)}>
+                  {SNAP_BTN[snap].label}
+                  <span aria-hidden="true"> {SNAP_BTN[snap].up ? '▲' : '▼'}</span>
+                </button>
+              </div>
+            </div>
             <button type="button" className="hm-locate" onClick={locateMe} aria-label="내 위치로 이동">
               내 위치
             </button>
-            <div className="hm-peek">
+            <div className="hm-s-cta">
+              <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
+                문제 제보하기
+              </button>
+              <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setRewardsOpen(false); setPanelOpen(true) }}>
+                제보 현황
+              </button>
+              <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setPanelOpen(false); setRewardsOpen(true) }}>
+                내 기여
+              </button>
+            </div>
+            <div className="hm-s-mid">
               <p className="hm-eyebrow">{locMsg || '지금 지도에 보이는 곳'}</p>
-              <h2 className="hm-title">
-                {!view ? '지도를 불러오고 있어요' : here.length > 0 ? `장애요소 ${here.length}곳이 있어요` : '여기에는 등록된 장애요소가 없어요'}
-              </h2>
+              {here.length > 0 && (
+                <ul className="hm-stats" aria-label="핵심 분류별 개수">
+                  <li className="hm-stat">
+                    <span className="hm-stat-n">
+                      <i className="hm-cat hm-cat-hard">{CATEGORY_INFO.hard.glyph}</i>
+                      {hereCount('hard')}
+                    </span>
+                    <span className="hm-stat-l">어려운 곳</span>
+                  </li>
+                  <li className="hm-stat">
+                    <span className="hm-stat-n">
+                      <i className="hm-cat hm-cat-boarding">{CATEGORY_INFO.boarding.glyph}</i>
+                      {hereCount('boarding')}
+                    </span>
+                    <span className="hm-stat-l">버스 불편</span>
+                  </li>
+                  <li className="hm-stat">
+                    <span className="hm-stat-n">
+                      <i className="hm-cat hm-cat-caution">{CATEGORY_INFO.caution.glyph}</i>
+                      {hereCount('caution') + hereCount('zone')}
+                    </span>
+                    <span className="hm-stat-l">주의</span>
+                  </li>
+                  <li className="hm-stat-more">
+                    <button type="button" onClick={() => setSnap(2)}>
+                      더 보기
+                    </button>
+                  </li>
+                </ul>
+              )}
+              {hereProv > 0 && <p className="hm-prov-note">위치 임시 {hereProv}곳 (확인 전, 위 숫자에는 넣지 않았어요)</p>}
+              <button type="button" className="hm-cta-sub hm-cta-progress" onClick={openProgress}>
+                개선 현황 보기
+              </button>
+            </div>
+            <div className="hm-more">
               {here.length > 0 && (
                 <ul className="hm-counts" aria-label="영향 종류별 개수">
                   {CATEGORY_ORDER.map((c) =>
@@ -1086,23 +1279,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                   )}
                 </ul>
               )}
-              {hereProv > 0 && <p className="hm-prov-note">위치 임시 {hereProv}곳 (확인 전, 위 숫자에는 넣지 않았어요)</p>}
-              <div className="hm-cta">
-                <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
-                  문제 제보하기
-                </button>
-                <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setRewardsOpen(false); setPanelOpen(true) }}>
-                  제보 현황
-                </button>
-                <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setPanelOpen(false); setRewardsOpen(true) }}>
-                  내 기여
-                </button>
-                <button type="button" className="hm-cta-sub" onClick={openProgress}>
-                  개선 현황
-                </button>
-              </div>
-            </div>
-            <div className="hm-more">
               {pubNotes.map((t) => (
                 <p key={t} className="hm-note" role="status">
                   {t}
@@ -1193,6 +1369,18 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               })
             }}
             onClose={() => setLayerOpen(false)}
+            filter={filter}
+            onFilter={setFilter}
+            citizen={citizenStats}
+            extra={
+              <>
+                <h3>화면·발표 도구</h3>
+                <div className="hm-tools">
+                  <ViewSettings />
+                  <DemoTools page="map" onReset={onReset} barriers={BARRIERS} />
+                </div>
+              </>
+            }
           />
         )}
         {pubSel && pubData[pubSel.layer] && (

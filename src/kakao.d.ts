@@ -149,6 +149,14 @@ declare namespace kakao.maps {
     interface PlacesSearchOptions {
       size?: number
       location?: LatLng
+      /** 기준점(location)으로부터의 반경(m, 0~20000) */
+      radius?: number
+      sort?: SortBy
+    }
+
+    enum SortBy {
+      ACCURACY = 'accuracy',
+      DISTANCE = 'distance',
     }
 
     class Places {

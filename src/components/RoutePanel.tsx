@@ -74,15 +74,18 @@ function PlacePicker(props: {
   const presetDone = useRef(false)
   const [items, setItems] = useState<kakao.maps.services.PlaceResult[]>([])
   const [msg, setMsg] = useState('')
+  const [outside, setOutside] = useState(false)
   const search = async (text = q) => {
     if (!k || !text.trim()) return
     setMsg('찾고 있어요…')
     const r = await keywordSearch(k, text.trim(), 5)
     if (r.status === 'ok') {
       setItems(r.items)
+      setOutside(r.outsideBukgu)
       setMsg('')
     } else {
       setItems([])
+      setOutside(false)
       setMsg(r.status === 'empty' ? '검색 결과가 없어요.' : '검색하지 못했어요. 잠시 뒤에 다시 해 주세요.')
     }
   }
@@ -134,6 +137,7 @@ function PlacePicker(props: {
       </div>
       {msg && <p className="bm-meta">{msg}</p>}
       {preset && !value && items.length > 0 && <p className="bm-meta">검색에서 가져온 말이에요. 아래에서 장소를 골라 주세요.</p>}
+      {items.length > 0 && outside && <p className="bm-meta">광주 북구 밖의 결과예요.</p>}
       {items.length > 0 && (
         <ul className="rt-results">
           {items.map((p) => (

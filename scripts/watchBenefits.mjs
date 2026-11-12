@@ -57,6 +57,9 @@ export function normalizeText(html, selector) {
     // 날짜·시각
     .replace(/\d{4}\s*[-./년]\s*\d{1,2}\s*[-./월]\s*\d{1,2}\s*일?/g, ' ')
     .replace(/\d{1,2}\s*:\s*\d{2}(\s*:\s*\d{2})?/g, ' ')
+    // 날씨·미세먼지 위젯(북구청 머리말): 날씨 낱말·기온·농도·등급이 시간마다 바뀐다
+    .replace(/(?:\S+\s+)?-?\d+(?:\.\d+)?\s*℃\s*미세먼지\s*\d+\s*㎍\/㎥\s*\S+\s*초미세먼지\s*\d+\s*㎍\/㎥\s*\S+/g, ' ')
+    .replace(/-?\d+(?:\.\d+)?\s*℃|\d+\s*㎍\/㎥/g, ' ')
     // 세션 토큰·긴 영숫자 해시
     .replace(/\b[0-9a-f]{16,}\b/gi, ' ')
     .replace(/\b[A-Za-z0-9_-]{24,}\b/g, ' ')
@@ -187,6 +190,8 @@ export function buildReport(results, checkedAt) {
   }
   const so = results.filter((r) => r.statusOnly)
   if (so.length) lines.push('', `상태만 감시하는 주소: ${so.map((r) => r.url).join(', ')}`)
+  const sig = problemSignature(results)
+  if (sig) lines.push('', `<!-- watch-sig:${sig} -->`)
   return lines.join('\n') + '\n'
 }
 

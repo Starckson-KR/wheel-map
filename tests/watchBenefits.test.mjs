@@ -46,3 +46,12 @@ test('문제 서명: 같은 변경은 같은 서명, 새 지문이면 다른 서
   assert.notEqual(problemSignature(r('a')), problemSignature(r('b')))
   assert.equal(problemSignature([{ url: 'v', verdict: 'same', cur: {} }]), '')
 })
+
+test('리포트에 문제가 있으면 서명 주석이 들어가고, 없으면 들어가지 않는다', async () => {
+  const { buildReport } = await import('../scripts/watchBenefits.mjs')
+  const bad = [{ url: 'u', ids: ['a'], verdict: 'changed', reason: 'r', cur: { status: 200, fingerprint: 'f' } }]
+  assert.match(buildReport(bad, 't'), /<!-- watch-sig:[0-9a-f]+ -->/)
+  const blocked = [{ url: 'u', ids: ['a'], verdict: 'blocked', reason: 'r', cur: { error: 'ECONNRESET' } }]
+  assert.match(buildReport(blocked, 't'), /<!-- watch-sig:[0-9a-f]+ -->/)
+  assert.doesNotMatch(buildReport([{ url: 'u', ids: ['a'], verdict: 'same', cur: { status: 200 } }], 't'), /watch-sig/)
+})

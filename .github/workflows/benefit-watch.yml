@@ -1,0 +1,53 @@
+# 혜택·행사 출처 페이지를 매일 점검한다(AI 없음). 바뀜·깨짐·접속 막힘 의심이 있으면 이슈로 알린다.
+# 기준 파일(data/benefits/watch-state.json)은 자동으로 고치지 않는다. 사람이 확인한 뒤 로컬에서 --update 한다.
+name: Benefit watch
+
+on:
+  schedule:
+    # 매일 한국 시간 09:17 (UTC 00:17)
+    - cron: '17 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: benefit-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: 출처 페이지 점검
+        run: node scripts/watchBenefits.mjs --report "$RUNNER_TEMP/benefit-watch-report.md" || true
+      - name: 이슈 만들기·갱신
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const report = fs.readFileSync(`${process.env.RUNNER_TEMP}/benefit-watch-report.md`, 'utf8')
+            const sigOf = (t) => (t || '').match(/<!-- watch-sig:([0-9a-f]+) -->/)?.[1] ?? null
+            const sig = sigOf(report)
+            if (!sig) { core.info('바뀐 곳이 없습니다.'); return }
+            const { owner, repo } = context.repo
+            const label = 'benefit-watch'
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: 'open', per_page: 1 })
+            const guide = '\n\n---\n해당 항목을 다시 읽고 `data/benefits/benefits.json`을 고친 뒤, 로컬에서 `node scripts/watchBenefits.mjs --update`로 기준 파일을 갱신해 커밋해 주세요. 자세한 방법은 `data/benefits/README.md`의 "변경 감시"를 보세요.'
+            if (!issues.length) {
+              await github.rest.issues.create({ owner, repo, title: '혜택·행사 출처 변경 감시: 확인이 필요합니다', labels: [label], body: report + guide })
+              return
+            }
+            const issue = issues[0]
+            // 이미 알린 변경이면 다시 댓글을 달지 않는다: 마지막 댓글(없으면 본문)의 서명과 비교
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: issue.number, per_page: 100 })
+            let last = sigOf(issue.body)
+            for (const c of comments) last = sigOf(c.body) ?? last
+            if (last === sig) { core.info('이미 알린 변경입니다. 댓글을 달지 않습니다.'); return }
+            await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: report })

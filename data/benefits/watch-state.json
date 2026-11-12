@@ -1,0 +1,140 @@
+{
+  "updatedAt": "2026-11-12T03:38:49.740Z",
+  "pages": {
+    "https://www.data.go.kr/data/15028207/standard.do": {
+      "items": [
+        "mob-saebitcall"
+      ],
+      "status": 200,
+      "finalUrl": "https://www.data.go.kr/data/15028207/standard.do",
+      "title": "전국교통약자이동지원센터정보표준데이터 | 공공데이터포털",
+      "fingerprint": "f8da54c26f61254756ef1d798be4e748dbc418cfc7f9be9c2cd88c73fe2d38b0",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://bukgu.gwangju.kr/menu.es?mid=a10305070100": {
+      "items": [
+        "mob-vehicle-mark",
+        "wel-pension",
+        "wel-allowance",
+        "wel-house"
+      ],
+      "status": 200,
+      "finalUrl": "https://bukgu.gwangju.kr/menu.es?mid=a10305070100",
+      "title": "보건복지부에서 시행하는 사업 | 장애인복지시책 | 장애인복지 | 더불어복지 : 전남광주통합특별시 북구",
+      "fingerprint": "1aba7e4e9ea738c4dc37ccf1e37f6540078368be5771d41968f48b106aaf46e4",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://www.nhis.or.kr/nhis/policy/wbhada10900m02.do": {
+      "items": [
+        "dev-nhis-aid"
+      ],
+      "status": 200,
+      "finalUrl": "https://www.nhis.or.kr/nhis/policy/wbhada10900m02.do",
+      "title": "개요 < 장애인보조기기 급여제도 소개 < 장애인보조기기 급여비(국민건강보험법 제51조) < 의료비신청 < 보험급여 < 국민건강보험 < 정책센터 | 국민건강보험",
+      "fingerprint": "ba04e3fae4134612b34934ba2690a6954736b6be08274da80486b0f65a76457e",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://knat.go.kr/knw/home/knat_DB/assist_detail.php?assist_biz_idx=1": {
+      "items": [
+        "dev-aid-supply"
+      ],
+      "status": 200,
+      "finalUrl": "https://knat.go.kr/knw/home/knat_DB/assist_detail.php?assist_biz_idx=1",
+      "title": "장애인보조기기 교부사업 | 보조기기 정부지원 사업 | 보건복지부 국립재활원 중앙보조기기센터",
+      "fingerprint": "40d8a58a786dd04d82b57562da30137ff7280ce467be41dfc3d2991b68fa9d9f",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://bukgu.gwangju.kr/menu.es?mid=a10305090000": {
+      "items": [
+        "dev-charger-bukgu"
+      ],
+      "status": 200,
+      "finalUrl": "https://bukgu.gwangju.kr/menu.es?mid=a10305090000",
+      "title": "전동보장구 충전소설치현황 | 장애인복지 | 더불어복지 : 전남광주통합특별시 북구",
+      "fingerprint": "b7a9a3f88f2928af755d9baf5f9d094f4f4c9b64d1a8d7212cfc184406bceca6",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://bukgu.gwangju.kr/menu.es?mid=a10305030000": {
+      "items": [
+        "wel-activity"
+      ],
+      "status": 200,
+      "finalUrl": "https://bukgu.gwangju.kr/menu.es?mid=a10305030000",
+      "title": "장애인활동지원 | 장애인복지 | 더불어복지 : 전남광주통합특별시 북구",
+      "fingerprint": "1e728ab6983753728a65c417d80b3fe58e637823198064795a1ea00ecf76b545",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://bukgu.gwangju.kr/menu.es?mid=a10305080000": {
+      "items": [
+        "wel-facilities"
+      ],
+      "status": 200,
+      "finalUrl": "https://bukgu.gwangju.kr/menu.es?mid=a10305080000",
+      "title": "장애인복지시설 | 장애인복지 | 더불어복지 : 전남광주통합특별시 북구",
+      "fingerprint": "b605b35206a9e0548671ffb50187defe196d0a7b5b71f18252de544e9fb4a600",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://dvoucher.kspo.or.kr/main.do": {
+      "items": [
+        "cul-sports-voucher"
+      ],
+      "status": 200,
+      "finalUrl": "https://dvoucher.kspo.or.kr/main.do",
+      "title": "장애인스포츠강좌이용권",
+      "fingerprint": "f20c0cad2ec8e5da17df28f7f59276ef947d1b03ec21057b61838be615ce2698",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://www.mnuri.kr/notice/userNotice/detail.do?nttId=43151": {
+      "items": [
+        "cul-munhwanuri"
+      ],
+      "status": 200,
+      "finalUrl": "https://www.mnuri.kr/notice/userNotice/detail.do?nttId=43151",
+      "title": "문화누리",
+      "fingerprint": "63d5d64d987e2878e68be4d8ec1b96ca517783875fed2efff07dddf195d13454",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://access.visitkorea.or.kr/main/main.do": {
+      "items": [
+        "cul-open-tour"
+      ],
+      "status": 200,
+      "finalUrl": "https://access.visitkorea.or.kr/main/main.do",
+      "title": "열린관광 모두의 여행",
+      "fingerprint": "d1348033fa454007ca562dac570fc090bbc0af44533367ef1f25d7388feef0db",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://bukgu.gwangju.kr/board.es?mid=a10201110000&bid=0315&act=view&list_no=1247": {
+      "items": [
+        "cul-biennale-concert"
+      ],
+      "status": 200,
+      "finalUrl": "https://bukgu.gwangju.kr/board.es?mid=a10201110000&bid=0315&act=view&list_no=1247",
+      "title": "2026 비엔날레 문화콘서트(4회차) 행사 연기 안내 | 문화행사 | 알림마당 | 소통광장 : 전남광주통합특별시 북구",
+      "fingerprint": "bce232771f24281bd22f57debd77fe8cc677fd8d82ace09e42482f281ab33575",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    },
+    "https://bukgu.gwangju.kr/board.es?mid=a10201110000&bid=0315&act=view&list_no=1246": {
+      "items": [
+        "cul-food-class"
+      ],
+      "status": 200,
+      "finalUrl": "https://bukgu.gwangju.kr/board.es?mid=a10201110000&bid=0315&act=view&list_no=1246",
+      "title": "[남도향토음식박물관] 2026년 전통음식강좌 계절반찬(겨울 과정) 수강생 모집 | 문화행사 | 알림마당 | 소통광장 : 전남광주통합특별시 북구",
+      "fingerprint": "b999bf21652d054b4fb2300d088bfeba4fc1db650830987b2db5a92f4e644eba",
+      "statusOnly": false,
+      "checkedAt": "2026-11-12T03:38:49.740Z"
+    }
+  }
+}

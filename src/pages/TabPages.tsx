@@ -7,6 +7,7 @@ import MyRewards from '../components/MyRewards'
 import ParticipationRanking from '../components/ParticipationRanking'
 import ParticipationChallenge from '../components/ParticipationChallenge'
 import ReceiptLookup from '../components/ReceiptLookup'
+import MyBenefits from '../components/MyBenefits'
 import { listAgencies } from '../lib/agencyGuide'
 import { TO, go } from '../lib/nav'
 import { computeRewards } from '../lib/rewards'
@@ -125,7 +126,7 @@ function ago(iso: string): string {
   return m < 12 ? `${m}개월 전` : `${Math.floor(m / 12)}년 전`
 }
 
-export function AlertsTab() {
+export function AlertsTab({ query = '' }: { query?: string }) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const [filter, setFilter] = useState<AlertFilter>('all')
@@ -148,6 +149,13 @@ export function AlertsTab() {
     return out.sort((a, b) => b.at.localeCompare(a.at))
   }, [reports, userId, rw])
   const shown = items.filter((x) => filter === 'all' || x.kind === filter).slice(0, 40)
+  // 홈 소식의 「나에게 맞는 혜택」에서 오면 혜택 구역으로 옮긴다
+  useEffect(() => {
+    if (new URLSearchParams(query).get('section') !== 'benefits') return
+    const el = document.getElementById('pg-benefits')
+    el?.scrollIntoView({ block: 'start' })
+    el?.focus({ preventScroll: true })
+  }, [query])
 
   return (
     <Page title="혜택알림">
@@ -164,6 +172,7 @@ export function AlertsTab() {
         )}
         <button type="button" className="pg-wide" onClick={() => go(TO.me)}>내 기여 자세히 보기</button>
       </section>
+      <MyBenefits />
       <ParticipationRanking />
       <ParticipationChallenge />
       <section className="pg-card" aria-labelledby="al-h">

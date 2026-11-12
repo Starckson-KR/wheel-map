@@ -23,7 +23,7 @@ function stops(el: HTMLElement): [number, number, number] {
   return [Math.max(0, h - px(el, '--vis-min')), Math.max(0, h - px(el, '--vis-mid')), 0]
 }
 
-export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap: Snap, setSnap: (s: Snap) => void, mountKey: unknown) {
+export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap: Snap, setSnap: (s: Snap) => void, mountKey: unknown, onSettled?: () => void) {
   const ctl = useRef<Ctl | null>(null)
   const run = useRef<SpringRun | null>(null)
   const nodes = useRef<Nodes | null>(null)
@@ -32,6 +32,8 @@ export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap
   const prev = useRef<{ el: HTMLElement | null; snap: Snap }>({ el: null, snap })
   const snapRef = useRef(snap)
   snapRef.current = snap
+  const settledRef = useRef(onSettled)
+  settledRef.current = onSettled
 
   const nodesOf = (el: HTMLElement): Nodes => {
     if (nodes.current?.el !== el) nodes.current = { el, mid: el.querySelector<HTMLElement>('.hm-s-mid'), more: el.querySelector<HTMLElement>('.hm-more') }
@@ -66,6 +68,7 @@ export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap
     for (const c of [n.mid, n.more]) if (c) c.style.opacity = c.style.transform = ''
     void el.offsetHeight // 이 상태를 먼저 확정해서 CSS 전환이 시작되지 않게 한다
     el.style.transition = ''
+    settledRef.current?.() // 스냅이 끝난 뒤 한 번만 알린다(지도 재맞춤 등)
   }
 
   const animateTo = (el: HTMLElement, from: number, to: number, v: number) => {

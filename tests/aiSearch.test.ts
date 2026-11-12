@@ -243,3 +243,72 @@ test('전송 본문에는 마스킹된 질문만 담긴다', async () => {
   assert.ok(!sent.includes('1234'))
   assert.ok(sent.includes('[전화]'))
 })
+
+// ── 신고 유형 미리 선택 · 길찾기 출발/도착 미리 채우기 ──
+import { buildHash, noteFor } from '../src/lib/aiSearch/intents.ts'
+import { keywordSlots } from '../src/lib/aiSearch/keywords.ts'
+import { typeFromQuery, placeFromQuery, withQuery } from '../src/lib/aiSearch/handoff.ts'
+
+test('buildHash: 신고는 허용된 유형만 쿼리로 붙인다', () => {
+  assert.equal(buildHash('report_new', { type: '경사로 없음' }), '#/map?go=report&type=' + encodeURIComponent('경사로 없음'))
+  assert.equal(buildHash('report_new', { type: '없는유형' }), '#/map?go=report')
+  assert.equal(buildHash('report_new', {}), '#/map?go=report')
+  assert.equal(buildHash('receipt_lookup', { type: '계단·턱' }), '#/report?section=receipt')
+})
+
+test('buildHash: 길찾기는 출발·도착을 붙이고 같은 말·잘못된 글자는 버린다', () => {
+  assert.equal(buildHash('route', { from: '후문', to: '정류장' }), '#/map?go=route&from=' + encodeURIComponent('후문') + '&to=' + encodeURIComponent('정류장'))
+  assert.equal(buildHash('route', { from: '후문', to: '후문' }), '#/map?go=route')
+  assert.equal(buildHash('route', { from: '<script>', to: '정류장' }), '#/map?go=route&to=' + encodeURIComponent('정류장'))
+  assert.equal(buildHash('help', {}), null)
+})
+
+test('고정 문구', () => {
+  assert.equal(noteFor('report_new', { type: '급경사' }), '급경사 유형으로 신고 화면을 열어요')
+  assert.equal(noteFor('route', { from: '후문', to: '정류장' }), '출발 후문 · 도착 정류장으로 길찾기를 열어요')
+  assert.equal(noteFor('report_new', {}), undefined)
+  assert.equal(targetFor('route', '', { from: '후문', to: '정류장' }).note, '출발 후문 · 도착 정류장으로 길찾기를 열어요')
+})
+
+test('파싱: 목록 밖 유형·이상한 장소는 무시', () => {
+  assert.equal(typeFromQuery('계단·턱'), '계단·턱')
+  assert.equal(typeFromQuery('아무거나'), null)
+  assert.equal(typeFromQuery(null), null)
+  assert.equal(placeFromQuery('후문'), '후문')
+  assert.equal(placeFromQuery('a'), null)
+  assert.equal(placeFromQuery('<img src=x>'), null)
+  assert.equal(placeFromQuery('가'.repeat(21)), null)
+  assert.equal(withQuery('#/map?go=report', { type: undefined }), '#/map?go=report')
+})
+
+test('키워드 폴백 빈칸: 질문에 근거가 있을 때만', () => {
+  assert.deepEqual(keywordSlots('경사로가 막혔어요', 'report_new'), { type: '경사로 없음' })
+  assert.deepEqual(keywordSlots('보도블록이 깨졌어요', 'report_new'), { type: '파손 노면' })
+  assert.deepEqual(keywordSlots('후문에서 정류장까지 가는 길', 'route'), { from: '후문', to: '정류장' })
+  assert.deepEqual(keywordSlots('오늘 날씨', 'unknown'), {})
+  assert.deepEqual(keywordSlots('엘리베이터가 고장났어요', 'report_new'), {})
+})
+
+test('verifySlots: AI가 준 유형이 질문과 안 맞거나 목록 밖이면 버린다', () => {
+  assert.deepEqual(verifySlots('report_new', { type: '급경사' }, '경사로가 막혔어요'), { type: '급경사' })
+  assert.deepEqual(verifySlots('report_new', { type: '불법 주정차' }, '경사로가 막혔어요'), {})
+  assert.deepEqual(verifySlots('report_new', { type: '엉뚱한값' }, '경사로가 막혔어요'), {})
+})
+
+test('understand: 키워드 폴백(AI 끔)도 유형·장소를 넘긴다', async () => {
+  clearAiCache()
+  const a = await understand('경사로가 막혔어요', { url: 'x', enabled: false })
+  assert.equal(a.intent, 'report_new')
+  assert.deepEqual(a.slots, { type: '경사로 없음' })
+  const b = await understand('후문에서 정류장까지 가는 길', { url: 'x', enabled: false })
+  assert.equal(b.intent, 'route')
+  assert.deepEqual(b.slots, { from: '후문', to: '정류장' })
+})
+
+test('understand: AI가 유형을 못 채우면 키워드 규칙으로 보충한다', async () => {
+  clearAiCache()
+  const fetchImpl = (async () => new Response(JSON.stringify({ ok: true, intent: 'report_new', confidence: 0.9, slots: {} }), { status: 200 })) as typeof fetch
+  const r = await understand('경사로가 막혔어요', { url: 'x', enabled: true, fetchImpl })
+  assert.equal(r.source, 'ai')
+  assert.deepEqual(r.slots, { type: '경사로 없음' })
+})

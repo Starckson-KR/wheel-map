@@ -41,7 +41,7 @@ export default function App() {
     page === 'admin' ? <AdminPage /> :
     page === 'report' ? <ReportTab query={query} /> :
     page === 'me' ? <MeTab /> :
-    page === 'alerts' ? <AlertsTab /> :
+    page === 'alerts' ? <AlertsTab query={query} /> :
     page === 'home' ? <HomePage /> :
     null
   const tabs = page !== 'verify' && page !== 'admin'

@@ -11,6 +11,8 @@ import { prefersCalm } from '../lib/viewPrefs'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { CountText } from '../components/CountUp'
 import AiSearch from '../components/AiSearch'
+import { BENEFITS } from '../lib/benefitsData'
+import { homeCount, loadPrefs } from '../lib/benefits'
 
 const TILES = [
   { icon: 'report', label: '문제 신고하기', to: TO.newReport },
@@ -194,11 +196,13 @@ export default function HomePage() {
     const pts = row?.points ?? 0
     const myRank = row?.rank
     const wait = reports.filter((r) => r.userId !== userId && r.status === 'pending').length
+    const bn = homeCount(BENEFITS, loadPrefs(), nowMs())
     return [
       { tone: 'blue', t: doing > 0 ? `처리 중인 내 민원이 ${doing}건 있어요` : '처리 중인 내 민원이 아직 없어요', to: TO.report },
       { tone: 'green', t: myRank ? `이번 주 내 순위 ${myRank}위예요 · ${pts}점을 모았어요` : `이번 주 참여 점수 ${pts}점을 모았어요`, to: TO.alerts },
       { tone: 'amber', t: recheck > 0 ? `재확인을 기다리는 민원이 ${recheck}건 있어요` : '재확인을 기다리는 민원이 없어요', to: TO.report },
       { tone: 'purple', t: wait > 0 ? `확인을 기다리는 제보가 ${wait}건 있어요` : '확인을 기다리는 제보가 없어요', to: TO.report },
+      ...(bn.count > 0 ? [{ tone: 'green', wide: true, t: bn.personal ? `나에게 맞는 혜택 ${bn.count}개를 찾았어요` : `알아두면 좋은 혜택·행사 ${bn.count}개를 모았어요`, to: TO.benefits }] : []),
     ]
   }, [reports, userId])
 
@@ -252,7 +256,7 @@ export default function HomePage() {
             <div className="hp-board">
               <ul className="hp-news">
                 {news.map((n) => (
-                  <li key={n.t}>
+                  <li key={n.t} className={'wide' in n ? 'hp-news-wide' : undefined}>
                     <button type="button" className={'hp-n hp-n-' + n.tone} onClick={() => go(n.to)}>
                       <span><CountText text={n.t} /></span>
                     </button>

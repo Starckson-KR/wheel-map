@@ -1,4 +1,4 @@
-import { guardIntent, isBlockedQuestion, keywordIntent, candidatesFor } from './keywords'
+import { guardIntent, isBlockedQuestion, keywordIntent, keywordSlots, candidatesFor } from './keywords'
 import type { AiIntent, MovableIntent, Slots } from './intents'
 import { cleanQuestion, verifyResponse } from './validate'
 
@@ -29,7 +29,7 @@ export function clearAiCache() {
 
 function byKeyword(question: string, reason: FallbackReason): Understood {
   const k = keywordIntent(question)
-  return { intent: k.intent, slots: {}, source: 'keyword', reason, candidates: candidatesFor(question), question }
+  return { intent: k.intent, slots: keywordSlots(question, k.intent), source: 'keyword', reason, candidates: candidatesFor(question), question }
 }
 
 async function callWorker(question: string, o: Options): Promise<Understood> {
@@ -57,7 +57,9 @@ async function callWorker(question: string, o: Options): Promise<Understood> {
     const v = verifyResponse(body, question)
     if (!v) return byKeyword(question, 'error')
     const intent = guardIntent(question, v.intent)
-    return { intent, slots: intent === v.intent ? v.slots : {}, source: 'ai', candidates: candidatesFor(question), question }
+    // AI가 빈칸을 못 채웠거나 검증에서 버려진 경우에만 키워드 규칙(같은 검증)으로 보충한다
+    const slots = intent === v.intent ? { ...keywordSlots(question, intent), ...v.slots } : {}
+    return { intent, slots, source: 'ai', candidates: candidatesFor(question), question }
   } catch {
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false
     return byKeyword(question, timedOut ? 'timeout' : offline ? 'offline' : 'error')

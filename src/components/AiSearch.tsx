@@ -6,7 +6,7 @@ import { AI_PREF_EVENT, getAiEnabled } from '../lib/aiSearch/aiPref'
 import { understand } from '../lib/aiSearch/client'
 import type { FallbackReason, Understood } from '../lib/aiSearch/client'
 import { targetFor } from '../lib/aiSearch/intents'
-import type { MovableIntent } from '../lib/aiSearch/intents'
+import type { MovableIntent, Slots } from '../lib/aiSearch/intents'
 import { MAX_QUESTION_CHARS, cleanQuestion, hasPersonalInfo } from '../lib/aiSearch/validate'
 
 // 홈 검색창: 질문을 쓰면 알맞은 화면을 「안내」한다. 자동으로 이동하지 않고, 사용자가 버튼을 눌러야 이동한다.
@@ -52,15 +52,15 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
     if (id === seq.current) setSt({ kind: 'done', r })
   }
 
-  const open = (intent: MovableIntent, question: string) => {
-    const t = targetFor(intent, question)
+  const open = (intent: MovableIntent, question: string, slots?: Slots) => {
+    const t = targetFor(intent, question, slots)
     if (t.hash === null) onHelp()
     else go(t.hash)
   }
 
   const r = st.kind === 'done' ? st.r : null
   const movable = r && r.intent !== 'unknown' ? (r.intent as MovableIntent) : null
-  const target = movable && r ? targetFor(movable, r.question) : null
+  const target = movable && r ? targetFor(movable, r.question, r.slots) : null
   const slots = r ? (Object.entries(r.slots) as [keyof typeof SLOT_NAME, string][]).filter(([, v]) => v) : []
 
   return (
@@ -146,12 +146,13 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
               <>
                 <p className="hp-ai-lead">이렇게 이해했어요</p>
                 <p className="hp-ai-what">{target.label}</p>
-                {slots.length > 0 && (
+                {target.note && <p className="hp-ai-slots">{target.note}</p>}
+                {!target.note && slots.length > 0 && (
                   <p className="hp-ai-slots">
                     {slots.map(([k, v]) => `${SLOT_NAME[k]} ${v}`).join(' · ')}
                   </p>
                 )}
-                <button type="button" className="rf-primary hp-ai-go" onClick={() => open(movable, r.question)}>
+                <button type="button" className="rf-primary hp-ai-go" onClick={() => open(movable, r.question, r.slots)}>
                   {target.hash === null ? '안내 보기' : '이동하기'} <Icon name="chev" size={18} />
                 </button>
               </>

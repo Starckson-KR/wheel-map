@@ -96,3 +96,4 @@
   html:not(.motion-force) .sk-bar { animation: none; }
   html:not(.motion-force) .rf-spin { animation-duration: 2.4s; }
 }
+.rf-preset { margin: 0 0 var(--s-3); color: var(--blue-700); font-weight: 600; }

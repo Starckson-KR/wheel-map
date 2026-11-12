@@ -12,6 +12,7 @@ import ViewSettings from '../components/ViewSettings'
 import { isDesktopLayout } from '../lib/viewPrefs'
 import DemoTools, { MockStrip } from '../components/DemoTools'
 import { useSheetSnap, type Snap } from '../components/useSheetSnap'
+import { placeFromQuery, typeFromQuery } from '../lib/aiSearch/handoff'
 import { DEFAULT_FILTER, showCitizen, type MapFilter } from '../lib/mapFilter'
 import ReportFlow, { type Loc } from '../components/ReportFlow'
 import ReportsPanel from '../components/ReportsPanel'
@@ -112,11 +113,26 @@ const SNAP_BTN: Record<Snap, { label: string; next: Snap; up: boolean }> = {
   2: { label: '지도 넓게 보기', next: 0, up: false },
 }
 
+// 지도 아래를 덮는 시트(요약·상세)의 높이(px). 작은 화면에서 지금 보이는 시트 중 윗변이 가장 높은 것 기준. 큰 화면은 왼쪽 패널이라 0.
+function coverOf(mapEl: HTMLElement | null): number {
+  if (!mapEl || isDesktopLayout()) return 0
+  const mb = mapEl.getBoundingClientRect()
+  let top = mb.bottom
+  mapEl.parentElement?.querySelectorAll<HTMLElement>('[data-sheet]:not(.ms)').forEach((el) => {
+    if (el.hidden) return
+    const cs = getComputedStyle(el)
+    if (cs.visibility === 'hidden' || cs.display === 'none') return
+    const r = el.getBoundingClientRect()
+    if (r.height > 0 && r.top < top && r.top > mb.top) top = r.top
+  })
+  return Math.max(0, mb.bottom - top)
+}
+
 export default function BarrierMap({ intent = '', active = true }: { intent?: string; active?: boolean }) {
   const [start] = useState(() => {
     const q = new URLSearchParams(intent)
     const rid = q.get('report')
-    return { go: q.get('go'), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
+    return { go: q.get('go'), type: typeFromQuery(q.get('type')), from: placeFromQuery(q.get('from')), to: placeFromQuery(q.get('to')), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
   })
   const container = useRef<HTMLDivElement>(null)
   const kRef = useRef<typeof kakao | null>(null)
@@ -161,6 +177,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const lastFit = useRef(0)
   const pickingRef = useRef(false)
   const keepRef = useRef<{ lat: number; lng: number; level: number } | null>(null)
+  const fitRef = useRef<{ bounds: kakao.maps.LatLngBounds; top: number } | null>(null) // 마지막으로 화면에 맞춘 범위(시트 단계가 바뀔 때 다시 맞춘다)
+  const movedRef = useRef(false) // 사용자가 직접 지도를 움직였는가(움직였으면 시트 변화만으로 지도를 옮기지 않는다)
   const drawnLevel = useRef<number | null>(null) // 직전에 핀을 그린 줌 단계(줌이 바뀐 때만 핀을 부드럽게 나타낸다)
   useEffect(() => {
     pickingRef.current = picking
@@ -168,6 +186,41 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   useEffect(() => {
     routePickRef.current = routePick
   }, [routePick])
+  // 시트가 가린 아래쪽만큼 여백을 두고 범위를 맞춘다(처음 진입·경로 강조·시트 단계 변경 뒤 다시 맞춤)
+  const fitWithSheet = (map: kakao.maps.Map, bounds: kakao.maps.LatLngBounds, top: number) => {
+    const d = isDesktopLayout()
+    const bottom = d ? 60 : Math.max(40, Math.round(Math.min(coverOf(container.current), (container.current?.clientHeight ?? 600) * 0.6)) + 24)
+    map.setBounds(bounds, d ? 60 : top, d ? 60 : 40, bottom, d ? 460 : 40)
+  }
+  // 시트 단계가 바뀌고 멈춘 뒤 한 번만: 선택한 핀이 시트·상단에 가려졌을 때만 부드럽게 옮기고, 선택이 없으면 처음 맞춤을 새 여백으로 다시 맞춘다(사용자가 지도를 움직였으면 하지 않는다)
+  const revealSelected = () => {
+    const k = kRef.current
+    const map = mapRef.current
+    const el = container.current
+    if (!k || !map || !el || isDesktopLayout()) return
+    let at: [number, number] | null = null
+    if (selectedId) {
+      const b = BY_ID.get(selectedId)
+      if (b?.geometry) at = anchorOf(b.geometry)
+      else if (b?.provisional) at = [b.provisional.lat, b.provisional.lng]
+    } else if (selectedReportId) {
+      const r = useReports.getState().reports.find((x) => x.id === selectedReportId)
+      if (r) at = [r.lat, r.lng]
+    }
+    const h = el.clientHeight
+    const w = el.clientWidth
+    const cover = coverOf(el)
+    if (at) {
+      const pt = map.getProjection().containerPointFromCoords(new k.maps.LatLng(at[0], at[1]))
+      const topY = 28 // 상세가 올라온 동안에는 위쪽 검색줄이 가려져 있다
+      const botY = h - cover - 28
+      const ok = pt.y >= topY && pt.y <= botY && pt.x >= 24 && pt.x <= w - 24
+      if (!ok && botY > topY) map.panBy(pt.x >= 24 && pt.x <= w - 24 ? 0 : pt.x - w / 2, pt.y >= topY && pt.y <= botY ? 0 : pt.y - (topY + (botY - topY) / 2)) // 보이는 영역의 가운데로
+      return
+    }
+    const f = fitRef.current
+    if (f && !movedRef.current && snap !== 2) fitWithSheet(map, f.bounds, f.top)
+  }
   const openReportRef = useRef<(id: string) => void>(() => {})
   const openSeedRef = useRef<(id: string) => void>(() => {})
   const pickRoutePlace = (lat: number, lng: number, name: string) => {
@@ -236,10 +289,16 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           }
           setTimeout(() => {
             map.relayout()
-            const d = isDesktopLayout()
-            map.setBounds(bounds, d ? 60 : 80, d ? 60 : 40, d ? 60 : 40, d ? 460 : 40)
+            fitRef.current = { bounds, top: 80 }
+            movedRef.current = false
+            fitWithSheet(map, bounds, 80)
           }, 150)
         }
+        const markMoved = () => {
+          movedRef.current = true
+        }
+        k.maps.event.addListener(map, 'dragstart', markMoved)
+        container.current.addEventListener('wheel', markMoved, { passive: true })
         k.maps.event.addListener(map, 'click', (e) => {
           if (routePickRef.current) pickRoutePlace(e.latLng.getLat(), e.latLng.getLng(), `지도에서 고른 위치 (${e.latLng.getLat().toFixed(5)}, ${e.latLng.getLng().toFixed(5)})`)
           else if (pickingRef.current) setDraftPos({ lat: e.latLng.getLat(), lng: e.latLng.getLng() })
@@ -283,8 +342,9 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           setFocusIds(focus)
           setTimeout(() => {
             map.relayout()
-            const d = isDesktopLayout()
-            map.setBounds(fb, d ? 60 : 90, d ? 60 : 40, d ? 60 : 40, d ? 460 : 40)
+            fitRef.current = { bounds: fb, top: 90 }
+            movedRef.current = false
+            fitWithSheet(map, fb, 90)
           }, 300)
         }
       } catch (e) {
@@ -871,6 +931,18 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     map.panTo(new k.maps.LatLng(a[0], a[1]))
   }, [selectedId, ready])
 
+  // 핀을 고르면 상세 시트가 올라온다: 올라온 뒤에 핀이 시트에 가렸으면 보이는 곳으로 옮긴다
+  const revealRef = useRef(revealSelected)
+  useEffect(() => {
+    revealRef.current = revealSelected
+  })
+  useEffect(() => {
+    if (!ready || (!selectedId && !selectedReportId)) return
+    // 상세 시트가 올라오는 시간은 기기마다 달라 몇 번 살핀다(가려진 때만 움직이므로 여러 번 불러도 안전하다)
+    const ts = [500, 1200, 2200, 3500].map((ms) => setTimeout(() => revealRef.current(), ms))
+    return () => ts.forEach(clearTimeout)
+  }, [selectedId, selectedReportId, ready])
+
   // 탭을 바꿔 숨겨졌다가 다시 보일 때: 크기를 다시 재고 보던 자리로 돌아간다
   useEffect(() => {
     const k = kRef.current
@@ -998,6 +1070,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return PROVISIONAL.filter((b) => b.provisional!.lat >= s && b.provisional!.lat <= n && b.provisional!.lng >= w && b.provisional!.lng <= e).length
   }, [view, layers.team])
   const hereCount = (c: Category) => here.filter((r) => r.cat === c).length
+  // 핵심 3칸(어려운 곳·버스 불편·주의=지날 때 주의+주의 구역)에 이미 나온 분류는 펼침 목록에서 뺀다: 같은 숫자가 두 번 나오지 않게
+  const restCats = CATEGORY_ORDER.filter((c) => c !== 'hard' && c !== 'boarding' && c !== 'caution' && c !== 'zone' && hereCount(c) > 0)
   // 레이어 메뉴에 알려 줄 시민 제보 핀 표시 건수(표시 규칙에 맞는 건 / 지도에 나올 수 있는 전체)
   const citizenStats = useMemo(() => {
     void offsetDays // 시연 시각이 바뀌면 다시 센다
@@ -1058,7 +1132,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     ro.observe(mid)
     return () => ro.disconnect()
   }, [overlayOpen])
-  const { gripProps } = useSheetSnap(sheetRef, snap, setSnap, overlayOpen)
+  const { gripProps } = useSheetSnap(sheetRef, snap, setSnap, overlayOpen, revealSelected)
   // 보이지 않는 단계의 버튼은 키보드로 닿지 않게 한다
   useEffect(() => {
     const sheet = sheetRef.current
@@ -1270,17 +1344,18 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               </button>
             </div>
             <div className="hm-more">
-              {here.length > 0 && (
-                <ul className="hm-counts" aria-label="영향 종류별 개수">
-                  {CATEGORY_ORDER.map((c) =>
-                    hereCount(c) > 0 ? (
+              {here.length > 0 && restCats.length > 0 && (
+                <>
+                  <p className="hm-eyebrow hm-counts-label">그 밖의 분류</p>
+                  <ul className="hm-counts" aria-label="그 밖의 영향 종류별 개수">
+                    {restCats.map((c) => (
                       <li key={c} className="hm-count">
                         <i className={'hm-cat hm-cat-' + c}>{CATEGORY_INFO[c].glyph}</i>
                         {CATEGORY_INFO[c].label} {hereCount(c)}
                       </li>
-                    ) : null,
-                  )}
-                </ul>
+                    ))}
+                  </ul>
+                </>
               )}
               {pubNotes.map((t) => (
                 <p key={t} className="hm-note" role="status">
@@ -1409,12 +1484,15 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             seeds={BARRIERS}
             onClose={closeFlow}
             onOpenReport={openReport}
+            initialType={start.type}
           />
         )}
 
         {routeOpen && (
           <RoutePanel
             initialMode={start.mode}
+            presetFrom={start.from}
+            presetTo={start.to}
             k={kObj}
             barriers={BARRIERS}
             seedRatings={seedOverride}

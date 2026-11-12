@@ -30,6 +30,12 @@ declare namespace kakao.maps {
     relayout(): void
     getLevel(): number
     getBounds(): LatLngBounds
+    panBy(dx: number, dy: number): void
+    getProjection(): MapProjection
+  }
+
+  interface MapProjection {
+    containerPointFromCoords(latlng: LatLng): { x: number; y: number }
   }
 
   interface MarkerOptions {
@@ -91,7 +97,7 @@ declare namespace kakao.maps {
     interface MapMouseEvent {
       latLng: LatLng
     }
-    function addListener(target: Map, type: 'idle', handler: () => void): void
+    function addListener(target: Map, type: 'idle' | 'dragstart', handler: () => void): void
     function addListener(target: Map, type: 'click', handler: (event: MapMouseEvent) => void): void
     function addListener(target: Polyline | Polygon, type: 'click', handler: (event: MapMouseEvent) => void): void
     function addListener(target: Marker, type: 'dragend' | 'click', handler: () => void): void

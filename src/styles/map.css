@@ -1985,3 +1985,7 @@
   min-height: 44px;
   padding: 0 var(--s-4);
 }
+
+.hm-more > .hm-counts-label {
+  margin: 0 0 6px;
+}

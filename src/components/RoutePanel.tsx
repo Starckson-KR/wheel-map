@@ -31,6 +31,8 @@ type Props = {
   onOpenReport: (id: string) => void
   onClose: () => void
   initialMode?: 'walk' | 'bus'
+  presetFrom?: string | null
+  presetTo?: string | null
 }
 
 type Card = { id: 'base' | 'detour'; title: string; route: RouteData; hits: Hit[] }
@@ -64,15 +66,18 @@ function PlacePicker(props: {
   active: boolean
   onChange: (p: Place) => void
   onPickMap: () => void
+  /** 홈 AI 검색에서 가져온 말: 입력칸에 채우고 검색 결과 목록까지만 띄운다(장소는 사용자가 고른다) */
+  preset?: string
 }) {
-  const { label, value, k, allowCurrent, active, onChange, onPickMap } = props
-  const [q, setQ] = useState('')
+  const { label, value, k, allowCurrent, active, onChange, onPickMap, preset } = props
+  const [q, setQ] = useState(preset ?? '')
+  const presetDone = useRef(false)
   const [items, setItems] = useState<kakao.maps.services.PlaceResult[]>([])
   const [msg, setMsg] = useState('')
-  const search = async () => {
-    if (!k || !q.trim()) return
+  const search = async (text = q) => {
+    if (!k || !text.trim()) return
     setMsg('찾고 있어요…')
-    const r = await keywordSearch(k, q.trim(), 5)
+    const r = await keywordSearch(k, text.trim(), 5)
     if (r.status === 'ok') {
       setItems(r.items)
       setMsg('')
@@ -81,6 +86,13 @@ function PlacePicker(props: {
       setMsg(r.status === 'empty' ? '검색 결과가 없어요.' : '검색하지 못했어요. 잠시 뒤에 다시 해 주세요.')
     }
   }
+  useEffect(() => {
+    if (!preset || !k || presetDone.current) return
+    presetDone.current = true
+    void search(preset)
+    // 한 번만: 지도가 준비되면 목록을 띄운다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [k])
   const current = () => {
     if (!navigator.geolocation) return setMsg('이 브라우저에서는 현재 위치를 쓸 수 없어요.')
     setMsg('현재 위치를 찾고 있어요…')
@@ -106,7 +118,7 @@ function PlacePicker(props: {
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
         />
-        <button type="button" onClick={search} disabled={!k || !q.trim()}>
+        <button type="button" onClick={() => search()} disabled={!k || !q.trim()}>
           검색
         </button>
       </div>
@@ -121,6 +133,7 @@ function PlacePicker(props: {
         )}
       </div>
       {msg && <p className="bm-meta">{msg}</p>}
+      {preset && !value && items.length > 0 && <p className="bm-meta">검색에서 가져온 말이에요. 아래에서 장소를 골라 주세요.</p>}
       {items.length > 0 && (
         <ul className="rt-results">
           {items.map((p) => (
@@ -502,8 +515,8 @@ export default function RoutePanel(props: Props) {
         <section className="rf-card rt-sec">
           <h3>직접 검색 (개발 모드)</h3>
           <p className="bm-meta">검색 1회에 경로 요청은 최대 {ROUTE_CFG.maxAttempts}번이에요. 같은 요청은 개발 서버가 저장해 뒀다가 다시 써요.</p>
-          <PlacePicker label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), setFrom(p))} onPickMap={() => onPickRequest(picking === 'from' ? null : 'from')} />
-          <PlacePicker label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p))} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} />
+          <PlacePicker label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), setFrom(p))} onPickMap={() => onPickRequest(picking === 'from' ? null : 'from')} preset={props.presetFrom ?? undefined} />
+          <PlacePicker label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p))} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} />
           <button type="button" className="rf-primary" disabled={!canRun} onClick={() => from && to && run(from, to, pairId, `${from.name} → ${to.name}`)}>
             {status === 'loading' ? '찾고 있어요…' : '길찾기'}
           </button>

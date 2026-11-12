@@ -7,6 +7,7 @@ import { CATEGORY_LABEL, REPORT_TYPES } from '../lib/reportTypes'
 import { newReportId, nowMs, useReports, userName } from '../lib/reportStore'
 import type { Barrier } from '../types'
 import { confirmSheet, toast } from '../lib/uiStore'
+import { prefersCalm } from '../lib/viewPrefs'
 
 export type Loc = { lat: number; lng: number }
 type Photo = { id: string; blob: Blob; url: string }
@@ -20,6 +21,8 @@ type Props = {
   seeds: Barrier[]
   onClose: () => void
   onOpenReport: (id: string) => void
+  /** 홈 AI 검색에서 고른 유형(앱 유형 목록에 있는 값만 쓴다). 미리 선택만 해 두고, 바꿀 수 있다 */
+  initialType?: string | null
 }
 
 const GPS_ERR: Record<number, string> = {
@@ -41,13 +44,14 @@ const newPhotoId = () => `p${++photoSeq}-${crypto.randomUUID()}`
 
 const num = (s: string) => (s.trim() === '' ? undefined : Number(s))
 
-export default function ReportFlow({ location, onLocation, onPickStart, hidden, seeds, onClose, onOpenReport }: Props) {
+export default function ReportFlow({ location, onLocation, onPickStart, hidden, seeds, onClose, onOpenReport, initialType = null }: Props) {
   const reports = useReports((s) => s.reports)
   const addReport = useReports((s) => s.addReport)
   const userId = useReports((s) => s.userId)
 
   const [step, setStep] = useState<Step>(1)
-  const [type, setType] = useState<string | null>(null)
+  const [presetType] = useState<string | null>(() => (initialType && REPORT_TYPES.some((t) => t.type === initialType) ? initialType : null))
+  const [type, setType] = useState<string | null>(presetType)
   const [photos, setPhotos] = useState<Photo[]>([])
   const [description, setDescription] = useState('')
   const [widthM, setWidthM] = useState('')
@@ -72,6 +76,13 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   useEffect(() => {
     panelRef.current?.scrollTo({ top: 0 })
   }, [step, done])
+
+  // 미리 고른 유형이 목록 아래쪽이어도 보이게 한다
+  useEffect(() => {
+    if (!presetType) return
+    const t = setTimeout(() => panelRef.current?.querySelector('.rf-type.on')?.scrollIntoView({ block: 'nearest', behavior: prefersCalm() ? 'auto' : 'smooth' }), 120)
+    return () => clearTimeout(t)
+  }, [presetType])
 
   const info = REPORT_TYPES.find((t) => t.type === type) ?? null
 
@@ -270,6 +281,11 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
           {step === 1 && (
             <>
+              {presetType && type === presetType && (
+                <p className="bm-meta rf-preset" role="status">
+                  검색에서 고른 유형이에요. 다르면 바꿔 주세요.
+                </p>
+              )}
               {(['fixed', 'temporary'] as const).map((cat) => (
                 <fieldset key={cat} className="rf-group">
                   <legend>

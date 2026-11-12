@@ -24,6 +24,7 @@ export const TO = {
   agency: '#/report?section=agency',
   me: '#/me',
   alerts: '#/alerts',
+  benefits: '#/alerts?section=benefits',
   admin: '#/admin',
   openReport: (id: string) => `#/map?report=${encodeURIComponent(id)}`,
 }

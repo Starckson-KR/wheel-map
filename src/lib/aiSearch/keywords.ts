@@ -1,4 +1,5 @@
-import type { AiIntent, MovableIntent } from './intents'
+import type { AiIntent, MovableIntent, Slots } from './intents'
+import { verifySlots } from './validate'
 
 // 키워드 폴백: 네트워크 없이 의도를 고른다. 의도별 낱말(정규식)에 점수를 주고 가장 높은 의도를 쓴다.
 // AI가 켜져 있어도 앱이 답하지 않는 질문(지시 변경·내부 탐색·처리기한·법령·전화번호)은 여기서 먼저 걸러 unknown으로 둔다.
@@ -139,4 +140,35 @@ export function candidatesFor(question: string, n = 3): MovableIntent[] {
   const ranked = scoreIntents(question).map((r) => r.intent)
   for (const d of DEFAULT_CANDIDATES) if (!ranked.includes(d)) ranked.push(d)
   return ranked.slice(0, n)
+}
+
+// 키워드 폴백의 빈칸 뽑기: AI가 없어도 신고 유형·출발/도착을 같은 규칙(verifySlots)으로 검증해 넘긴다.
+// 유형은 앞에 있는 것이 우선(「경사로」는 「경사」보다 먼저). 뒷받침 낱말이 없으면 검증에서 버려진다.
+const TYPE_ORDER: [string, RegExp][] = [
+  ['경사로 없음', /경사로/],
+  ['계단·턱', /계단|턱|단차/],
+  ['급경사', /급경사|가파|경사/],
+  ['파손 노면', /구멍|패였|패인|파손|파인|깨져|깨진|깨졌|포트홀|울퉁|덜컹|보도블록|노면/],
+  ['좁은 보도', /좁/],
+  ['수동문', /문/],
+  ['장애인화장실 없음', /화장실/],
+  ['쓰레기', /쓰레기|적치/],
+  ['킥보드·자전거', /킥보드|자전거/],
+  ['입간판·노점', /입간판|노점|좌판/],
+  ['공사 자재', /공사|자재/],
+  ['불법 주정차', /주정차|주차/],
+]
+const ROUTE_RE = /([가-힣0-9 ]{2,30}?)에서\s*([가-힣0-9 ]{2,30}?)\s*(?:까지|으로|로\s|가는|가려|갈|오는)/
+const lastWords = (s: string, n: number) => s.trim().split(/\s+/).slice(-n).join(' ')
+
+export function keywordSlots(question: string, intent: AiIntent): Slots {
+  if (intent === 'report_new') {
+    const t = TYPE_ORDER.find(([, re]) => re.test(question))?.[0]
+    return t ? verifySlots(intent, { type: t }, question) : {}
+  }
+  if (intent === 'route') {
+    const m = ROUTE_RE.exec(question)
+    return m ? verifySlots(intent, { from: lastWords(m[1], 2), to: lastWords(m[2], 2) }, question) : {}
+  }
+  return {}
 }

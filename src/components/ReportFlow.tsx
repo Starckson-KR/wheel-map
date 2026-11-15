@@ -386,12 +386,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 </fieldset>
               ))}
               <div className="rf-actions">
-                {!type && (
-                  <p id="rf-why-1" className="bm-meta rf-why">
-                    유형을 하나 고르면 다음으로 갈 수 있어요.
-                  </p>
-                )}
-                <button type="button" className="rf-primary" disabled={!type} aria-describedby={!type ? 'rf-why-1' : undefined} onClick={() => go(2)}>
+                <button type="button" className="rf-primary" disabled={!type} onClick={() => go(2)}>
                   다음
                 </button>
               </div>

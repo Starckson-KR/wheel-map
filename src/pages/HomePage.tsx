@@ -250,11 +250,12 @@ export default function HomePage() {
     const myRank = row?.rank
     const wait = reports.filter((r) => r.userId !== userId && r.status === 'pending').length
     const bn = homeCount(BENEFITS, loadPrefs(), nowMs())
+    // 알릴 것이 없는(0인) 소식은 그리지 않는다
     return [
-      { tone: 'blue', t: doing > 0 ? `처리 중인 내 민원이 ${doing}건 있어요` : '처리 중인 내 민원이 아직 없어요', to: TO.report },
-      { tone: 'green', t: myRank ? `이번 주 내 순위 ${myRank}위예요 · ${pts}점을 모았어요` : `이번 주 참여 점수 ${pts}점을 모았어요`, to: TO.alerts },
-      { tone: 'amber', t: recheck > 0 ? `재확인을 기다리는 민원이 ${recheck}건 있어요` : '재확인을 기다리는 민원이 없어요', to: TO.report },
-      { tone: 'purple', t: wait > 0 ? `확인할 제보가 ${wait}건 있어요` : '확인할 제보가 없어요', to: TO.report },
+      ...(doing > 0 ? [{ tone: 'blue', t: `처리 중인 내 민원이 ${doing}건 있어요`, to: TO.report }] : []),
+      ...(pts > 0 || myRank ? [{ tone: 'green', t: myRank ? `이번 주 내 순위 ${myRank}위예요 · ${pts}점을 모았어요` : `이번 주 참여 점수 ${pts}점을 모았어요`, to: TO.alerts }] : []),
+      ...(recheck > 0 ? [{ tone: 'amber', t: `재확인을 기다리는 민원이 ${recheck}건 있어요`, to: TO.report }] : []),
+      ...(wait > 0 ? [{ tone: 'purple', t: `확인할 제보가 ${wait}건 있어요`, to: TO.report }] : []),
       ...(bn.count > 0 ? [{ tone: 'green', wide: true, t: bn.personal ? `나에게 맞는 혜택 ${bn.count}개를 찾았어요` : `알아두면 좋은 혜택·행사 ${bn.count}개를 모았어요`, to: TO.benefits }] : []),
     ]
   }, [reports, userId])
@@ -328,6 +329,7 @@ export default function HomePage() {
           <section aria-labelledby="h-news">
             <h2 id="h-news" className="hp-tab"><span>소식 <Icon name="chev" size={14} /></span></h2>
             <div className="hp-board">
+              {news.length === 0 && <p className="hp-news-empty">새 소식이 없어요</p>}
               <ul className="hp-news">
                 {news.map((n, i) => (
                   <RiseLi key={n.t} first={riseNews} i={i} className={'wide' in n ? 'hp-news-wide' : undefined}>

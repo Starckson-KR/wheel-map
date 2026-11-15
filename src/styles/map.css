@@ -1111,14 +1111,14 @@
 .ms-dim {
   position: absolute;
   inset: 0;
-  z-index: var(--z-modal);
+  z-index: calc(var(--z-lightbox) + 1); /* 길찾기 시트·내 위치 버튼보다 위 */
   background: rgb(25 31 40 / 0.5);
   animation: fade var(--t-fast) var(--ease-out) backwards;
 }
 
 .ms {
   position: absolute;
-  z-index: calc(var(--z-modal) + 1);
+  z-index: calc(var(--z-lightbox) + 2);
   left: 0;
   right: 0;
   bottom: 0;
@@ -2069,9 +2069,8 @@ html[data-text='large'] .ms .rf-actions button {
 }
 
 .bm button.lp-chip[aria-pressed='true'] {
-  background: var(--blue-50);
-  color: var(--blue-700);
-  box-shadow: inset 0 0 0 2px var(--blue-500);
+  background: var(--primary-weak);
+  color: var(--primary);
 }
 
 .bm button.lp-reset {

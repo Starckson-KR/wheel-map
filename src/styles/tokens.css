@@ -68,6 +68,11 @@
   --r-n-ink: #ffffff;
   --r-n-soft: #f2f4f6;
   --r-n-text: #4e5968;
+  /* 길찾기 타임라인의 도보 선 색(지도의 도보 선과 같은 파랑) */
+  --route-walk: #1250c9;
+  --seg-on: #ffffff; /* 세그먼트·탭의 선택 칸 면 */
+  --orange-50: #fff0e0;
+  --orange-700: #b34a00;
 
   /* 개선 현황 단계 색: 핀·범례는 solid(흰 글자), 칩·배지는 soft 배경 + text 글자. 글자(접·처·!·완·확·계)를 같이 쓴다 */
   --pg-intake: #6b7684;
@@ -184,6 +189,13 @@
   --r-t-text: #f2b84b;
   --r-x-soft: #3a1f1f;
   --r-x-text: #ff8a80;
+  --r-n: #8b95a1;
+  --r-n-soft: #2c2c35;
+  --r-n-text: #c3c9d1;
+  --route-walk: #6aa8ff;
+  --seg-on: #3d3d49;
+  --orange-50: #3d2616;
+  --orange-700: #ffb070;
   --focus-ring: 0 0 0 3px rgb(69 147 252 / 0.5);
   --pg-intake-soft: #2a2d34;
   --pg-agency-soft: #1c2b44;

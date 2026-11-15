@@ -79,7 +79,7 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
 
       {section === 'mine' ? (
         <>
-          <div className="rp-tabs" role="tablist" aria-label="상태 필터">
+          <div className="rp-tabs rp-tabs--chips" role="tablist" aria-label="상태 필터">
             {TABS.map((t) => (
               <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}>
                 {t.label}

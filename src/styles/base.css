@@ -320,6 +320,12 @@ h4 {
   color: var(--text-sub);
 }
 
+/* <SegBg>가 없는 세그먼트(설정 시트 등)도 선택 칸이 보이게 한다 */
+.bm .rf-seg button.on:not(:has(.seg-bg)) {
+  background: var(--seg-on);
+  box-shadow: var(--shadow-1);
+}
+
 /* 선택된 칸의 흰 배경은 motion의 <SegBg>(layoutId)가 그려서 칸 사이를 미끄러진다 */
 .bm .rf-seg button.on {
   color: var(--text-strong);
@@ -329,7 +335,7 @@ h4 {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: var(--seg-bg, var(--bg));
+  background: var(--seg-bg, var(--seg-on));
   box-shadow: var(--seg-shadow, var(--shadow-1));
 }
 
@@ -720,3 +726,18 @@ html body .hp-n > span { -webkit-line-clamp: 3; }
 
 /* 글자 크게: 혜택 요약만 한 단계 작게(3줄로 늘어지지 않게) */
 html[data-text='large'] .bn-sum { font-size: var(--fs-small); }
+
+:root[data-theme='dark'] .bm .rf-seg button:hover:not(:disabled):not(.on) {
+  background: rgb(255 255 255 / 0.06);
+}
+
+/* 다크 모드: 닫기(×)·이전(<) 아이콘 선을 밝게 */
+:root[data-theme='dark'] .bm button.bm-close {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23d1d6db' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3.5 3.5l9 9M12.5 3.5l-9 9'/%3E%3C/svg%3E");
+}
+
+/* 상태 필터는 칩 모양(위 세그먼트와 구분) */
+.rp-tabs.rp-tabs--chips { gap: var(--s-2); border-bottom: 0; }
+.bm .rp-tabs--chips button { min-height: 36px; padding: 0 var(--s-3); border-radius: var(--r-full); border-bottom: 0; margin-bottom: 0; font-size: var(--fs-small); }
+.bm .rp-tabs--chips button.on { background: var(--primary-weak); color: var(--primary); }
+.pg-agencies strong, .pg-agencies .bm-meta { word-break: keep-all; }

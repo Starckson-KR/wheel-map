@@ -56,3 +56,11 @@ test('엘리베이터·주차장처럼 위치만 묻는 말은 신고가 아니�
   for (const q of ['엘리베이터 어디 있어요', '근처 장애인 주차장 알려줘', '점자블록 있는 길 어디예요']) assert.equal(applyRules(q, R('report_new')).intent, 'unknown', q)
   for (const q of ['엘리베이터가 고장났어요', '점자블록이 끊겨 있어요 어디에 말해야 해요']) assert.equal(applyRules(q, R('report_new')).intent, 'report_new', q)
 })
+
+test('경사로가 막힌 말은 모델이 파손 노면이라 답해도 경사로 없음으로 바로잡는다', () => {
+  const R2 = (type: string) => ({ intent: 'report_new', slots: { type }, confidence: 0.9 })
+  for (const q of ['경사로가 막혔어요', '경사로 앞에 물건이 쌓여 있어요', '경사로 입구를 박스가 막고 있어요'])
+    assert.deepEqual(applyRules(q, R2('파손 노면')).slots, { type: '경사로 없음' }, q)
+  assert.deepEqual(applyRules('경사로가 너무 가팔라요', R2('급경사')).slots, { type: '급경사' })
+  assert.deepEqual(applyRules('도로에 구멍이 났어요', R2('파손 노면')).slots, { type: '파손 노면' })
+})

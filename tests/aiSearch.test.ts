@@ -343,3 +343,11 @@ test('장애인화장실 찾기는 지도 화면(#/map)으로 이동한다', () 
   assert.equal(t.hash, '#/map')
   assert.ok(t.note)
 })
+
+test('경사로가 막힌 말은 모델이 파손 노면이라 답해도 경사로 없음으로 잡힌다', () => {
+  for (const q of ['경사로가 막혔어요', '경사로 앞에 물건이 쌓여 있어요']) {
+    assert.deepEqual(keywordSlots(q, 'report_new'), { type: '경사로 없음' }, q)
+    assert.deepEqual(verifySlots('report_new', { type: '파손 노면' }, q), {}, q)
+  }
+  assert.deepEqual(keywordSlots('경사로가 너무 가팔라요', 'report_new'), { type: '급경사' })
+})

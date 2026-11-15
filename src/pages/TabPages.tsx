@@ -66,6 +66,7 @@ function Page({ title, children }: { title: string; children: React.ReactNode })
 
 export function ReportTab({ query }: { query: string }) {
   const agencies = useMemo(() => listAgencies().filter((a) => a.verified), [])
+  const [allAg, setAllAg] = useState(false)
   useEffect(() => {
     // 구역 이동: agency(담당 기관 안내), receipt(접수번호로 찾기), mine(내 민원 진행 상황). AI 검색창이 이 주소로 안내한다.
     const id = ({ agency: 'pg-agency', receipt: 'pg-receipt', mine: 'pg-mine' } as Record<string, string>)[new URLSearchParams(query).get('section') ?? '']
@@ -95,13 +96,18 @@ export function ReportTab({ query }: { query: string }) {
         <h2>담당 기관 안내</h2>
         <Sentences as="p" className="bm-meta">신고를 남기면 내 민원 상세에서 담당 기관과 접수 방법을 볼 수 있어요.</Sentences>
         <ul className="pg-agencies">
-          {agencies.map((a) => (
+          {(allAg ? agencies : agencies.slice(0, 5)).map((a) => (
             <li key={a.id}>
               <strong>{a.name}</strong>
               {a.types.length > 0 && <span className="bm-meta">{a.types.join(' · ')}</span>}
             </li>
           ))}
         </ul>
+        {agencies.length > 5 && (
+          <button type="button" className="pg-wide" aria-expanded={allAg} onClick={() => setAllAg((v) => !v)}>
+            {allAg ? '접기' : `더보기 (${agencies.length - 5}곳)`}
+          </button>
+        )}
       </section>
     </Page>
   )

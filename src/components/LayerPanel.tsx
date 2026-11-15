@@ -21,7 +21,7 @@ type Props = {
 
 const KINDS: KindKey[] = ['passage', 'boarding', 'entry', 'zone']
 
-export default function LayerPanel({ layers, data, loading, onChange, onClose, filter, onFilter, citizen, extra }: Props) {
+export default function LayerPanel({ layers, data, loading, onChange, onClose, filter, onFilter, extra }: Props) {
   const set = (patch: Partial<LayerState>) => onChange(patch)
   return (
     <>
@@ -31,7 +31,6 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
         <div className="ms-head">
           <div>
             <h2>지도에 보여 줄 것</h2>
-            <p className="ms-sub">켜고 끄면 지도에 바로 반영돼요.</p>
           </div>
           <button type="button" className="bm-close" onClick={onClose}>
             닫기
@@ -52,7 +51,6 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
         {layers.team && (
           <div className="lp-filter">
             <h3>시민 제보 핀 보기</h3>
-            <Sentences as="p" className="bm-meta">{`팀 조사 지점은 항상 보여요. 시민 제보 ${citizen.total}건 중 ${citizen.shown}건을 핀으로 보여 드려요.`}</Sentences>
             <div className="lp-chips" role="group" aria-label="시민 제보 상태">
               {STATUS_CHIPS.map((c) => (
                 <button
@@ -79,7 +77,6 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
           </div>
         )}
 
-        <Sentences as="p" className="bm-meta">공공데이터는 참고용이에요. 지나갈 수 있는지를 판정한 건 아니에요.</Sentences>
         {PUB_LAYERS.map((l) => {
           const on = layers[l.id]
           const st = loading[l.id]
@@ -114,7 +111,7 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
             </div>
           )
         })}
-        <Sentences as="p" className="bm-meta">지도를 확대해야 보여요. 넓게 보면 안내만 나와요. 핀은 한 지점, 굵은 선은 구간, 반투명 면은 영역이에요.</Sentences>
+        <Sentences as="p" className="bm-meta">지도를 확대하면 보여요.</Sentences>
         {extra && <div className="lp-extra">{extra}</div>}
       </div>
     </>

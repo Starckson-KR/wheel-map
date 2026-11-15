@@ -708,7 +708,7 @@
 .al-sum-ic { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--r-full); background: var(--amber-50); color: var(--amber-700); }
 .al-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .bm button.al-chip { min-height: var(--touch); padding: 0 var(--s-4); border-radius: var(--r-full); font-size: var(--fs-small); }
-.bm button.al-chip[aria-pressed='true'] { background: var(--text-strong); color: var(--bg); }
+.bm button.al-chip[aria-pressed='true'] { background: var(--primary-weak); color: var(--primary); }
 .al-empty { margin: 0; padding: var(--s-4) 0; }
 .bm button.al-item { align-items: center; }
 .al-item > svg { flex: none; color: var(--text-sub); }
@@ -800,3 +800,20 @@
 /* 혜택 카드 대상 칸 괄호 설명 접기 */
 .bn-fold { display: block; min-height: 44px; margin: 0; padding: 0; background: none; border: 0; color: var(--blue-700); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
 .bn-fold-body[hidden] { display: none; }
+
+/* 혜택 카드: 이름과 얻는 혜택만 보이고, 대상·기간·문의는 "자세히 보기" 안에 */
+.bn-card { border: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: var(--s-4) 0; }
+.bn-list > .bn-card:last-child { border-bottom: 0; }
+.bm button.bn-more { align-self: flex-start; min-height: 32px; padding: 0 var(--s-3); border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-small); font-weight: 700; }
+.bm button.bn-more:hover:not(:disabled) { background: var(--primary-weak); }
+.bn-detail { display: flex; flex-direction: column; gap: var(--s-3); padding-top: var(--s-1); }
+.bn-detail[hidden] { display: none; }
+.bn-sum { word-break: keep-all; }
+
+/* 소식: 평평한 제목 줄, 한 가지 타일 색(숫자가 아니라 내용으로 구분) */
+.hp-tab > span { padding: 0 var(--s-1) var(--s-2); border-radius: 0; background: none; font-size: var(--fs-sub); }
+.hp-board { border-radius: var(--r-lg); }
+.bm button.hp-n-blue, .bm button.hp-n-green, .bm button.hp-n-amber, .bm button.hp-n-purple,
+:root[data-theme='dark'] .bm button.hp-n-blue { background: var(--bg-sub); color: var(--text-strong); }
+.hp-news-empty { margin: 0; color: var(--text-sub); font-size: var(--fs-small); }
+.hp-news:empty { display: none; }

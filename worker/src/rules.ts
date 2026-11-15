@@ -133,6 +133,9 @@ export function applyRules<T extends Like>(question: string, r: T): T {
     // 문제 말 없이 위치만 묻는 시설(엘리베이터·주차장 등)은 신고가 아니다. 앱에 찾아 줄 화면이 없으니 unknown으로 둔다.
     if (r.intent === 'report_new' && !toilet && hasFindCue(question) && !problem) return toUnknown()
   }
+  // 경사로가 막히거나 물건이 쌓였다는 말: 모델이 예시에 끌려 「파손 노면」으로 답한 적이 있다. 가장 가까운 기존 유형은 「경사로 없음」(쓸 수 있는 경사로가 없는 상태)이다. 가파르다는 말은 급경사로 둔다.
+  if (r.intent === 'report_new' && /경사로/.test(compact(question)) && !/가파|가팔|급경사/.test(compact(question)))
+    return { ...r, slots: { ...r.slots, type: '경사로 없음' } }
   if (r.intent === 'unknown') return r
   if (!UNSUPPORTED_EXEMPT.has(r.intent) && asksUnsupported(question)) return toUnknown()
   if (r.intent === 'help' && !hasHelpCue(question)) return toUnknown()

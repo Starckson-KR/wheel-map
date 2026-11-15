@@ -121,7 +121,7 @@ type PinItem = {
 }
 const DOT_PX = 14 // 작은 색 점의 폭(겹침 계산용)
 const ROUTE_WALK = '#1250c9' // 도보 경로(진한 파랑). 장애요소 등급 색(빨강·주황·노랑·초록)과 겹치지 않게 한다.
-const ROUTE_BASE = '#334a7a' // 가장 짧은 기존 길(점선)
+const ROUTE_BASE = '#7b8aa6' // 비교할 때 고르지 않은 쪽 길(연한 회색 파랑 실선)
 const NEAR_ROUTE_M = 40 // 경로에서 이 거리 안의 핀만 또렷하게 둔다
 const PIN_H = 30
 
@@ -892,36 +892,28 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     if (!ready || !k || !map || !overlay) return
     const shapes: { setMap(m: kakao.maps.Map | null): void }[] = []
     const ll = (p: [number, number]) => new k.maps.LatLng(p[0], p[1])
-    // 경로선: 흰 외곽선(아래) + 색 선(위). 돌아가는 길·걷는 길=진한 파랑 실선, 가장 짧은 기존 길=진한 남색 점선.
+    // 경로선: 흰 테두리(아래) + 색 실선(위). 모두 같은 굵기, 끝은 둥글게(map.css). 도보=파랑, 버스=노선 종류 색.
+    // 기존 최단길과 개선 경로를 같이 보여 줄 때는 고른 쪽이 파랑, 다른 쪽은 연한 회색 파랑으로 둔다.
+    const W = 7
+    const both = !!(overlay.base && overlay.detour)
     const draw = (path: [number, number][] | null, kind: 'base' | 'detour') => {
       if (!path) return
-      const on = overlay.active === kind
-      const w = kind === 'base' ? (on ? 7 : 5) : on ? 9 : 6
+      const on = !both || overlay.active === kind
       const lls = path.map(ll)
       shapes.push(
-        new k.maps.Polyline({ map, path: lls, strokeWeight: w + 5, strokeColor: '#ffffff', strokeOpacity: on ? 1 : 0.7, strokeStyle: 'solid', zIndex: on ? 8 : 6 }),
-        new k.maps.Polyline({
-          map,
-          path: lls,
-          strokeWeight: w,
-          strokeColor: kind === 'base' ? ROUTE_BASE : ROUTE_WALK,
-          strokeOpacity: on ? 1 : 0.6,
-          strokeStyle: kind === 'base' ? 'dash' : 'solid',
-          zIndex: on ? 9 : 7,
-        }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: W + 4, strokeColor: '#ffffff', strokeOpacity: on ? 1 : 0.75, strokeStyle: 'solid', zIndex: on ? 8 : 6 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: W, strokeColor: on ? ROUTE_WALK : ROUTE_BASE, strokeOpacity: on ? 1 : 0.6, strokeStyle: 'solid', zIndex: on ? 9 : 7 }),
       )
     }
     draw(overlay.base, 'base')
     draw(overlay.detour, 'detour')
-    // 버스가 섞인 경로: 걷는 구간은 파랑 점선, 버스 구간은 노선 종류 색 실선 + 시작점에 노선 번호 칩
-    const mixed = (overlay.legs ?? []).some((l) => l.kind === 'bus')
+    // 버스가 섞인 경로: 걷는 구간은 파랑 실선, 버스 구간은 노선 종류 색 실선
     for (const l of overlay.legs ?? []) {
       const lls = l.coords.map(ll)
-      const bus = l.kind === 'bus'
-      const col = bus ? busColor(l.route) : ROUTE_WALK
+      const col = l.kind === 'bus' ? busColor(l.route) : ROUTE_WALK
       shapes.push(
-        new k.maps.Polyline({ map, path: lls, strokeWeight: (bus ? 9 : 7) + 5, strokeColor: '#ffffff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 8 }),
-        new k.maps.Polyline({ map, path: lls, strokeWeight: bus ? 9 : 7, strokeColor: col, strokeOpacity: 1, strokeStyle: bus || !mixed ? 'solid' : 'dash', zIndex: 9 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: W + 4, strokeColor: '#ffffff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 8 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: W, strokeColor: col, strokeOpacity: 1, strokeStyle: 'solid', zIndex: 9 }),
       )
     }
     for (const h of overlay.hits) {
@@ -1029,7 +1021,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       for (const p of [...(overlay.base ?? []), ...(overlay.detour ?? []), ...(overlay.legs ?? []).flatMap((l) => l.coords)]) b.extend(new k.maps.LatLng(p[0], p[1]))
       setTimeout(() => {
         map.relayout()
-        map.setBounds(b, isDesktopLayout() ? 60 : Math.max(70, topCoverOf(container.current) + 12), 40, isDesktopLayout() ? 80 : Math.round(window.innerHeight * 0.44), isDesktopLayout() ? 480 : 40)
+        fitWithSheet(map, b, 70) // 위 검색줄·헤더와 아래 시트가 가린 만큼 여백을 둔다
       }, 100)
     } else if (overlay.focus) {
       const h = overlay.hits.find((x) => x.o.id === overlay.focus)
@@ -1173,7 +1165,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     else if (pubStatus[l.id] === 'error') pubNotes.push(`${l.label} 데이터를 불러오지 못했어요.`)
     else {
       const g = pubVisible.find((x) => x.layer === l.id)
-      if (g && view && view.level > PUB_MAX_LEVEL) pubNotes.push(`${l.label}: 지도를 확대하면 보여요 (전체 ${g.total}건)`)
+      if (g && view && view.level > PUB_MAX_LEVEL) pubNotes.push(`${l.label}: 지도를 확대하면 보여요`)
       else if (g && g.inView > PUB_MAX_DRAW) pubNotes.push(`${l.label}: 화면 안 ${g.inView}건 중 ${PUB_MAX_DRAW}건만 보여요. 더 확대해 주세요.`)
     }
   }
@@ -1698,6 +1690,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
         {routeOpen && (
           <RoutePanel
+            onLocate={locateMe}
+            locMode={locMode}
             initialMode={start.mode}
             presetFrom={start.from}
             presetTo={start.to}

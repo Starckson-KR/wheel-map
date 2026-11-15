@@ -11,6 +11,7 @@ type Props = {
   lineName?: string // 길찾기에서 탈 노선. 있으면 그 노선을 먼저 보여 준다
   warns?: BoardingWarn[] // 이 정류장의 '버스 타기 불편' 장애요소
   autoLoad?: boolean
+  compact?: boolean // 길찾기 단계 안에 넣는 한 줄 보기(상자·목록 없이 한 줄과 작은 새로 고침)
 }
 
 
@@ -24,7 +25,7 @@ function Row({ a, mark }: { a: Arrival; mark?: boolean }) {
   )
 }
 
-export default function BusArrivals({ choices, lineName, warns = [], autoLoad = true }: Props) {
+export default function BusArrivals({ choices, lineName, warns = [], autoLoad = true, compact = false }: Props) {
   const [idx, setIdx] = useState(0)
   const [res, setRes] = useState<ArrivalResult | null>(null)
   const [lineLow, setLineLow] = useState<LineLowResult | null>(null)
@@ -50,6 +51,38 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
 
   if (!cur) return null
   const warnX = warns.some((w) => w.rating === 'X')
+
+  if (compact) {
+    let text = '도착 정보를 불러오는 중이에요'
+    if (res && !res.ok) {
+      text = res.reason === 'no-snapshot' || res.reason === 'unavailable' ? (LIVE_AVAILABLE ? res.message : '이 정류장의 버스 정보가 아직 없어요') : res.message
+    } else if (res && res.ok) {
+      const low = nextLow(res.arrivals, lineName)
+      if (low) text = `다음 저상버스 ${arrivalText(low).replace(`${low.lineName}번 `, '')}`
+      else if (lineName && res.arrivals.some((a) => a.lineName === lineName)) text = `${lineName}번이 오지만 저상버스가 아니에요`
+      else text = '곧 오는 저상버스 정보 없음'
+    }
+    return (
+      <div className="bus-one">
+        {warns.length > 0 && (
+          <p className={'bus-warn ' + (warnX ? 'bus-warn-x' : 'bus-warn-t')} role="alert">
+            <b>{warnX ? '이 정류장은 휠체어 탑승이 어려워요' : '이 정류장은 타고 내릴 때 주의해야 해요'}</b>
+            <br />
+            {warns.map((w) => `${w.rating === 'X' ? 'X' : '△'} ${w.name}`).join(' · ')}
+          </p>
+        )}
+        <div className="bus-one-row">
+          {res && res.ok && res.mode !== 'live' && <span className="bus-tag bus-norm">예시</span>}
+          <span className="bus-one-text">{text}</span>
+          {res && res.ok && res.mode === 'live' && (
+            <button type="button" className="bus-one-btn" onClick={() => void load()} disabled={loading}>
+              {loading ? '불러오는 중…' : '새로 고침'}
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bus-box">

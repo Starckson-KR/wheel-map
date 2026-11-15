@@ -454,3 +454,6 @@
   html:not(.motion-force) .ob-opt:active,
   html:not(.motion-force) .ob-chip:active { transform: none; }
 }
+
+/* 탭 페이지 안의 계정 카드는 다른 카드와 같은 폭·모양 */
+.pg-scroll .ob-card { margin-inline: 0; border: 0; box-shadow: var(--shadow-1); }

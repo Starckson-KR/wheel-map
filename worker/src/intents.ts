@@ -237,7 +237,8 @@ intent 목록:
 ${list}
 
 예시:
-질문: 경사로가 막혔어요 -> {"intent":"report_new","slots":{},"confidence":0.85}
+질문: 경사로가 막혔어요 -> {"intent":"report_new","slots":{"type":"경사로 없음"},"confidence":0.85}
+질문: 경사로 앞에 물건이 쌓여 있어요 -> {"intent":"report_new","slots":{"type":"경사로 없음"},"confidence":0.85}
 질문: 전남대 정문 앞 턱 신고할래요 -> {"intent":"report_new","slots":{"type":"계단·턱","place":"전남대 정문"},"confidence":0.9}
 질문: 도로에 구멍이 났어요 -> {"intent":"report_new","slots":{"type":"파손 노면"},"confidence":0.9}
 질문: 횡단보도 신호가 너무 짧아요 -> {"intent":"report_new","slots":{"type":"횡단보도·신호"},"confidence":0.85}

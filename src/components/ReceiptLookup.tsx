@@ -34,7 +34,7 @@ export default function ReceiptLookup({ onOpen }: { onOpen: (id: string) => void
 
   return (
     <form className="rl" onSubmit={search} noValidate>
-      <label className="rf-field" htmlFor="rl-q">
+      <label className="rf-field ob-vh" htmlFor="rl-q">
         접수번호로 내 민원 찾기
       </label>
       <input
@@ -47,7 +47,7 @@ export default function ReceiptLookup({ onOpen }: { onOpen: (id: string) => void
           setFound(null)
           setErr('')
         }}
-        placeholder="예: DEMO-20261111-1234"
+        placeholder="접수번호를 적어 주세요"
         autoComplete="off"
         autoCapitalize="characters"
         aria-invalid={!!err}

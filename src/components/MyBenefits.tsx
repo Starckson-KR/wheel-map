@@ -20,7 +20,8 @@ const WHEEL: { id: WheelchairUse; label: string }[] = [
 
 // 긴 문의 글: " · "로 이어 붙인 항목은 줄을 나누고, 전화번호는 한 덩어리로 둔다(글은 그대로).
 function SplitLines({ text }: { text: string }) {
-  const parts = text.split(' · ')
+  const raw = text.split(' · ')
+  const parts = raw.filter((p) => !raw.some((q) => q !== p && q.includes(p)))
   if (parts.length < 2) return <>{tidyBreaks(text)}</>
   return <>{parts.map((p, i) => <span key={i} className="sent">{tidyBreaks(p)}</span>)}</>
 }
@@ -45,30 +46,37 @@ function TargetText({ text }: { text: string }) {
 // 정해지지 않은 값("확인 필요")은 그 칸을 보여 주지 않는다.
 const known = (v: string) => v.trim() !== '' && !v.includes('확인 필요')
 
-function BenefitCard({ b, i, first }: { b: Benefit; i: number; first: boolean }) {
+function BenefitCard({ b, i, first, showTag }: { b: Benefit; i: number; first: boolean; showTag?: boolean }) {
   const period = periodText(b)
   const contact = b.agency + (b.contact && known(b.contact) ? ' · ' + b.contact : '')
+  const [open, setOpen] = useState(false)
+  const id = useId()
   return (
     <RiseLi className="bn-card" first={first} i={i}>
-      <div className="bn-tags">
-        <span className={'bn-tag bn-tag-' + b.category}>{categoryLabel(b.category)}</span>
-      </div>
+      {showTag && (
+        <div className="bn-tags">
+          <span className={'bn-tag bn-tag-' + b.category}>{categoryLabel(b.category)}</span>
+        </div>
+      )}
       <h3>{b.title}</h3>
       <Sentences as="p" className="bn-sum">{b.summary}</Sentences>
-      <dl className="bn-dl">
-        {known(b.target) && <div><dt>대상</dt><dd><TargetText text={b.target} /></dd></div>}
-        {known(period) && <div><dt>기간</dt><dd>{period}</dd></div>}
-        {known(contact) && <div><dt>신청·문의</dt><dd><SplitLines text={contact} /></dd></div>}
-      </dl>
-      <div className="bn-foot">
+      <button type="button" className="bn-more" aria-expanded={open} aria-controls={id} onClick={() => setOpen((v) => !v)}>
+        {open ? '접기' : '자세히 보기'}
+      </button>
+      <div id={id} className="bn-detail" hidden={!open}>
+        <dl className="bn-dl">
+          {known(b.target) && <div><dt>대상</dt><dd><TargetText text={b.target} /></dd></div>}
+          {known(period) && <div><dt>기간</dt><dd>{period}</dd></div>}
+          {known(contact) && <div><dt>신청·문의</dt><dd><SplitLines text={contact} /></dd></div>}
+        </dl>
         <a
           className="bn-link"
           href={b.sourceUrl}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`${b.title} 자세히 보기, 공식 누리집, 새 창으로 열려요`}
+          aria-label={`${b.title} 공식 누리집 열기, 새 창으로 열려요`}
         >
-          자세히 보기 <Icon name="chev" size={16} />
+          공식 누리집 열기 <Icon name="chev" size={16} />
         </a>
       </div>
     </RiseLi>
@@ -147,7 +155,7 @@ export default function MyBenefits() {
           {view.matched.length === 0 ? (
             <Sentences as="p" className="bm-meta">설정에 맞는 혜택이 아직 없어요. 아래에서 다른 혜택을 볼 수 있어요.</Sentences>
           ) : (
-            <ul className="bn-list">{view.matched.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} />)}</ul>
+            <ul className="bn-list">{view.matched.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} showTag />)}</ul>
           )}
           {view.groups.length > 0 && (
             <button type="button" className="pg-wide" aria-expanded={showRest || view.matched.length === 0} onClick={() => setShowRest((v) => !v)}>

@@ -4,7 +4,7 @@ import { ROUTE_CFG, ROUTE_CROSSWALK_RADIUS_M, ROUTE_DEST_RADIUS_M, ROUTE_STOP_RA
 import { keywordSearch } from '../lib/kakao'
 import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import { isExpired } from '../lib/reportStore'
-import { pathLenM, searchRoute, type Hit, type Pt, type RouteData, type SearchResult } from '../lib/routing/engine.ts'
+import { searchRoute, type Hit, type Pt, type RouteData, type SearchResult } from '../lib/routing/engine.ts'
 import { crosswalksOnRoute, loadExtras, type Extras } from '../lib/routing/extras.ts'
 import { recordNoAlt } from '../lib/routing/noAlt.ts'
 import { buildObstacles } from '../lib/routing/obstacles.ts'
@@ -16,6 +16,8 @@ import BusArrivals from './BusArrivals'
 import SheetHandle from './SheetHandle'
 import TransitView from './TransitView'
 import { Sentences } from './Sentences'
+import { Badge, RouteCard, Tl, TlHit, TlStep, VerdictBadge } from './RouteUi'
+import { fmtDist, fmtMin, WALK_COLOR } from './routeFmt'
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
@@ -34,6 +36,9 @@ type Props = {
   initialMode?: 'walk' | 'bus'
   presetFrom?: string | null
   presetTo?: string | null
+  /** 내 위치 버튼(시트 위로 올려 둔다) */
+  onLocate?: () => void
+  locMode?: 'off' | 'follow' | 'free'
 }
 
 type Card = { id: 'base' | 'detour'; title: string; route: RouteData; hits: Hit[] }
@@ -48,10 +53,7 @@ type Result = {
   fitKey: number
 }
 
-// 판정 표시는 ○△X의 '정도' 말로 맞춘다(엔진의 VERDICT_LABEL은 읽기만)
-const PILL_LABEL: Record<string, string> = { pass: '괜찮음', caution: '주의', blocked: '어려움' }
-const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(2)}km` : `${Math.round(m)}m`)
-const fmtTime = (s: number) => `${Math.max(1, Math.round(s / 60))}분`
+const fmtWalk = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(2)}km` : `${Math.round(m)}m`)
 
 function placeOfBarrier(b: Barrier, name: string): Place | null {
   const g = b.geometry
@@ -172,6 +174,10 @@ export default function RoutePanel(props: Props) {
   const [result, setResult] = useState<Result | null>(null)
   const [active, setActive] = useState<'base' | 'detour'>('base')
   const [focus, setFocus] = useState<string | null>(null)
+  const [chosen, setChosen] = useState(false) // 경로 카드를 골랐는가(고르면 그 경로만 보이고 단계별 안내가 나온다)
+  const [fitN, setFitN] = useState(0)
+  const [pairsOpen, setPairsOpen] = useState(false)
+  const topRef = useRef<HTMLDivElement>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [mode, setMode] = useState<'walk' | 'bus'>(props.initialMode ?? 'walk') // 걸어서 / 버스 타고(7단계)
   const [transitOv, setTransitOv] = useState<RouteOverlay | null>(null)
@@ -223,6 +229,8 @@ export default function RoutePanel(props: Props) {
       if (my !== runId.current) return
       setResult({ res, pair: pairLabel, extras, extrasError, stats, start: f, end: t, fitKey: my })
       setActive(res.detour ? 'detour' : 'base')
+      setChosen(!res.detour)
+      setFitN((n) => n + 1)
       setStatus('done')
     } catch {
       if (my === runId.current) {
@@ -232,7 +240,14 @@ export default function RoutePanel(props: Props) {
     }
   }
 
+  const pick = (v: boolean) => {
+    setChosen(v)
+    setFitN((n) => n + 1)
+    requestAnimationFrame(() => topRef.current?.scrollIntoView({ block: 'start' }))
+  }
+
   const choosePair = (p: DemoPair) => {
+    setPairsOpen(false)
     const fb = byId.get(p.fromId)
     const tb = byId.get(p.toId)
     const f = fb ? placeOfBarrier(fb, stripId(p.fromName)) : null
@@ -290,18 +305,18 @@ export default function RoutePanel(props: Props) {
     onOverlay({
       start: result.start,
       end: result.end,
-      base: result.res.base?.coords ?? null,
-      detour: result.res.detour?.coords ?? null,
+      base: chosen && active !== 'base' ? null : (result.res.base?.coords ?? null),
+      detour: chosen && active !== 'detour' ? null : (result.res.detour?.coords ?? null),
       active: activeCard.id,
       hits: activeCard.hits,
       unresolvedIds: [...unresolvedIds],
       markers,
       focus,
-      fitKey: result.fitKey,
+      fitKey: result.fitKey * 1000 + fitN,
     })
     // onOverlay는 부모의 setState라 의존성에서 뺀다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result, activeCard, perRoute, focus, unresolvedIds, mode, transitOv])
+  }, [result, activeCard, perRoute, focus, unresolvedIds, mode, transitOv, chosen, active, fitN])
 
   useEffect(() => () => onOverlay(null), []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -320,37 +335,6 @@ export default function RoutePanel(props: Props) {
 
   const finalId: 'base' | 'detour' = result?.res.detour ? 'detour' : 'base'
   const finalSummary = result?.res.summary[finalId] ?? null
-
-  const bar = activeCard && (
-    <div className="rt-seg">
-      <h4>길을 따라 본 위치 ({activeCard.id === 'detour' ? '돌아가는 길' : '가장 짧은 길'})</h4>
-      <div className="rt-track" role="group" aria-label="경로상 장애요소 위치">
-        <span className="rt-end rt-end-s">출발</span>
-        <span className="rt-end rt-end-e">도착</span>
-        {activeCard.hits.map((h) => {
-          const len = Math.max(1, pathLenM(activeCard.route.coords))
-          const pos = Math.min(94, Math.max(6, (h.atM / len) * 100))
-          const st = ROLE_STYLE[h.role]
-          return (
-            <button
-              key={h.o.id}
-              type="button"
-              className={'rt-dot' + (focus === h.o.id ? ' on' : '')}
-              style={{ left: `${pos}%`, background: st.color, color: inkOf(st) }}
-              title={`${obstacleName(h.o)} — ${st.label}`}
-              aria-label={`${obstacleName(h.o)}, ${st.label}, 출발에서 약 ${Math.round(h.atM)}미터`}
-              onClick={() => setFocus(h.o.id)}
-            >
-              {st.glyph}
-            </button>
-          )
-        })}
-      </div>
-      <p className="bm-meta rt-legend">
-        <span>○ 괜찮음</span> · <span>△ 주의</span> · <span>X 지나가기 어려움</span> · <span>◆ 주의 구역</span> · <span>승 버스 타기 불편</span> · <span>입 출입 불편</span>
-      </p>
-    </div>
-  )
 
   const stopsBlock = result?.extras && (
     <section className="rf-card rt-sec">
@@ -463,9 +447,24 @@ export default function RoutePanel(props: Props) {
     </>
   )
 
+  const locBtn = props.onLocate && (
+    <button
+      type="button"
+      className={'hm-locate rt-locate' + (collapsed ? ' rt-locate-mini' : '') + (props.locMode === 'follow' ? ' on' : props.locMode === 'free' ? ' free' : '')}
+      onClick={props.onLocate}
+      aria-pressed={props.locMode !== undefined && props.locMode !== 'off'}
+      aria-label={props.locMode === 'follow' ? '내 위치 따라가기 끄기' : props.locMode === 'free' ? '내 위치로 돌아가 따라가기' : '내 위치로 이동'}
+      hidden={!!picking}
+    >
+      내 위치
+    </button>
+  )
+
   if (collapsed) {
     return (
-      <div className="rt-mini" role="status">
+      <>
+        {locBtn}
+        <div className="rt-mini" role="status">
         <span>길찾기 {result ? `· ${result.start.name} → ${result.end.name}` : ''}</span>
         <button type="button" className="rf-primary" onClick={() => setCollapsed(false)}>
           다시 열기
@@ -473,17 +472,14 @@ export default function RoutePanel(props: Props) {
         <button type="button" onClick={onClose}>
           끝내기
         </button>
-      </div>
+        </div>
+      </>
     )
   }
 
-  const VERDICT_TEXT = {
-    pass: { glyph: '○', title: '지나갈 수 있어요', body: '경로에 지나가기 어려운 곳이나 주의할 곳이 없어요.' },
-    caution: { glyph: '△', title: '주의해서 가야 해요', body: '주의할 곳이나 주의 구역을 지나요. 아래 목록을 확인해 주세요.' },
-    blocked: { glyph: 'X', title: '지나가기 어려워요', body: '돌아가지 못한 어려운 곳이 있어요.' },
-  } as const
-
   return (
+    <>
+    {locBtn}
     <div className={'rp rt' + (picking ? ' rt-hidden' : '')} data-sheet role="dialog" aria-label="길찾기" hidden={!!picking}>
       <SheetHandle exit={!result} onDown={() => (result ? setCollapsed(true) : onClose())} />
       <div className="rf-head">
@@ -498,21 +494,32 @@ export default function RoutePanel(props: Props) {
         </span>
       </div>
 
-      <section className="rt-sec">
-        <h3>시연 경로</h3>
-        <ul className="rt-pairs">
-          {DEMO_PAIRS.map((p) => (
-            <li key={p.id}>
-              <button type="button" className={'lr rt-pair' + (pairId === p.id ? ' on' : '')} aria-pressed={pairId === p.id} onClick={() => choosePair(p)} disabled={status === 'loading'}>
-                <span className="lr-main">
-                  <span className="lr-title rt-wrap">{stripId(p.fromName)} → {stripId(p.toName)}</span>
-                </span>
-                <span className="lr-chev" aria-hidden="true" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {pairId && !pairsOpen && from && to ? (
+        <div className="rt-pair-sum">
+          <span className="rt-pair-name">
+            {from.name} → {to.name}
+          </span>
+          <button type="button" onClick={() => setPairsOpen(true)}>
+            경로 바꾸기
+          </button>
+        </div>
+      ) : (
+        <section className="rt-sec">
+          <h3>시연 경로</h3>
+          <ul className="rt-pairs">
+            {DEMO_PAIRS.map((p) => (
+              <li key={p.id}>
+                <button type="button" className={'lr rt-pair' + (pairId === p.id ? ' on' : '')} aria-pressed={pairId === p.id} onClick={() => choosePair(p)} disabled={status === 'loading'}>
+                  <span className="lr-main">
+                    <span className="lr-title rt-wrap">{stripId(p.fromName)} → {stripId(p.toName)}</span>
+                  </span>
+                  <span className="lr-chev" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {FREE_SEARCH && (
         <section className="rf-card rt-sec">
@@ -552,166 +559,135 @@ export default function RoutePanel(props: Props) {
       )}
 
       {mode === 'walk' && status === 'done' && result && activeCard && (
-        <>
-          <section className="rt-sec rt-result" aria-live="polite">
-            <h3 className="rt-route-title">
-              {result.start.name} → {result.end.name}
-            </h3>
-            {finalSummary && (
-              <div className={'rt-verdict-card rt-v-' + finalSummary.verdict}>
-                <i aria-hidden="true">{VERDICT_TEXT[finalSummary.verdict].glyph}</i>
-                <div>
-                  <strong>{VERDICT_TEXT[finalSummary.verdict].title}</strong>
-                  <p>{VERDICT_TEXT[finalSummary.verdict].body}</p>
-                  <p className="bm-meta">{finalSummary.text}</p>
-                </div>
-              </div>
-            )}
-            {result.res.unresolved.length > 0 && (
-              <p className="rt-alert" role="alert">
-                <b>돌아갈 길이 없어요</b>
-                <br />
-                {result.res.unresolved.map((h) => obstacleName(h.o)).join(', ')}
-                <br />
-                이곳을 피하는 길을 찾지 못했어요.
-              </p>
-            )}
-            {result.res.endpoint.length > 0 && (
-              <p className="rt-warn" role="status">
-                <b>출발·도착 지점 자체가 X예요</b>
-                <br />
-                {result.res.endpoint.map((h) => obstacleName(h.o)).join(', ')}. 길로 피할 수 없어서 돌아가지 않았고, &apos;돌아갈 길이 없어요&apos;로도 기록하지 않았어요.
-              </p>
-            )}
-            {result.res.untested.length > 0 && (
-              <p className="rf-warn">돌아갈 수 있는지 확인하지 못한 곳: {result.res.untested.map((h) => obstacleName(h.o)).join(', ')}</p>
-            )}
-          </section>
-
-          <div className="rt-cards" role="radiogroup" aria-label="경로 비교">
+        <div ref={topRef} className="rt-top" aria-live="polite">
+          {chosen && cards.length > 1 && (
+            <button type="button" className="rt-back" onClick={() => pick(false)}>
+              다른 경로 보기
+            </button>
+          )}
+          <ul className="rc-list">
             {cards.map((c) => {
+              if (chosen && c.id !== active) return null
               const sm = result.res.summary[c.id]
-              const v = sm?.verdict ?? 'pass'
               return (
-                <button key={c.id} type="button" role="radio" aria-checked={active === c.id} className={'rt-card' + (active === c.id ? ' on' : '')} onClick={() => setActive(c.id)}>
-                  <span className="rt-card-title">{c.title}</span>
-                  <span className="rt-big">
-                    {fmtDist(c.route.distance)} · 약 {fmtTime(c.route.time)}
-                  </span>
-                  <span className={'rt-pill rt-v-' + v}>{PILL_LABEL[v]}</span>
-                  {sm && (
-                    <span className="rt-sum">
-                      어려운 곳 {sm.blockedCount} · 주의 {sm.cautionCount + sm.zoneCount}
-                      {sm.boardingCount > 0 && ` · 버스 불편 ${sm.boardingCount}`}
-                    </span>
-                  )}
-                  <span className="rt-card-state">{active === c.id ? '지도에 보여 주고 있어요' : '눌러서 지도에 보기'}</span>
-                </button>
+                <RouteCard
+                  key={c.id}
+                  on={chosen && active === c.id}
+                  onPick={() => {
+                    setActive(c.id)
+                    pick(true)
+                  }}
+                  time={fmtMin(c.route.time)}
+                  sub={`${fmtWalk(c.route.distance)} · ${c.title}`}
+                  badges={
+                    <>
+                      {cards.length > 1 && c.id === finalId && <Badge tone="blue">추천</Badge>}
+                      <VerdictBadge v={sm?.verdict ?? 'pass'} />
+                    </>
+                  }
+                />
               )
             })}
-          </div>
-          {cards.length === 1 && result.res.baseHits.filter((h) => h.role === 'X').length === 0 && <p className="bm-meta">돌아갈 필요가 있는 곳이 없어서 경로를 하나만 보여 드려요.</p>}
+          </ul>
 
-          {finalSummary && finalSummary.entryDest.length > 0 && (
-            <section className="rf-card rt-sec">
-              <h3>도착지 건물에 들어가기 불편해요</h3>
-              <ul className="rt-hits">
-                {finalSummary.entryDest.map((h) => (
-                  <li key={h.o.id}>
-                    <button type="button" className="lr" onClick={() => openHit(h)}>
-                      <i className="lr-glyph" style={{ background: ROLE_STYLE.E.color, color: inkOf(ROLE_STYLE.E) }}>
-                        {ROLE_STYLE.E.glyph}
-                      </i>
-                      <span className="lr-main">
-                        <span className="lr-title">{obstacleName(h.o)}</span>
-                        <span className="lr-sub">{h.o.rating === 'X' ? 'X 들어가기 어려워요' : '△ 들어갈 때 주의해요'}</span>
-                      </span>
-                      <span className="lr-chev" aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {result.res.unresolved.length > 0 && (
+            <p className="rt-alert" role="alert">
+              <b>돌아갈 길이 없어요</b>
+              <br />
+              {result.res.unresolved.map((h) => obstacleName(h.o)).join(', ')}
+              <br />
+              이곳을 피하는 길을 찾지 못했어요.
+            </p>
           )}
-
-          {finalSummary && finalSummary.stops.length > 0 && (
-            <section className="rf-card rt-sec">
-              <h3>버스 타기 불편한 정류장 {finalSummary.boardingCount}곳</h3>
-              <Sentences as="p" className="bm-meta">걸어서 지나가는 건 막히지 않아요. 이 정류장에서 버스를 타고 내리기가 불편하다는 뜻이에요.</Sentences>
-              <ul className="rt-hits">
-                {finalSummary.stops.map((s) => (
-                  <li key={s.o.id}>
-                    <button
-                      type="button"
-                      className="lr"
-                      onClick={() => {
-                        setCollapsed(true)
-                        if (s.o.origin === 'report') onOpenReport(s.o.id)
-                        else onOpenSeed(s.o.id)
-                      }}
-                    >
-                      <i className="lr-glyph" style={{ background: ROLE_STYLE.B.color, color: inkOf(ROLE_STYLE.B) }}>
-                        {ROLE_STYLE.B.glyph}
-                      </i>
-                      <span className="lr-main">
-                        <span className="lr-title">{obstacleName(s.o)}</span>
-                        <span className="lr-sub">
-                          {WHERE[s.where]} · {s.distM}m
-                        </span>
-                      </span>
-                      <span className="lr-chev" aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {result.res.endpoint.length > 0 && (
+            <p className="rt-warn" role="status">
+              <b>출발·도착 지점 자체가 X예요</b>
+              <br />
+              {result.res.endpoint.map((h) => obstacleName(h.o)).join(', ')}. 길로 피할 수 없어서 돌아가지 않았어요.
+            </p>
           )}
+          {result.res.untested.length > 0 && <p className="rf-warn">돌아갈 수 있는지 확인하지 못한 곳: {result.res.untested.map((h) => obstacleName(h.o)).join(', ')}</p>}
 
-          {bar}
-
-          <section className="rt-sec">
-            <h3>지나는 길의 장애요소 {passHits.length}곳</h3>
-            {passHits.length === 0 ? (
-              <p className="bm-meta">경로 {ROUTE_CFG.radiusM}m 안에 등록된 장애요소가 없어요.</p>
-            ) : (
-              <ul className="rt-hits">
-                {passHits.map((h) => {
-                  const st = ROLE_STYLE[h.role]
-                  return (
-                    <li key={h.o.id}>
-                      <button type="button" className={'lr' + (focus === h.o.id ? ' rt-on' : '')} onClick={() => openHit(h)}>
-                        <i className="lr-glyph" style={{ background: st.color, color: inkOf(st) }}>
-                          {st.glyph}
-                        </i>
-                        <span className="lr-main">
-                          <span className="lr-title rt-wrap">{obstacleName(h.o)}</span>
-                          <span className="lr-sub rt-wrap">
-                            {st.label}
-                            {h.role === 'Z' ? ' (영역이라 돌아가지 않아요)' : ''}
-                            {h.o.pending ? ' · 판정을 기다려서 주의로 봤어요' : ''} · 경로에서 {h.distM}m · 출발 후 약 {Math.round(h.atM)}m
-                            {unresolvedIds.has(h.o.id) && <b className="rt-noalt"> · 돌아갈 길이 없어요</b>}
-                            {endpointIds.includes(h.o.id) && <b className="rt-noalt"> · 출발·도착 지점이라 피할 수 없어요</b>}
-                          </span>
-                        </span>
-                        <span className="lr-chev" aria-hidden="true" />
+          {chosen && (
+            <>
+              <Tl>
+                <TlStep color={WALK_COLOR} title={<>걷기 약 {fmtMin(activeCard.route.time)} · {fmtWalk(activeCard.route.distance)}</>} sub={`${result.start.name}에서 ${result.end.name}까지`} />
+                {[...passHits]
+                  .sort((x, y) => x.atM - y.atM)
+                  .map((h) => (
+                    <TlHit
+                      key={h.o.id}
+                      color={WALK_COLOR}
+                      h={h}
+                      onOpen={openHit}
+                      where={h.atM < 30 ? '출발 지점' : `출발 후 ${fmtDist(h.atM)}`}
+                      note={
+                        <>
+                          {unresolvedIds.has(h.o.id) && <b className="rt-noalt"> · 돌아갈 길이 없어요</b>}
+                          {endpointIds.includes(h.o.id) && <b className="rt-noalt"> · 출발·도착 지점이라 피할 수 없어요</b>}
+                        </>
+                      }
+                    />
+                  ))}
+                <TlStep color="var(--text-sub)" last end title="도착" sub={result.end.name}>
+                  {finalSummary &&
+                    finalSummary.entryDest.map((h) => (
+                      <button key={h.o.id} type="button" className="tl-hit tl-hit-end" onClick={() => openHit(h)}>
+                        <span className="tl-hit-name">{obstacleName(h.o)}</span>
+                        <span className="tl-hit-sub">{h.o.rating === 'X' ? '들어가기 어려워요' : '들어갈 때 주의해요'}</span>
                       </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-            {finalSummary && finalSummary.entryMid.length > 0 && (
-              <Sentences as="p" className="bm-meta">{`길 중간에 들어가기 불편한 건물 ${finalSummary.entryMid.length}곳이 있어요. 지나가는 데는 영향이 없어서 판정에는 넣지 않았어요.`}</Sentences>
-            )}
-            <Sentences as="p" className="bm-meta">장애요소를 누르면 상세 정보가 열려요.</Sentences>
-          </section>
+                    ))}
+                </TlStep>
+              </Tl>
 
-          {stopsBlock}
-
-          {extrasBlock}
-        </>
+              <details className="rt-more">
+                <summary>자세히 보기</summary>
+                <div className="rt-more-in">
+                  {finalSummary && finalSummary.entryMid.length > 0 && (
+                    <Sentences as="p" className="bm-meta">{`길 중간에 들어가기 불편한 건물 ${finalSummary.entryMid.length}곳이 있어요. 지나가는 데는 영향이 없어요.`}</Sentences>
+                  )}
+                  {finalSummary && finalSummary.stops.length > 0 && (
+                    <section className="rt-sec">
+                      <h3>버스 타기 불편한 정류장 {finalSummary.boardingCount}곳</h3>
+                      <Sentences as="p" className="bm-meta">걸어서 지나가는 건 막히지 않아요. 이 정류장에서 버스를 타고 내리기가 불편하다는 뜻이에요.</Sentences>
+                      <ul className="rt-hits">
+                        {finalSummary.stops.map((s) => (
+                          <li key={s.o.id}>
+                            <button
+                              type="button"
+                              className="lr"
+                              onClick={() => {
+                                setCollapsed(true)
+                                if (s.o.origin === 'report') onOpenReport(s.o.id)
+                                else onOpenSeed(s.o.id)
+                              }}
+                            >
+                              <i className="lr-glyph" style={{ background: ROLE_STYLE.B.color, color: inkOf(ROLE_STYLE.B) }}>
+                                {ROLE_STYLE.B.glyph}
+                              </i>
+                              <span className="lr-main">
+                                <span className="lr-title">{obstacleName(s.o)}</span>
+                                <span className="lr-sub">
+                                  {WHERE[s.where]} · {s.distM}m
+                                </span>
+                              </span>
+                              <span className="lr-chev" aria-hidden="true" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                  {stopsBlock}
+                  {extrasBlock}
+                </div>
+              </details>
+            </>
+          )}
+        </div>
       )}
     </div>
+    </>
   )
 }
 

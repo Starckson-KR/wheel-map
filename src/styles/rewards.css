@@ -302,10 +302,9 @@
 }
 
 /* ───── 참여 랭킹·이번 주 챌린지(혜택알림 탭). 카드(--bg) 안쪽 줄은 --bg-sub + 테두리로 구분한다 ───── */
-.rk-seg { display: flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-full); background: var(--bg-page); }
-.rk-seg { --seg-bg: var(--text-strong); --seg-shadow: none; }
-.bm .rk-seg > button { position: relative; isolation: isolate; flex: 1; min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-full); background: none; color: var(--text); font-size: var(--fs-small); font-weight: 700; }
-.rk-seg > button[aria-selected='true'] { color: var(--bg); }
+.rk-seg { display: flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-md); background: var(--grey-100); }
+.bm .rk-seg > button { position: relative; isolation: isolate; flex: 1; min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-sm); background: none; color: var(--text-sub); font-size: var(--fs-small); font-weight: 700; }
+.rk-seg > button[aria-selected='true'] { color: var(--text-strong); }
 .rk-panel { display: flex; flex-direction: column; gap: var(--s-2); }
 .rk-panel > p { margin: 0; }
 .rk-list { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }

@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { obstacleName } from '../lib/display'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { ROUTE_CFG } from '../lib/config'
 import { boardingNear, worstOf, type BoardingWarn } from '../lib/bus/boarding.ts'
 import { loadBisStops, PILOT_STOPS } from '../lib/bus/data.ts'
@@ -7,12 +6,13 @@ import { matchBisStop, stopsNear, type BisStop } from '../lib/bus/stops.ts'
 import { analyze, searchRoute, verdictOf, type Hit, type Obstacle, type Pt, type RouteData, type Verdict } from '../lib/routing/engine.ts'
 import type { RouteOverlay } from '../lib/routing/overlay.ts'
 import { makeFetcher, newStats, type Place } from '../lib/routing/provider.ts'
-import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import type { TItinerary, TLeg } from '../lib/transit/parse.ts'
 import { fetchTransit, hasStoredTransit, TRANSIT_FREE_SEARCH } from '../lib/transit/provider.ts'
 import BusArrivals from './BusArrivals'
 import { busColor } from '../lib/routing/busColor.ts'
 import { Sentences } from './Sentences'
+import { Badge, RouteCard, Tl, TlHit, TlStep, VerdictBadge } from './RouteUi'
+import { fmtDist, fmtMin, WALK_COLOR } from './routeFmt'
 
 type StopInfo = { name: string; lat: number; lng: number; bis: (BisStop & { distM: number }) | null; warns: BoardingWarn[] }
 type ALeg = {
@@ -30,10 +30,7 @@ type ALeg = {
 }
 type AItin = { raw: TItinerary; legs: ALeg[]; verdict: Verdict; reasons: string[]; hasXStop: boolean }
 
-const PILL: Record<Verdict, string> = { pass: '괜찮음', caution: '주의', blocked: '어려움' }
 const RANK: Record<Verdict, number> = { pass: 0, caution: 1, blocked: 2 }
-const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${Math.round(m)}m`)
-const fmtMin = (s: number) => `${Math.max(1, Math.round(s / 60))}분`
 
 type Props = {
   from: Place | null
@@ -134,7 +131,9 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState('')
   const [items, setItems] = useState<AItin[]>([])
-  const [sel, setSel] = useState(0)
+  const [sel, setSel] = useState<number | null>(null) // 고른 경로(없으면 목록)
+  const [fitN, setFitN] = useState(0) // 고르거나 목록으로 돌아올 때마다 지도를 다시 맞춘다
+  const topRef = useRef<HTMLDivElement>(null)
   const [bis, setBis] = useState<BisStop[]>([])
   const run = useRef(0)
   const fitKey = useRef(0)
@@ -160,7 +159,8 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
       analyzed.sort((a, b) => RANK[a.verdict] - RANK[b.verdict] || a.raw.time - b.raw.time)
       setBis(list)
       setItems(analyzed)
-      setSel(0)
+      setSel(analyzed.length === 1 ? 0 : null)
+      setFitN((n) => n + 1)
       fitKey.current = my
       setStatus('done')
     } catch {
@@ -183,7 +183,12 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
   }, [pairId, from?.lat, from?.lng, to?.lat, to?.lng])
 
   const [more, setMore] = useState<number | null>(null) // 설명을 펼친 카드
-  const cur = items[sel]
+  const cur = items[sel ?? 0]
+  const choose = (i: number | null) => {
+    setSel(i)
+    setFitN((n) => n + 1)
+    requestAnimationFrame(() => topRef.current?.scrollIntoView({ block: 'start' }))
+  }
 
   // 지도에 그릴 정보
   useEffect(() => {
@@ -209,11 +214,11 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
       unresolvedIds: cur.legs.flatMap((l) => l.unresolved),
       markers,
       focus: null,
-      fitKey: fitKey.current * 100 + sel,
+      fitKey: fitKey.current * 1000 + fitN,
     })
     // onOverlay는 부모의 setState라 의존성에서 뺀다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cur, from, to])
+  }, [cur, from, to, fitN])
 
   useEffect(() => () => onOverlay(null), []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -257,119 +262,107 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
       )}
 
       {status === 'done' && cur && (
-        <>
-          <ul className="tr-itins">
-            {items.map((it, i) => (
-              <li key={i} className={'tr-card' + (i === sel ? ' on' : '')}>
-                <button type="button" className="tr-itin" aria-pressed={i === sel} onClick={() => setSel(i)}>
-                  <span className="tr-head">
-                    <span className="tr-time">{fmtMin(it.raw.time)}</span>
-                    {i === 0 && <span className="tr-badge">추천</span>}
-                  </span>
-                  <span className="tr-chips">
-                    {it.legs.map((l, j) => (
-                      <span key={j} className={'tr-chip' + (l.kind === 'bus' ? ' tr-chip-line' : '')} style={l.kind === 'bus' ? { background: busColor(l.leg.route) } : undefined}>
-                        {l.kind === 'bus' ? `${l.leg.lineName ?? '버스'}번` : `걷기 ${fmtMin(l.time)}`}
-                      </span>
-                    ))}
-                  </span>
-                  <span className="tr-foot">
-                    <span className="tr-meta">
-                      걷기 {fmtDist(it.raw.walkDistance)}
-                      {it.raw.fare != null ? ` · ${it.raw.fare.toLocaleString()}원` : ''}
+        <div ref={topRef} className="rt-top">
+          {sel !== null && items.length > 1 && (
+            <button type="button" className="rt-back" onClick={() => choose(null)}>
+              다른 경로 보기
+            </button>
+          )}
+          <ul className="rc-list">
+            {items.map((it, i) =>
+              sel !== null && i !== sel ? null : (
+                <RouteCard
+                  key={i}
+                  on={sel === i}
+                  onPick={() => choose(i)}
+                  time={fmtMin(it.raw.time)}
+                  badges={
+                    <>
+                      {i === 0 && <Badge tone="blue">추천</Badge>}
+                      <VerdictBadge v={it.verdict} />
+                    </>
+                  }
+                  sub={`걷기 ${fmtDist(it.raw.walkDistance)}${it.raw.fare != null ? ` · ${it.raw.fare.toLocaleString()}원` : ''}`}
+                  chips={it.legs.map((l, j) => (
+                    <span key={j} className={'tr-chip' + (l.kind === 'bus' ? ' tr-chip-line' : '')} style={l.kind === 'bus' ? { background: busColor(l.leg.route) } : undefined}>
+                      {l.kind === 'bus' ? `${l.leg.lineName ?? '버스'}번` : `걷기 ${fmtMin(l.time)}`}
                     </span>
-                    <span className={'rt-pill rt-v-' + it.verdict}>{PILL[it.verdict]}</span>
-                  </span>
-                </button>
-                {it.reasons.length > 0 && (
-                  <>
-                    <button type="button" className="tr-more" aria-expanded={more === i} onClick={() => setMore(more === i ? null : i)}>
-                      {more === i ? '접기' : '자세히 보기'}
-                    </button>
-                    {more === i && <Sentences as="p" className="rt-sum tr-why">{it.reasons.join(' · ')}</Sentences>}
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <div>
-            {cur.legs.map((l, i) =>
-              l.kind === 'walk' && l.distance < 10 ? null : l.kind === 'walk' ? (
-                <section key={i} className="tr-leg">
-                  <h4>
-                    걷기 {fmtDist(l.distance)} · 약 {fmtMin(l.time)}
-                    {l.detoured && ' (돌아가는 길)'}
-                  </h4>
-                  {l.hits.length === 0 ? (
-                    <p className="bm-meta">{l.leg.distance < 10 ? '아주 짧은 구간이에요.' : '이 구간에서 등록된 장애요소를 찾지 못했어요.'}</p>
-                  ) : (
-                    <ul className="rt-hits">
-                      {l.hits.map((h) => {
-                        const st = ROLE_STYLE[h.role]
-                        return (
-                          <li key={h.o.id}>
-                            <button type="button" className="lr" onClick={() => onOpenHit(h)}>
-                              <i className="lr-glyph" style={{ background: st.color, color: (st as { ink?: string }).ink ?? '#fff' }}>
-                                {st.glyph}
-                              </i>
-                              <span className="lr-main">
-                                <span className="lr-title rt-wrap">{obstacleName(h.o)}</span>
-                                <span className="lr-sub rt-wrap">
-                                  {st.label}
-                                  {l.unresolved.includes(h.o.id) && <b className="rt-noalt"> · 돌아갈 길을 찾지 못했어요</b>}
-                                </span>
-                              </span>
-                              <span className="lr-chev" aria-hidden="true" />
-                            </button>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                </section>
-              ) : (
-                <section key={i} className="tr-leg">
-                  <h4>
-                    <span className="tr-chip tr-chip-line" style={{ background: busColor(l.leg.route) }}>
-                      {l.leg.lineName ?? '버스'}번
-                    </span>{' '}
-                    타기 · {Math.max(0, (l.leg.stations?.length ?? 1) - 1)}정거장 · 약 {fmtMin(l.time)}
-                  </h4>
-                  <p className="bm-meta">
-                    타는 곳 <b>{l.board?.name}</b> → 내리는 곳 <b>{l.alight?.name}</b>
-                  </p>
-                  {l.board && (
-                    <>
-                      {l.board.bis ? (
-                        <BusArrivals
-                          key={`${l.board.bis.id}-${l.leg.lineName}`}
-                          choices={[{ stationId: l.board.bis.id, name: l.board.bis.name, next: l.board.bis.next }]}
-                          lineName={l.leg.lineName}
-                          warns={l.board.warns}
-                        />
-                      ) : (
-                        <p className="bm-meta">타는 정류장을 광주 BIS 정류소와 맞춰 보지 못해서 도착 정보를 보여 드릴 수 없어요.</p>
-                      )}
-                      {l.board.warns.some((w) => w.rating === 'X') && <AltBox stop={l.board} alts={nearbyAlt(l.board)} better={items.filter((x, j) => j !== sel && !x.hasXStop)} onPick={setSel} items={items} />}
-                    </>
-                  )}
-                  {l.alight && l.alight.warns.length > 0 && (
-                    <>
-                      <p className={'bus-warn ' + (worstOf(l.alight.warns) === 'X' ? 'bus-warn-x' : 'bus-warn-t')} role="alert">
-                        <b>내리는 정류장({l.alight.name}) {worstOf(l.alight.warns) === 'X' ? '은 휠체어로 내리기 어려워요' : '은 내릴 때 주의가 필요해요'}</b>
-                        <br />
-                        {l.alight.warns.map((w) => `${w.rating === 'X' ? 'X' : '△'} ${w.name}`).join(' · ')}
-                      </p>
-                      {worstOf(l.alight.warns) === 'X' && <AltBox stop={l.alight} alts={nearbyAlt(l.alight)} better={items.filter((x, j) => j !== sel && !x.hasXStop)} onPick={setSel} items={items} />}
-                    </>
-                  )}
-                </section>
+                  ))}
+                  foot={
+                    sel === null && it.reasons.length > 0 ? (
+                      <>
+                        <button type="button" className="tr-more" aria-expanded={more === i} onClick={() => setMore(more === i ? null : i)}>
+                          {more === i ? '접기' : '자세히 보기'}
+                        </button>
+                        {more === i && <Sentences as="p" className="tr-why">{it.reasons.join(' · ')}</Sentences>}
+                      </>
+                    ) : undefined
+                  }
+                />
               ),
             )}
-          </div>
-          <Sentences as="p" className="bm-meta">저상버스 정보는 도착 예정 버스 기준이고, 실제로 휠체어 승차가 가능한지는 기사님과 정류장 상황에 따라 달라질 수 있어요.</Sentences>
-        </>
+          </ul>
+
+          {sel !== null && (
+            <>
+              <Tl>
+                {cur.legs.map((l, i) => {
+                  if (l.kind === 'walk' && l.distance < 10) return null
+                  const isLast = i === cur.legs.length - 1
+                  const isFirst = i === 0
+                  if (l.kind === 'walk') {
+                    const a = isFirst ? '출발지' : l.leg.from.name
+                    const b = isLast ? '도착' : l.leg.to.name
+                    return (
+                      <Fragment key={i}>
+                        <TlStep color={WALK_COLOR} title={<>걷기 약 {fmtMin(l.time)} · {fmtDist(l.distance)}{l.detoured && ' (돌아가는 길)'}</>} sub={`${a}에서 ${b}까지`} />
+                        {[...l.hits]
+                          .sort((x, y) => x.atM - y.atM)
+                          .map((h) => (
+                            <TlHit key={h.o.id} color={WALK_COLOR} h={h} onOpen={onOpenHit} note={l.unresolved.includes(h.o.id) ? ' · 돌아갈 길을 찾지 못했어요' : ''} />
+                          ))}
+                      </Fragment>
+                    )
+                  }
+                  const color = busColor(l.leg.route)
+                  return (
+                    <TlStep
+                      key={i}
+                      color={color}
+                      title={`${l.leg.lineName ?? '버스'}번 타기 · ${Math.max(0, (l.leg.stations?.length ?? 1) - 1)}정거장 · 약 ${fmtMin(l.time)}`}
+                      sub={`${l.board?.name} → ${l.alight?.name}`}
+                    >
+                      {l.board &&
+                        (l.board.bis ? (
+                          <BusArrivals
+                            key={`${l.board.bis.id}-${l.leg.lineName}`}
+                            compact
+                            choices={[{ stationId: l.board.bis.id, name: l.board.bis.name, next: l.board.bis.next }]}
+                            lineName={l.leg.lineName}
+                            warns={l.board.warns}
+                          />
+                        ) : (
+                          <p className="tl-note">이 정류장은 도착 정보를 볼 수 없어요.</p>
+                        ))}
+                      {l.board && l.board.warns.some((w) => w.rating === 'X') && <AltBox stop={l.board} alts={nearbyAlt(l.board)} better={items.filter((x, j) => j !== sel && !x.hasXStop)} onPick={choose} items={items} />}
+                      {l.alight && l.alight.warns.length > 0 && (
+                        <>
+                          <p className={'bus-warn ' + (worstOf(l.alight.warns) === 'X' ? 'bus-warn-x' : 'bus-warn-t')} role="alert">
+                            <b>{`내리는 정류장(${l.alight.name})${worstOf(l.alight.warns) === 'X' ? '은 휠체어로 내리기 어려워요' : '은 내릴 때 주의가 필요해요'}`}</b>
+                            <br />
+                            {l.alight.warns.map((w) => `${w.rating === 'X' ? 'X' : '△'} ${w.name}`).join(' · ')}
+                          </p>
+                          {worstOf(l.alight.warns) === 'X' && <AltBox stop={l.alight} alts={nearbyAlt(l.alight)} better={items.filter((x, j) => j !== sel && !x.hasXStop)} onPick={choose} items={items} />}
+                        </>
+                      )}
+                    </TlStep>
+                  )
+                })}
+                <TlStep color="var(--text-sub)" last end title="도착" sub={to.name} />
+              </Tl>
+            </>
+          )}
+        </div>
       )}
     </div>
   )
@@ -377,6 +370,7 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
 
 function AltBox(props: { stop: StopInfo; alts: { stationId: string; name: string; distM: number; rating?: Obstacle['rating'] }[]; better: AItin[]; items: AItin[]; onPick: (i: number) => void }) {
   const { stop, alts, better, items, onPick } = props
+  if (alts.length === 0 && better.length === 0) return null
   return (
     <div className="tr-alt">
       <b>대안</b>

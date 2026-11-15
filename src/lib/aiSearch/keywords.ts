@@ -157,6 +157,7 @@ export function candidatesFor(question: string, n = 3): MovableIntent[] {
 // 키워드 폴백의 빈칸 뽑기: AI가 없어도 신고 유형·출발/도착을 같은 규칙(verifySlots)으로 검증해 넘긴다.
 // 유형은 앞에 있는 것이 우선(「경사로」는 「경사」보다 먼저). 뒷받침 낱말이 없으면 검증에서 버려진다.
 const TYPE_ORDER: [string, RegExp][] = [
+  ['급경사', /급경사|가파|가팔/],
   ['경사로 없음', /경사로/],
   ['계단·턱', /계단|턱|단차/],
   ['급경사', /급경사|가파|경사/],

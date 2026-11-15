@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1"><stop offset="0" stop-color="#6fb2ff"/><stop offset="0.55" stop-color="#3182f6"/><stop offset="1" stop-color="#1b5fd0"/></linearGradient>
+<radialGradient id="glow" cx="0.3" cy="0.05" r="0.9"><stop offset="0" stop-color="#fff" stop-opacity="0.38"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="pin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9e6fb"/></linearGradient>
+<filter id="blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+<filter id="blur2" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+<linearGradient id="road" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.95"/></linearGradient>
+<linearGradient id="dot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b8cff"/><stop offset="1" stop-color="#1f6de3"/></linearGradient></defs>
+<rect width="512" height="512" fill="url(#bg)"/><rect width="512" height="512" fill="url(#glow)"/>
+<path d="M104 420C230 440 150 352 306 352" fill="none" stroke="#0d3c91" stroke-width="46" stroke-linecap="round" opacity="0.3" transform="translate(0 10)" filter="url(#blur2)"/>
+<path d="M104 420C230 440 150 352 306 352" fill="none" stroke="url(#road)" stroke-width="44" stroke-linecap="round"/>
+<path d="M104 420C230 440 150 352 306 352" fill="none" stroke="#3182f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 20" opacity="0.8"/>
+<ellipse cx="306" cy="354" rx="46" ry="10" fill="#0d3c91" opacity="0.45" filter="url(#blur2)"/>
+<g transform="translate(50 -52) scale(.8) translate(64 64)">
+<path d="M256 438C256 438 128 330 128 224a128 128 0 0 1 256 0C384 330 256 438 256 438Z" fill="#0d3c91" opacity="0.28" transform="translate(0 14)" filter="url(#blur2)"/>
+<path d="M256 438C256 438 128 330 128 224a128 128 0 0 1 256 0C384 330 256 438 256 438Z" fill="url(#pin)"/>
+<path d="M150 196a108 108 0 0 1 212 0C330 160 182 160 150 196Z" fill="#fff" opacity="0.7"/>
+<circle cx="256" cy="224" r="52" fill="url(#dot)"/><circle cx="256" cy="224" r="52" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="3"/></g></svg>

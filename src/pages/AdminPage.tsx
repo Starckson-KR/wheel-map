@@ -247,7 +247,7 @@ export default function AdminPage() {
               </div>
               {list.length === 0 ? (
                 <div className="rp-empty">
-                  <p>이 상태의 민원이 없어요.<br />접수된 민원이 없다면 시연 데이터를 채워 볼 수 있어요.</p>
+                  <p>이 상태의 민원이 없어요.</p>
                   <div className="empty-act">
                     <button
                       type="button"
@@ -263,7 +263,7 @@ export default function AdminPage() {
               ) : (
                 <ul className="rp-list">{list.map(row)}</ul>
               )}
-              <Sentences as="span" className="bm-meta">신규는 접수·배정만 되고 시작하기 전이에요. 처리 중은 조치 중, 조치 완료는 조치와 재확인을 마친 건이에요. 이관 요청은 수락을 기다리는 건이고, 보낸 기관과 받는 기관 모두에 보여요.</Sentences>
+              <Sentences as="span" className="bm-meta">이관 요청은 보낸 기관과 받는 기관 모두에 보여요.</Sentences>
             </div>
           )}
 
@@ -301,7 +301,7 @@ export default function AdminPage() {
 
           {section === 'inspect' && (
             <div className="adm-sec">
-              <Sentences as="p" className="bm-meta">마지막 점검일(조치를 마치거나 재확인을 통과하면 바뀌어요)에 주기를 더해 다음 점검일을 계산해요. 주기는 고정형 6개월, 일시형 1개월이에요.</Sentences>
+              <Sentences as="p" className="bm-meta">마지막 점검일에 주기를 더해 다음 점검일을 정해요. 고정형은 6개월, 일시형은 1개월이에요.</Sentences>
               {inspect.length === 0 ? (
                 <p className="rp-empty">점검 기록이 있는 건이 없어요.</p>
               ) : (

@@ -280,7 +280,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
           {r.history.map((h, i) => (
             <li key={i} className={h.status}>
               <span className={'rp-badge rp-' + h.status}>{STATUS_LABEL[h.status]}</span>
-              <span className="bm-meta"> {fmt(h.at)} · {userName(h.by)}</span>
+              <span className="bm-meta"> {fmt(h.at)} <span className="ps-by">· {userName(h.by)}</span></span>
               {h.memo && h.memo !== STATUS_LABEL[h.status] && <div>{h.memo}</div>}
             </li>
           ))}

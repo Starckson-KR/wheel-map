@@ -45,3 +45,28 @@ export function publicNeedsCheck(items?: string[]): string[] {
   }
   return out
 }
+
+/** 문제 요약: 앞머리 "미흡(서술):", 끝의 출처 괄호 "(… 진술)", "○○ 확인 안 됨" 항목을 화면에서만 뗀다. 남는 것이 없으면 null. */
+export function publicIssue(issue?: string): string | null {
+  if (!issue) return null
+  const text = issue.replace(/^[가-힣]+\(서술\):\s*/, '').replace(/\s*\([^()]*진술\)/g, '')
+  const parts: string[] = []
+  let depth = 0
+  let cur = ''
+  for (const ch of text) {
+    if (ch === '(') depth++
+    else if (ch === ')') depth = Math.max(0, depth - 1)
+    if (ch === ',' && depth === 0) {
+      parts.push(cur)
+      cur = ''
+    } else cur += ch
+  }
+  parts.push(cur)
+  const out = parts.map((s) => s.trim()).filter((s) => s && !/확인 안 됨/.test(s)).join(', ')
+  return out || null
+}
+
+/** 동 이름을 화면에 낼 때만 쓴다. 동을 찾지 못해 캐시에 '확인 필요'로 저장된 값(또는 값 없음)은 "기타 지역"으로 보여 준다. 저장 값은 바꾸지 않는다. */
+export function dongLabel(name?: string | null): string {
+  return !name || name === '확인 필요' ? '기타 지역' : name
+}

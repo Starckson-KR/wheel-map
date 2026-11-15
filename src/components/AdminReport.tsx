@@ -3,6 +3,7 @@ import { findAgencyName } from '../lib/agencyName'
 import { agencyOf, fmtDate, pct } from '../lib/caseMetrics'
 import { downloadText, toCsv } from '../lib/csv'
 import { dongKey, loadDongsDetailed } from '../lib/regions'
+import { dongLabel } from '../lib/displayText'
 import { CHOICE_LABEL, isOngoing, periodRange, previousRange, quarterOf, type PeriodChoice } from '../lib/reportPeriod'
 import { agencyKey, buildKpis, buildSummary, groupStats, inPeriod, periodSites, prevWord, reportCsvName, reportCsvRows, statsOf, type GroupRow, type Stats } from '../lib/reportStats'
 import { nowMs, useReports } from '../lib/reportStore'
@@ -53,9 +54,9 @@ export default function AdminReport({ caseName, onOpen }: Props) {
         setDongs(d.dongs)
         setDongErr(
           d.sdkFailed
-            ? '카카오 지도를 불러오지 못해서 동 이름을 찾지 못했어요. 카카오 지도 설정을 확인해 주세요. 찾지 못한 곳은 "확인 필요"로 묶었어요.'
+            ? '카카오 지도를 불러오지 못해서 동 이름을 찾지 못했어요. 카카오 지도 설정을 확인해 주세요. 찾지 못한 곳은 "기타 지역"으로 묶었어요.'
             : d.missing > 0
-              ? `일부(${d.missing}곳)는 시간 안에 동을 찾지 못해서 "확인 필요"로 묶었어요. 다시 열면 이어서 찾아요.`
+              ? `일부(${d.missing}곳)는 시간 안에 동을 찾지 못해서 "기타 지역"으로 묶었어요. 다시 열면 이어서 찾아요.`
               : '',
         )
       })
@@ -72,7 +73,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
     return [...ys].sort((a, b) => b - a)
   }, [reports, q.year, year])
 
-  const dongRows: GroupRow[] | null = dongs ? groupStats(list, (r) => dongs[dongKey(r.lat, r.lng)] ?? '확인 필요', now, rec) : null
+  const dongRows: GroupRow[] | null = dongs ? groupStats(list, (r) => dongLabel(dongs[dongKey(r.lat, r.lng)]), now, rec) : null
   const typeRows = groupStats(list, (r) => r.type, now, rec)
   const agencyRows = groupStats(list, agencyKey, now, rec).map((g) => ({ ...g, name: findAgencyName(g.key) }))
   const byId = new Map(reports.map((r) => [r.id, r]))
@@ -138,7 +139,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
             인쇄·PDF 저장
           </button>
         </div>
-        <Sentences as="span" className="bm-meta">달력 기준 분기예요(1분기 1~3월, 2분기 4~6월, 3분기 7~9월, 4분기 10~12월). 숫자는 이 기간에 접수된 건의 지금 상태를 센 거예요. 개선 현황 지도와 같은 계산이에요.</Sentences>
+        <Sentences as="span" className="bm-meta">달력 기준 분기예요(1분기 1~3월, 2분기 4~6월, 3분기 7~9월, 4분기 10~12월). 숫자는 이 기간에 접수된 건의 지금 상태예요.</Sentences>
       </section>
 
       <div className="adm-report-print">
@@ -211,7 +212,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
             <section className="rf-card adm-report-sec" aria-labelledby="rep-ag-h">
               <h3 id="rep-ag-h">기관별</h3>
               <GroupTable label="기관" caption="기관별 접수·처리율·평균 처리 기간·재발" rows={agencyRows.map((g) => ({ name: g.name, stats: g.stats }))} avg />
-              <Sentences as="span" className="bm-meta">처리율은 해결 수 ÷ 민원 접수 수예요. 현재 처리 기관 기준이에요.</Sentences>
+              <Sentences as="span" className="bm-meta">처리율은 해결 수 ÷ 민원 접수 수예요.</Sentences>
             </section>
 
             <section className="rf-card adm-report-sec" aria-labelledby="rep-site-h">
@@ -235,7 +236,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
                   ))}
                 </ol>
               )}
-              <Sentences as="span" className="bm-meta adm-noprint">누르면 가장 최근에 접수된 건의 상세가 열려요. 재발은 조치 완료(또는 재확인 완료) 뒤 같은 곳·같은 유형으로 다시 접수된 건이에요.</Sentences>
+              <Sentences as="span" className="bm-meta adm-noprint">재발은 조치 뒤 같은 곳·같은 유형으로 다시 접수된 건이에요.</Sentences>
             </section>
           </>
         )}

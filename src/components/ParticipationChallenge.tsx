@@ -85,7 +85,6 @@ export default function ParticipationChallenge() {
           <button type="button" className="ch-go" onClick={() => go(TO.newReport)}>문제 신고하기</button>
         </Row>
       </ul>
-      <p className="bm-meta">챌린지는 점수와 따로 표시돼요.</p>
     </section>
   )
 }

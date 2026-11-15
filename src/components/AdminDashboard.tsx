@@ -9,6 +9,7 @@ import { collectPoints } from '../lib/priority'
 import { usePriority } from '../lib/usePriority'
 import { RATING_STYLE } from '../lib/rating'
 import { dongKey, loadDongsDetailed } from '../lib/regions'
+import { dongLabel } from '../lib/displayText'
 import { nowMs, useReports } from '../lib/reportStore'
 import { computeRewards } from '../lib/rewards'
 import { ROUTES, routeStats } from '../lib/routeStats'
@@ -47,9 +48,9 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
         setDongs(d.dongs)
         setDongErr(
           d.sdkFailed
-            ? '카카오 지도를 불러오지 못해서 동 이름을 찾지 못했어요. 찾지 못한 곳은 "확인 필요"로 묶었어요.'
+            ? '카카오 지도를 불러오지 못해서 동 이름을 찾지 못했어요. 찾지 못한 곳은 "기타 지역"으로 묶었어요.'
             : d.missing > 0
-              ? `일부(${d.missing}곳)는 시간 안에 동을 찾지 못해서 "확인 필요"로 묶었어요. 다시 열면 이어서 찾아요.`
+              ? `일부(${d.missing}곳)는 시간 안에 동을 찾지 못해서 "기타 지역"으로 묶었어요. 다시 열면 이어서 찾아요.`
               : '',
         )
       })
@@ -62,7 +63,7 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
   const byDong = new Map<string, { O: number; TRIANGLE: number; X: number; none: number }>()
   if (dongs) {
     for (const p of pts) {
-      const d = dongs[dongKey(p.lat, p.lng)] ?? '확인 필요'
+      const d = dongLabel(dongs[dongKey(p.lat, p.lng)])
       const e = byDong.get(d) ?? { O: 0, TRIANGLE: 0, X: 0, none: 0 }
       e[p.rating]++
       byDong.set(d, e)
@@ -77,7 +78,7 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
       for (const e of u.events) {
         const r = byReport.get(e.reportId)
         if (!r || e.points <= 0) continue
-        const d = dongs[dongKey(r.lat, r.lng)] ?? '확인 필요'
+        const d = dongLabel(dongs[dongKey(r.lat, r.lng)])
         const x = byDongPoints.get(d) ?? { points: 0, people: new Set<string>() }
         x.points += e.points
         x.people.add(e.userId)
@@ -152,17 +153,17 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
             </span>
           </div>
         ))}
-        <Sentences as="span" className="bm-meta">○ 괜찮음 · △ 주의 · X 어려움 · ? 평가 없음. 위치가 정해진 팀 조사 지점과 검증이 끝난 시민 제보를 세요. 행정동은 카카오 지도로 찾아서 이 브라우저에 저장해 둬요.</Sentences>
+        <Sentences as="span" className="bm-meta">○ 괜찮음 · △ 주의 · X 어려움 · ? 평가 없음.</Sentences>
       </section>
 
       <section className="rf-card">
         <h3>동별 시민 기여 점수</h3>
         {dongPointRows.length === 0 ? (
-          <Sentences as="p" className="bm-meta">아직 쌓인 기여 점수가 없어요. 제보가 검증되면 해당 동의 점수로 모여요.</Sentences>
+          <Sentences as="p" className="bm-meta">아직 쌓인 기여 점수가 없어요.</Sentences>
         ) : (
           dongPointRows.map(([dong, x]) => <Bar key={dong} label={dong} value={x.points} max={maxDongPoints} note={`점 · ${x.people.size}명`} />)
         )}
-        <Sentences as="span" className="bm-meta">개인 순위 없이 동 단위 합계만 보여 줘요. 검증 이후 지급된 점수만 더하며, 시연 사용자 기준이에요.</Sentences>
+        <Sentences as="span" className="bm-meta">동 단위 합계만 보여 줘요.</Sentences>
       </section>
 
       <section className="rf-card">
@@ -197,7 +198,7 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
             </table>
           </div>
         )}
-        <span className="bm-meta">처리율은 조치 완료(재확인 포함)를 그 기관이 지금 맡은 건수로 나눈 값이에요.</span>
+        <span className="bm-meta">처리율은 조치 완료 건수를 맡은 건수로 나눈 값이에요.</span>
       </section>
 
       <section className="rf-card">
@@ -218,13 +219,15 @@ export function AdminPriority({ barriers }: { barriers: Barrier[] }) {
   return (
     <div className="adm-sec">
       <section className="rf-card">
-        <h3>개선 우선순위(안)</h3>
+        <h3>개선 우선순위</h3>
         <p className="bm-meta">
-          <span className="sent">점수 = 제보 수 × {W.report} + (반경 {PRIORITY_DEMAND_RADIUS_M}m 안 정류장 수 × {W.bus} + 병원·복지시설 수 × {W.facility}) + 대안 경로 유무 × {W.alternative}.</span>
-          <span className="sent">가중치는 팀이 정하는 안이고 <code>src/lib/config.ts</code>에서 바꿔요.</span>
-          <span className="sent">제보 수는 반경 {PRIORITY_REPORT_RADIUS_M}m 안의 시민 제보예요(합쳐진 건은 포함하고 반려된 건은 빼요).</span>
+          <span className="sent">점수 = 제보 수 × {W.report}</span>
+          <span className="sent">+ 반경 {PRIORITY_DEMAND_RADIUS_M}m 안 정류장 수 × {W.bus}</span>
+          <span className="sent">+ 반경 {PRIORITY_DEMAND_RADIUS_M}m 안 병원·복지시설 수 × {W.facility}</span>
+          <span className="sent">+ 대안 경로 유무 × {W.alternative}</span>
+          <span className="sent">제보 수는 반경 {PRIORITY_REPORT_RADIUS_M}m 안의 시민 제보예요.</span>
         </p>
-        <Sentences as="p" className="bm-meta">길찾기에서 우회 경로를 찾지 못해 기록된 X 지점은 점수를 더해요(출발·도착 지점 자체는 빼요). 기록이 없거나 아직 검색하지 않은 지점은 0점이에요.</Sentences>
+        <Sentences as="p" className="bm-meta">우회 경로를 찾지 못한 X 지점은 점수를 더해요. 기록이 없으면 0점이에요.</Sentences>
         {err && <Sentences as="p" className="rf-warn">{err}</Sentences>}
         {!data && !err && <Skeleton rows={3} label="이용 수요 자료를 불러오고 있어요" />}
         <ol className="adm-prio">
@@ -256,7 +259,7 @@ export function AdminPriority({ barriers }: { barriers: Barrier[] }) {
             </li>
           ))}
         </ol>
-        <span className="bm-meta"><span className="sent">이용 수요 출처: {data ? `${data.bus.source}(${data.bus.provider}), ${data.fac.source}(${data.fac.provider}), 수집일 ${data.fac.fetchedAt.slice(0, 10)}` : '불러오는 중'}.</span> <span className="sent">공공데이터라서 판정은 아니에요.</span></span>
+        <span className="bm-meta"><span className="sent">이용 수요 출처: {data ? `${data.bus.source}(${data.bus.provider}), ${data.fac.source}(${data.fac.provider}), 수집일 ${data.fac.fetchedAt.slice(0, 10)}` : '불러오는 중'}.</span></span>
       </section>
     </div>
   )

@@ -11,6 +11,7 @@ import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import type { TItinerary, TLeg } from '../lib/transit/parse.ts'
 import { fetchTransit, hasStoredTransit, TRANSIT_FREE_SEARCH } from '../lib/transit/provider.ts'
 import BusArrivals from './BusArrivals'
+import { busColor } from '../lib/routing/busColor.ts'
 import { Sentences } from './Sentences'
 
 type StopInfo = { name: string; lat: number; lng: number; bis: (BisStop & { distM: number }) | null; warns: BoardingWarn[] }
@@ -134,7 +135,6 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
   const [message, setMessage] = useState('')
   const [items, setItems] = useState<AItin[]>([])
   const [sel, setSel] = useState(0)
-  const [info, setInfo] = useState('')
   const [bis, setBis] = useState<BisStop[]>([])
   const run = useRef(0)
   const fitKey = useRef(0)
@@ -162,7 +162,6 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
       setItems(analyzed)
       setSel(0)
       fitKey.current = my
-      setInfo(r.source === 'stored' ? `TMAP 대중교통 경로를 미리 저장해 둔 값이에요(${(r.fetchedAt ?? '').slice(0, 10)}).` : `TMAP 대중교통 경로를 ${r.cached ? '저장해 둔 값에서' : '새로'} 받았어요.`)
       setStatus('done')
     } catch {
       if (my === run.current) {
@@ -183,6 +182,7 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pairId, from?.lat, from?.lng, to?.lat, to?.lng])
 
+  const [more, setMore] = useState<number | null>(null) // 설명을 펼친 카드
   const cur = items[sel]
 
   // 지도에 그릴 정보
@@ -203,7 +203,7 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
       end: to,
       base: null,
       detour: null,
-      legs: cur.legs.map((l) => ({ coords: l.coords, kind: l.kind })),
+      legs: cur.legs.map((l) => ({ coords: l.coords, kind: l.kind, route: l.kind === 'bus' ? l.leg.route : undefined, lineName: l.kind === 'bus' ? l.leg.lineName : undefined })),
       active: 'detour',
       hits: cur.legs.flatMap((l) => l.hits),
       unresolvedIds: cur.legs.flatMap((l) => l.unresolved),
@@ -258,26 +258,37 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
 
       {status === 'done' && cur && (
         <>
-          <p className="bm-meta">{info} 추천 순서는 휠체어 이용 기준(정류장·걷는 길)으로 먼저, 같으면 빠른 순이에요.</p>
           <ul className="tr-itins">
             {items.map((it, i) => (
-              <li key={i}>
-                <button type="button" className={'tr-itin' + (i === sel ? ' on' : '')} aria-pressed={i === sel} onClick={() => setSel(i)}>
+              <li key={i} className={'tr-card' + (i === sel ? ' on' : '')}>
+                <button type="button" className="tr-itin" aria-pressed={i === sel} onClick={() => setSel(i)}>
+                  <span className="tr-head">
+                    <span className="tr-time">{fmtMin(it.raw.time)}</span>
+                    {i === 0 && <span className="tr-badge">추천</span>}
+                  </span>
                   <span className="tr-chips">
-                    {i === 0 && <span className="tr-chip tr-chip-bus">추천</span>}
                     {it.legs.map((l, j) => (
-                      <span key={j} className={'tr-chip' + (l.kind === 'bus' ? ' tr-chip-bus' : '')}>
+                      <span key={j} className={'tr-chip' + (l.kind === 'bus' ? ' tr-chip-line' : '')} style={l.kind === 'bus' ? { background: busColor(l.leg.route) } : undefined}>
                         {l.kind === 'bus' ? `${l.leg.lineName ?? '버스'}번` : `걷기 ${fmtMin(l.time)}`}
                       </span>
                     ))}
                   </span>
-                  <span className="rt-big">
-                    약 {fmtMin(it.raw.time)} · 걷는 거리 {fmtDist(it.raw.walkDistance)}
-                    {it.raw.fare != null ? ` · ${it.raw.fare.toLocaleString()}원` : ''}
+                  <span className="tr-foot">
+                    <span className="tr-meta">
+                      걷기 {fmtDist(it.raw.walkDistance)}
+                      {it.raw.fare != null ? ` · ${it.raw.fare.toLocaleString()}원` : ''}
+                    </span>
+                    <span className={'rt-pill rt-v-' + it.verdict}>{PILL[it.verdict]}</span>
                   </span>
-                  <span className={'rt-pill rt-v-' + it.verdict}>{PILL[it.verdict]}</span>
-                  {it.reasons.length > 0 && <span className="rt-sum">{it.reasons.join(' · ')}</span>}
                 </button>
+                {it.reasons.length > 0 && (
+                  <>
+                    <button type="button" className="tr-more" aria-expanded={more === i} onClick={() => setMore(more === i ? null : i)}>
+                      {more === i ? '접기' : '자세히 보기'}
+                    </button>
+                    {more === i && <Sentences as="p" className="rt-sum tr-why">{it.reasons.join(' · ')}</Sentences>}
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -320,7 +331,10 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
               ) : (
                 <section key={i} className="tr-leg">
                   <h4>
-                    {l.leg.lineName ?? '버스'}번 타기 · {Math.max(0, (l.leg.stations?.length ?? 1) - 1)}정거장 · 약 {fmtMin(l.time)}
+                    <span className="tr-chip tr-chip-line" style={{ background: busColor(l.leg.route) }}>
+                      {l.leg.lineName ?? '버스'}번
+                    </span>{' '}
+                    타기 · {Math.max(0, (l.leg.stations?.length ?? 1) - 1)}정거장 · 약 {fmtMin(l.time)}
                   </h4>
                   <p className="bm-meta">
                     타는 곳 <b>{l.board?.name}</b> → 내리는 곳 <b>{l.alight?.name}</b>

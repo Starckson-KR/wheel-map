@@ -25,6 +25,8 @@ import RoutePanel from '../components/RoutePanel'
 import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import type { RouteOverlay } from '../lib/routing/overlay.ts'
 import type { Place } from '../lib/routing/provider.ts'
+import { busColor } from '../lib/routing/busColor.ts'
+import { arrowSpots, makeNearRoute } from '../lib/routing/near.ts'
 import ProgressPanel from '../components/ProgressPanel'
 import { PROGRESS_INFO, PROGRESS_ORDER, PERIODS, buildProgress, type PeriodId, type ProgressItem, type ProgressStage } from '../lib/progress'
 import { usePlan } from '../lib/planStore'
@@ -117,7 +119,10 @@ type PinItem = {
   pg?: { stage: ProgressStage; label: string } // 개선 현황 보기의 핀
   onClick: () => void
 }
-const DOT_PX = 30
+const DOT_PX = 14 // 작은 색 점의 폭(겹침 계산용)
+const ROUTE_WALK = '#1250c9' // 도보 경로(진한 파랑). 장애요소 등급 색(빨강·주황·노랑·초록)과 겹치지 않게 한다.
+const ROUTE_BASE = '#334a7a' // 가장 짧은 기존 길(점선)
+const NEAR_ROUTE_M = 40 // 경로에서 이 거리 안의 핀만 또렷하게 둔다
 const PIN_H = 30
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
@@ -157,6 +162,22 @@ function coverOf(mapEl: HTMLElement | null): number {
     if (r.height > 0 && r.top < top && r.top > mb.top) top = r.top
   })
   return Math.max(0, mb.bottom - top)
+}
+
+// 지도 위쪽을 덮는 검색줄·칩의 높이(px). 지도에 맞출 때 위쪽 여백으로 쓴다. 큰 화면은 왼쪽 패널이라 0.
+function topCoverOf(mapEl: HTMLElement | null): number {
+  if (!mapEl || isDesktopLayout()) return 0
+  const top = mapEl.parentElement?.querySelector<HTMLElement>('.hm-top')
+  if (!top) return 0
+  const cs = getComputedStyle(top)
+  if (top.hidden || cs.display === 'none' || cs.visibility === 'hidden') return 0
+  const mb = mapEl.getBoundingClientRect()
+  let bottom = 0
+  top.querySelectorAll<HTMLElement>(':scope > *').forEach((c) => {
+    const r = c.getBoundingClientRect()
+    if (r.height > 0) bottom = Math.max(bottom, r.bottom)
+  })
+  return Math.max(0, Math.round(bottom - mb.top))
 }
 
 export default function BarrierMap({ intent = '', active = true }: { intent?: string; active?: boolean }) {
@@ -199,6 +220,14 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [routeOpen, setRouteOpen] = useState(start.go === 'route')
   const [locMsg, setLocMsg] = useState('')
   const meRef = useRef<kakao.maps.CustomOverlay | null>(null)
+  const accRef = useRef<kakao.maps.Circle | null>(null)
+  const watchRef = useRef<number | null>(null)
+  const wantLocRef = useRef(false) // 사용자가 내 위치를 켰는가
+  const followRef = useRef(false)
+  const firstFixRef = useRef(false)
+  const lastPosRef = useRef<kakao.maps.LatLng | null>(null)
+  const followOffRef = useRef<() => void>(() => {})
+  const [locMode, setLocMode] = useState<'off' | 'follow' | 'free'>('off')
   const sheetRef = useRef<HTMLElement>(null)
   const [routePick, setRoutePick] = useState<'from' | 'to' | null>(null)
   const [routePicked, setRoutePicked] = useState<{ which: 'from' | 'to'; place: Place; n: number } | null>(null)
@@ -221,7 +250,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const fitWithSheet = (map: kakao.maps.Map, bounds: kakao.maps.LatLngBounds, top: number) => {
     const d = isDesktopLayout()
     const bottom = d ? 60 : Math.max(40, Math.round(Math.min(coverOf(container.current), (container.current?.clientHeight ?? 600) * 0.6)) + 24)
-    map.setBounds(bounds, d ? 60 : top, d ? 60 : 40, bottom, d ? 460 : 40)
+    map.setBounds(bounds, d ? 60 : Math.max(top, topCoverOf(container.current) + 12), d ? 60 : 40, bottom, d ? 460 : 40)
   }
   // 시트 단계가 바뀌고 멈춘 뒤 한 번만: 선택한 핀이 시트·상단에 가려졌을 때만 부드럽게 옮기고, 선택이 없으면 처음 맞춤을 새 여백으로 다시 맞춘다(사용자가 지도를 움직였으면 하지 않는다)
   const revealSelected = () => {
@@ -329,6 +358,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           movedRef.current = true
         }
         k.maps.event.addListener(map, 'dragstart', markMoved)
+        k.maps.event.addListener(map, 'dragstart', () => followOffRef.current())
         container.current.addEventListener('wheel', markMoved, { passive: true })
         k.maps.event.addListener(map, 'click', (e) => {
           if (routePickRef.current) pickRoutePlace(e.latLng.getLat(), e.latLng.getLng(), `지도에서 고른 위치 (${e.latLng.getLat().toFixed(5)}, ${e.latLng.getLng().toFixed(5)})`)
@@ -401,6 +431,12 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     }
     return s
   }, [overlay])
+  // 경로에서 먼 핀은 흐리게(경로 근처·경로가 지나는 지점은 그대로)
+  const nearRoute = useMemo(() => {
+    if (!overlay) return null
+    const paths = [overlay.base, overlay.detour, ...(overlay.legs ?? []).map((l) => l.coords)].filter((p): p is [number, number][] => !!p)
+    return makeNearRoute(paths, NEAR_ROUTE_M)
+  }, [overlay])
   const mapLevel = view?.level ?? 4
 
   // 점·선·영역을 ○△X 색으로 그린다. 글자(○△X)도 같이 표시해 색만으로 구분하지 않게 한다.
@@ -411,7 +447,12 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     if (!ready || !k || !map) return
     const shapes: { setMap(m: kakao.maps.Map | null): void }[] = []
     const items: PinItem[] = []
-    const dimOf = (id: string) => !!routeIds && !routeIds.has(id)
+    const dimOf = (id: string) => {
+      if (!routeIds || routeIds.has(id)) return false
+      const g = BY_ID.get(id)?.geometry
+      const pts = g ? (g.kind === 'point' ? [g.at] : g.path) : []
+      return !(nearRoute && pts.some((p) => nearRoute(p[0], p[1])))
+    }
     for (const b of layers.team && !progressMode ? BARRIERS : []) {
       const g = b.geometry
       if (!g && b.provisional && !b.parentId) {
@@ -427,7 +468,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           name: shortName(b.id, b.name),
           small: false,
           sel: b.id === selectedId,
-          dim: !!routeIds,
+          dim: !!routeIds && !(nearRoute && nearRoute(pv.lat, pv.lng)),
           route: false,
           prov: true,
           onClick: () => {
@@ -532,7 +573,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         title: `시민 제보 · ${r.type}${r.verification.rating ? '' : ' · 판정 대기'}${r.status === 'verified' ? '' : ` · ${STATUS_LABEL[r.status]}`}${isExpired(r) ? ' · 만료' : ''}${n > 1 ? ` · 같은 곳 ${n}건` : ''}`,
         small: false,
         sel: group.some((x) => x.id === selectedReportId),
-        dim: !!routeIds,
+        dim: !!routeIds && !(nearRoute && nearRoute(r.lat, r.lng)),
         route: false,
         citizen: true,
         expired: isExpired(r),
@@ -567,6 +608,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       }
     }
 
+    // 경로를 띄운 동안에는 경로에서 40m 안의 핀만 작은 점으로 남기고, 경로가 지나는 지점(고리 표시가 따로 있음)·먼 핀·묶음은 그리지 않는다
+    if (routeIds) for (let n = items.length - 1; n >= 0; n--) if (!items[n].sel && (items[n].dim || routeIds.has(items[n].key))) items.splice(n, 1)
     const level = map.getLevel()
     const fade = drawnLevel.current !== null && drawnLevel.current !== level ? ' bm-fade-in' : ''
     drawnLevel.current = level
@@ -632,7 +675,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const all = items.map((_, i) => i)
     const teamG = buildGroup(all.filter((i) => !items[i].citizen), baseR)
     const citG = buildGroup(all.filter((i) => items[i].citizen), Math.round(baseR * 1.35))
-    const clusters = [...teamG.cls.map((c) => ({ m: c.m, x: c.x, y: c.y, cit: false })), ...citG.cls.map((c) => ({ m: c.m, x: c.x, y: c.y, cit: true }))]
+    const clusters = routeIds ? [] : [...teamG.cls.map((c) => ({ m: c.m, x: c.x, y: c.y, cit: false })), ...citG.cls.map((c) => ({ m: c.m, x: c.x, y: c.y, cit: true }))]
     // 팀 조사 지점 위에 겹치는 시민 제보 점·묶음은 그리지 않는다(팀 조사 지점이 항상 먼저 보이게)
     const teamBoxes = [
       ...teamG.cls.map((c) => ({ x: c.x, y: c.y, r: diaOf(cnt(c.m)) / 2 })),
@@ -640,10 +683,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     ]
     const underTeam = (x: number, y: number, r: number) => teamBoxes.some((b) => Math.hypot(b.x - x, b.y - y) < b.r + r + 1)
     for (let n = clusters.length - 1; n >= 0; n--) if (clusters[n].cit && underTeam(clusters[n].x, clusters[n].y, diaOf(cnt(clusters[n].m)) / 2)) clusters.splice(n, 1)
-    const singles = [...teamG.singles, ...citG.singles.filter((i) => items[i].sel || !underTeam(px[i].x, px[i].y, 7))]
+    const singles = routeIds ? all : [...teamG.singles, ...citG.singles.filter((i) => items[i].sel || !underTeam(px[i].x, px[i].y, 7))]
 
     // 2) 남은 핀은 줌 단계가 허용하는 가장 풍부한 모양으로, 다른 글자와 겹치면 한 단계씩 줄인다. 시민 제보는 멀리서는 작은 색 점으로만 그린다.
-    const allowed: PinMode[] = level >= 5 ? ['dot'] : level === 4 ? ['chip', 'dot'] : ['full', 'chip', 'dot']
+    const allowed: PinMode[] = level >= 3 ? ['dot'] : level === 2 ? ['chip', 'dot'] : ['full', 'chip', 'dot'] // 글자·아이콘은 충분히 확대했을 때만
     const placed: { x: number; y: number; w: number }[] = []
     const hit = (x: number, y: number, w: number) => placed.some((p) => Math.abs(p.x - x) < (p.w + w) / 2 + 3 && Math.abs(p.y - y) < PIN_H + 3)
     const widthOf = (it: PinItem, m: PinMode) => (m === 'lite' ? 14 : m === 'dot' ? DOT_PX : it.pg ? 38 + it.pg.label.length * 12.5 : m === 'chip' ? 58 : 30 + 29 + it.name.length * 13.5 + 12)
@@ -696,7 +739,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       }
       const st = styleOf(it.impact ?? 'passage', it.rating)
       const el = document.createElement('div')
-      el.className = `bm-pin bm-pin--${mode}` + (it.small ? ' bm-pin-small' : '') + (it.sel ? ' bm-pin-sel' : '') + (it.route ? ' bm-pin-route' : '') + (it.citizen ? ' bm-pin-citizen' : '') + (it.expired ? ' bm-pin-expired' : '') + (it.prov ? ' bm-pin-prov' : '') + (it.dim ? ' bm-pin-dim' : '') + fade
+      el.className = `bm-pin bm-pin--${mode}` + (it.small ? ' bm-pin-small' : '') + (it.sel ? ' bm-pin-sel' : '') + (it.route ? ' bm-pin-route' : '') + (it.citizen ? ' bm-pin-citizen' : '') + (it.expired ? ' bm-pin-expired' : '') + (it.dim ? ' bm-pin-dim' : '') + fade
       el.style.background = st.color
       el.style.color = st.ink
       const kindText = it.impact ? IMPACT_INFO[it.impact].label : ''
@@ -761,7 +804,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       const zoomIn = () => {
         const b = new k.maps.LatLngBounds()
         ms.forEach((m) => b.extend(new k.maps.LatLng(m.lat, m.lng)))
-        map.setBounds(b, 80, 60, 80, 60)
+        map.setBounds(b, Math.max(80, topCoverOf(container.current) + 16), 60, Math.max(80, coverOf(container.current) + 24), 60)
         if (map.getLevel() >= level) map.setLevel(Math.max(1, level - 1))
       }
       el.addEventListener('click', (e) => {
@@ -777,7 +820,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(lat, lng), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: cl.cit ? 3 : 5 }))
     }
     return () => shapes.forEach((s) => s.setMap(null))
-  }, [ready, selectedId, layers.team, seedOverride, focusIds, reports, selectedReportId, routeIds, mapLevel, progressMode, pgShown, filter, offsetDays])
+  }, [ready, selectedId, layers.team, seedOverride, focusIds, reports, selectedReportId, routeIds, nearRoute, mapLevel, progressMode, pgShown, filter, offsetDays])
 
   // 레이어를 켤 때 해당 데이터만 동적 import로 불러온다.
   useEffect(() => {
@@ -849,7 +892,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     if (!ready || !k || !map || !overlay) return
     const shapes: { setMap(m: kakao.maps.Map | null): void }[] = []
     const ll = (p: [number, number]) => new k.maps.LatLng(p[0], p[1])
-    // 경로선: 흰 외곽선(아래) + 색 선(위). 가장 짧은 길=회색 점선, 돌아가는 길=토스 블루 실선.
+    // 경로선: 흰 외곽선(아래) + 색 선(위). 돌아가는 길·걷는 길=진한 파랑 실선, 가장 짧은 기존 길=진한 남색 점선.
     const draw = (path: [number, number][] | null, kind: 'base' | 'detour') => {
       if (!path) return
       const on = overlay.active === kind
@@ -861,31 +904,26 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           map,
           path: lls,
           strokeWeight: w,
-          strokeColor: kind === 'base' ? '#6b7684' : '#1b64da',
-          strokeOpacity: on ? 1 : 0.55,
-          strokeStyle: kind === 'base' ? 'shortdash' : 'solid',
+          strokeColor: kind === 'base' ? ROUTE_BASE : ROUTE_WALK,
+          strokeOpacity: on ? 1 : 0.6,
+          strokeStyle: kind === 'base' ? 'dash' : 'solid',
           zIndex: on ? 9 : 7,
         }),
       )
     }
     draw(overlay.base, 'base')
     draw(overlay.detour, 'detour')
+    // 버스가 섞인 경로: 걷는 구간은 파랑 점선, 버스 구간은 노선 종류 색 실선 + 시작점에 노선 번호 칩
+    const mixed = (overlay.legs ?? []).some((l) => l.kind === 'bus')
     for (const l of overlay.legs ?? []) {
       const lls = l.coords.map(ll)
       const bus = l.kind === 'bus'
+      const col = bus ? busColor(l.route) : ROUTE_WALK
       shapes.push(
         new k.maps.Polyline({ map, path: lls, strokeWeight: (bus ? 9 : 7) + 5, strokeColor: '#ffffff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 8 }),
-        new k.maps.Polyline({ map, path: lls, strokeWeight: bus ? 9 : 7, strokeColor: bus ? '#1b64da' : '#6b7684', strokeOpacity: 1, strokeStyle: bus ? 'solid' : 'shortdash', zIndex: 9 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: bus ? 9 : 7, strokeColor: col, strokeOpacity: 1, strokeStyle: bus || !mixed ? 'solid' : 'dash', zIndex: 9 }),
       )
     }
-    const flag = (p: Place, text: string, cls: string) => {
-      const el = document.createElement('div')
-      el.className = 'rt-flag ' + cls
-      el.textContent = text
-      shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(p.lat, p.lng), content: el, map, yAnchor: 1.2, zIndex: 12 }))
-    }
-    flag(overlay.start, '출발', 'rt-flag-s')
-    flag(overlay.end, '도착', 'rt-flag-e')
     for (const h of overlay.hits) {
       const st = ROLE_STYLE[h.role]
       const el = document.createElement('div')
@@ -906,6 +944,80 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return () => shapes.forEach((x) => x.setMap(null))
   }, [ready, overlay])
 
+  // 출발·도착 표시와 버스 번호 칩: 화면에서 겹치면 위로 비켜 놓고, 너무 멀리서 볼 때는 칩을 숨긴다(칩은 타는 곳에 노선마다 하나).
+  useEffect(() => {
+    const k = kRef.current
+    const map = mapRef.current
+    if (!ready || !k || !map || !overlay) return
+    const shapes: { setMap(m: kakao.maps.Map | null): void }[] = []
+    const proj = map.getProjection()
+    type Lab = { lat: number; lng: number; el: HTMLElement; z: number }
+    const labs: Lab[] = []
+    const mk = (p: { lat: number; lng: number }, text: string, cls: string, z: number, bg?: string) => {
+      const el = document.createElement('div')
+      el.className = cls
+      el.textContent = text
+      if (bg) el.style.background = bg
+      labs.push({ lat: p.lat, lng: p.lng, el, z })
+    }
+    mk(overlay.end, '도착', 'rt-flag rt-flag-e', 14)
+    mk(overlay.start, '출발', 'rt-flag rt-flag-s', 13)
+    if (mapLevel <= 7) {
+      for (const l of overlay.legs ?? []) {
+        if (l.kind === 'bus' && l.lineName && l.coords.length > 0) mk({ lat: l.coords[0][0], lng: l.coords[0][1] }, l.lineName, 'rt-busno', 12, busColor(l.route))
+      }
+    }
+    // 고리(경로 위 장애요소)와 타는·내리는 표시 자리를 먼저 차지한 것으로 보고, 글자 표시는 그 위로 비켜 놓는다
+    const placed: { x: number; y: number }[] = []
+    for (const h of overlay.hits) {
+      const q = proj.containerPointFromCoords(new k.maps.LatLng(h.anchor[0], h.anchor[1]))
+      placed.push({ x: q.x, y: q.y })
+    }
+    for (const m of overlay.markers) {
+      const q = proj.containerPointFromCoords(new k.maps.LatLng(m.lat, m.lng))
+      placed.push({ x: q.x, y: q.y })
+    }
+    for (const lb of labs) {
+      const pt = proj.containerPointFromCoords(new k.maps.LatLng(lb.lat, lb.lng))
+      let up = 0
+      for (let i = 0; i < 5; i++) {
+        const y = pt.y - 18 - up
+        if (placed.some((q) => Math.abs(q.x - pt.x) < 62 && Math.abs(q.y - y) < 34)) up += 40
+        else break
+      }
+      placed.push({ x: pt.x, y: pt.y - 18 - up })
+      shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(lb.lat, lb.lng), content: lb.el, map, xAnchor: 0.5, yAnchor: 1 + (6 + up) / 24, zIndex: lb.z }))
+    }
+    return () => shapes.forEach((x) => x.setMap(null))
+  }, [ready, overlay, mapLevel])
+
+  // 진행 방향 화살표: 보이는 경로(선택한 길·버스 경로)를 따라 일정 간격으로 작은 흰 화살표를 놓는다. 줌 단계에 맞춰 간격을 바꾼다.
+  useEffect(() => {
+    const k = kRef.current
+    const map = mapRef.current
+    if (!ready || !k || !map || !overlay) return
+    const shapes: { setMap(m: kakao.maps.Map | null): void }[] = []
+    const step = Math.max(25, Math.min(500, 40 * 2 ** (mapLevel - 3)))
+    const paths: [number, number][][] = []
+    if (overlay.legs?.length) for (const l of overlay.legs) paths.push(l.coords)
+    else {
+      const p = overlay.active === 'base' ? overlay.base : overlay.detour
+      if (p) paths.push(p)
+    }
+    let n = 0
+    for (const p of paths) {
+      for (const sp of arrowSpots(p, step)) {
+        if (n++ > 120) break
+        const el = document.createElement('div')
+        el.className = 'rt-arrow'
+        el.setAttribute('aria-hidden', 'true')
+        el.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" style="transform:rotate(${Math.round(sp.angle)}deg)"><path d="M6 1.5 10 9 6 7 2 9Z" fill="#fff" stroke="rgba(25,31,40,.55)" stroke-width="1" stroke-linejoin="round"/></svg>`
+        shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(sp.at[0], sp.at[1]), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 10, clickable: false }))
+      }
+    }
+    return () => shapes.forEach((x) => x.setMap(null))
+  }, [ready, overlay, mapLevel])
+
   // 새 결과가 오면 경로 전체가 보이게, 장애요소를 고르면 그곳으로 이동
   useEffect(() => {
     const k = kRef.current
@@ -917,7 +1029,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       for (const p of [...(overlay.base ?? []), ...(overlay.detour ?? []), ...(overlay.legs ?? []).flatMap((l) => l.coords)]) b.extend(new k.maps.LatLng(p[0], p[1]))
       setTimeout(() => {
         map.relayout()
-        map.setBounds(b, isDesktopLayout() ? 60 : 70, 40, isDesktopLayout() ? 80 : Math.round(window.innerHeight * 0.66), isDesktopLayout() ? 480 : 40)
+        map.setBounds(b, isDesktopLayout() ? 60 : Math.max(70, topCoverOf(container.current) + 12), 40, isDesktopLayout() ? 80 : Math.round(window.innerHeight * 0.44), isDesktopLayout() ? 480 : 40)
       }, 100)
     } else if (overlay.focus) {
       const h = overlay.hits.find((x) => x.o.id === overlay.focus)
@@ -1108,30 +1220,111 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const behind = !!(selectedId || selectedReportId || pubSel)
   const legendCount = (progressMode ? PROGRESS_ORDER.length : 9) + PUB_LAYERS.filter((l) => layers[l.id]).length
 
+  // 내 위치: 버튼을 누르면 위치 추적(watchPosition)을 켜서 파란 점·정확도 원이 따라 움직인다. 위치는 저장하거나 보내지 않고 화면에만 쓴다.
+  //  따라가기가 켜져 있으면 지도 중심이 내 위치를 따라가고, 사용자가 지도를 끌면 꺼진다. 탭을 떠나거나 화면이 숨겨지면 추적을 멈추고, 돌아오면 이어 간다.
+  const clearMe = () => {
+    meRef.current?.setMap(null)
+    meRef.current = null
+    accRef.current?.setMap(null)
+    accRef.current = null
+  }
+  const haltWatch = () => {
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current)
+      watchRef.current = null
+    }
+    clearMe()
+  }
+  const setFollow = (on: boolean) => {
+    followRef.current = on
+    setLocMode(wantLocRef.current ? (on ? 'follow' : 'free') : 'off')
+  }
+  const beginWatch = () => {
+    if (watchRef.current !== null || !('geolocation' in navigator)) return
+    watchRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const k = kRef.current
+        const map = mapRef.current
+        if (!k || !map) return
+        const at = new k.maps.LatLng(pos.coords.latitude, pos.coords.longitude)
+        lastPosRef.current = at
+        const acc = Math.max(5, Math.min(pos.coords.accuracy || 0, 1000))
+        if (!meRef.current) {
+          const el = document.createElement('div')
+          el.className = 'hm-me'
+          meRef.current = new k.maps.CustomOverlay({ position: at, content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 3 })
+        } else meRef.current.setPosition(at)
+        if (!accRef.current) accRef.current = new k.maps.Circle({ map, center: at, radius: acc, strokeWeight: 1, strokeColor: '#2272eb', strokeOpacity: 0.35, fillColor: '#2272eb', fillOpacity: 0.12, zIndex: 1 })
+        else {
+          accRef.current.setPosition(at)
+          accRef.current.setRadius(acc)
+        }
+        if (followRef.current) {
+          if (firstFixRef.current) map.setLevel(3)
+          map.setCenter(at)
+        }
+        firstFixRef.current = false
+        setLocMsg(followRef.current ? `내 위치를 따라가고 있어요 (오차 약 ${Math.round(acc / 10) * 10}m)` : `내 위치예요 (오차 약 ${Math.round(acc / 10) * 10}m)`)
+      },
+      (err) => {
+        if (err.code === 1) {
+          wantLocRef.current = false
+          haltWatch()
+          setFollow(false)
+          setLocMsg('위치를 가져오지 못했어요. 브라우저에서 위치를 허용해 주세요.')
+        } else setLocMsg('내 위치를 찾고 있어요…')
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 },
+    )
+  }
   const locateMe = () => {
-    const k = kRef.current
     const map = mapRef.current
-    if (!k || !map) return
+    if (!kRef.current || !map) return
     if (!('geolocation' in navigator)) {
       setLocMsg('이 기기에서는 현재 위치를 쓸 수 없어요.')
       return
     }
+    if (wantLocRef.current && followRef.current) {
+      // 따라가는 중에 다시 누르면 끈다
+      wantLocRef.current = false
+      haltWatch()
+      setFollow(false)
+      setLocMsg('')
+      return
+    }
+    if (wantLocRef.current) {
+      // 따라가기가 꺼져 있었다면 내 위치로 돌아와 다시 따라간다
+      setFollow(true)
+      if (lastPosRef.current) map.setCenter(lastPosRef.current)
+      return
+    }
+    wantLocRef.current = true
+    firstFixRef.current = true
+    setFollow(true)
     setLocMsg('내 위치를 찾고 있어요…')
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const at = new k.maps.LatLng(pos.coords.latitude, pos.coords.longitude)
-        map.setCenter(at)
-        map.setLevel(3)
-        meRef.current?.setMap(null)
-        const el = document.createElement('div')
-        el.className = 'hm-me'
-        meRef.current = new k.maps.CustomOverlay({ position: at, content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 3 })
-        setLocMsg(`내 위치 주변이에요 (오차 약 ${Math.round(pos.coords.accuracy)}m)`)
-      },
-      () => setLocMsg('위치를 가져오지 못했어요. 브라우저에서 위치를 허용해 주세요.'),
-      { enableHighAccuracy: true, timeout: 8000 },
-    )
+    beginWatch()
   }
+  followOffRef.current = () => {
+    if (!wantLocRef.current || !followRef.current) return
+    setFollow(false)
+    setLocMsg('지도를 움직여서 따라가기를 껐어요.')
+  }
+  // 동행지도 탭을 떠나거나 화면이 숨겨지면 추적을 멈추고, 다시 보이면 이어 간다
+  useEffect(() => {
+    if (!ready) return
+    const sync = () => {
+      if (document.hidden || !active) haltWatch()
+      else if (wantLocRef.current) beginWatch()
+    }
+    document.addEventListener('visibilitychange', sync)
+    sync()
+    return () => {
+      document.removeEventListener('visibilitychange', sync)
+      haltWatch()
+    }
+    // haltWatch·beginWatch는 ref만 쓰므로 탭·준비 상태가 바뀔 때만 다시 건다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, ready])
 
   // 아래 시트 단계별로 보이는 높이를 내용의 실제 높이에 맞춘다(글자가 커지거나 줄이 바뀌어도 버튼이 잘리지 않게)
   useEffect(() => {
@@ -1306,7 +1499,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                   {!view ? '지도를 불러오고 있어요' : here.length > 0 ? `장애요소 ${here.length}곳${hereCount('hard') > 0 ? ` · 어려운 곳 ${hereCount('hard')}` : ''}` : '여기에는 등록된 장애요소가 없어요'}
                 </h2>
                 <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
-                  제보하기
+                  신고하기
                 </button>
                 <button type="button" className="hm-snapbtn" aria-expanded={snap > 0} aria-label={SNAP_BTN[snap].label} title={SNAP_BTN[snap].label} onClick={() => setSnap(SNAP_BTN[snap].next)}>
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1315,7 +1508,13 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 </button>
               </div>
             </div>
-            <button type="button" className="hm-locate" onClick={locateMe} aria-label="내 위치로 이동">
+            <button
+              type="button"
+              className={'hm-locate' + (locMode === 'follow' ? ' on' : locMode === 'free' ? ' free' : '')}
+              onClick={locateMe}
+              aria-pressed={locMode !== 'off'}
+              aria-label={locMode === 'follow' ? '내 위치 따라가기 끄기' : locMode === 'free' ? '내 위치로 돌아가 따라가기' : '내 위치로 이동'}
+            >
               내 위치
             </button>
             <div className="hm-s-mid">
@@ -1429,7 +1628,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                             <span className="lr-title">
                               {listTitle(shortName(b.id, b.name))}
                             </span>
-                            <span className="lr-sub">위치를 아직 정하지 못했어요</span>
                           </span>
                           <span className="lr-chev" aria-hidden="true" />
                         </button>

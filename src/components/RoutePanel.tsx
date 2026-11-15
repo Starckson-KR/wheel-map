@@ -500,7 +500,6 @@ export default function RoutePanel(props: Props) {
 
       <section className="rt-sec">
         <h3>시연 경로</h3>
-        <Sentences as="p" className="bm-meta">{FREE_SEARCH ? '미리 저장해 둔 경로예요.' : '미리 저장해 둔 경로 중에서 골라 주세요.'}</Sentences>
         <ul className="rt-pairs">
           {DEMO_PAIRS.map((p) => (
             <li key={p.id}>
@@ -574,7 +573,7 @@ export default function RoutePanel(props: Props) {
                 <br />
                 {result.res.unresolved.map((h) => obstacleName(h.o)).join(', ')}
                 <br />
-                우회 경유지({ROUTE_CFG.offsetsM.map((m) => `±${m}m`).join('·')})를 시도했지만 이곳을 피하는 길을 찾지 못했어요. 행정 화면 우선순위의 &apos;대안 경로&apos; 항목에 기록해 뒀어요.
+                이곳을 피하는 길을 찾지 못했어요.
               </p>
             )}
             {result.res.endpoint.length > 0 && (
@@ -585,9 +584,8 @@ export default function RoutePanel(props: Props) {
               </p>
             )}
             {result.res.untested.length > 0 && (
-              <p className="rf-warn">경로 요청 한도({ROUTE_CFG.maxAttempts}번)에 닿아서 돌아갈 수 있는지 확인하지 못한 곳: {result.res.untested.map((h) => obstacleName(h.o)).join(', ')}</p>
+              <p className="rf-warn">돌아갈 수 있는지 확인하지 못한 곳: {result.res.untested.map((h) => obstacleName(h.o)).join(', ')}</p>
             )}
-            {result.res.attempts.some((a) => a.result === 'not-stored') && <p className="bm-meta">미리 저장하지 않은 우회 조합은 시도하지 못했어요.</p>}
           </section>
 
           <div className="rt-cards" role="radiogroup" aria-label="경로 비교">
@@ -706,10 +704,6 @@ export default function RoutePanel(props: Props) {
               <Sentences as="p" className="bm-meta">{`길 중간에 들어가기 불편한 건물 ${finalSummary.entryMid.length}곳이 있어요. 지나가는 데는 영향이 없어서 판정에는 넣지 않았어요.`}</Sentences>
             )}
             <Sentences as="p" className="bm-meta">장애요소를 누르면 상세 정보가 열려요.</Sentences>
-            <p className="bm-meta">
-              우회 시도 {result.res.attempts.filter((a) => a.result !== 'at-endpoint').length}번 · 경로 요청 {result.res.requests}번
-              {FREE_SEARCH && ` (저장본 ${result.stats.stored} · 개발 서버 저장 ${result.stats.cached} · 새 TMAP 호출 ${result.stats.requested})`}
-            </p>
           </section>
 
           {stopsBlock}

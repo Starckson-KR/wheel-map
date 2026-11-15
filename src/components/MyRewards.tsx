@@ -131,7 +131,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
             </div>
             {g.other > 0 && <p className="bm-meta">합쳐지거나 반려된 제보 {g.other}건은 위 숫자에 넣지 않았어요.</p>}
             <button type="button" className="hm-cta-sub rw-link" onClick={onOpenReports}>
-              내 제보 보기
+              내 민원 현황
             </button>
           </section>
         </>
@@ -196,7 +196,6 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
               ))}
             </ul>
           )}
-          <p className="bm-meta">비율은 내 제보가 아니었다면 어땠을지와 지금을 견준 값이에요.</p>
         </section>
       )}
     </div>

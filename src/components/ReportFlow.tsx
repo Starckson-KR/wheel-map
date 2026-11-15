@@ -268,14 +268,14 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const q = STEP_Q[step]
 
   return (
-    <div ref={panelRef} className="rf" role="dialog" aria-modal="true" aria-label="장애요소 제보하기" hidden={hidden}>
+    <div ref={panelRef} className="rf" role="dialog" aria-modal="true" aria-label="장애요소 신고하기" hidden={hidden}>
       <div className="rf-head">
         {!done && step > 1 && (
           <button type="button" className="bm-back" onClick={() => go((step - 1) as Step)} disabled={busy} aria-label="이전 단계">
             이전
           </button>
         )}
-        <h2>제보하기{!done && <span className="rf-step" aria-hidden="true">{step}/4</span>}</h2>
+        <h2>신고하기{!done && <span className="rf-step" aria-hidden="true">{step}/4</span>}</h2>
         <button type="button" className="bm-close" onClick={cancel}>
           닫기
         </button>
@@ -339,7 +339,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 navGo('#/report?section=mine')
               }}
             >
-              내 제보 보기
+              내 민원 현황
             </button>
           </div>
         </div>

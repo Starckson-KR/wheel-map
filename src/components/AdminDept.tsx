@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import Skeleton from './Skeleton'
-import { agencyById, hasTodoLaw, legalLines } from '../lib/agencyGuide'
+import { agencyById, legalLines } from '../lib/agencyGuide'
 import { findAgencyName } from '../lib/agencyName'
 import { DAY, agencyOf, deadlineOf, fmtDate, pct, pendingTransfer, tabOf } from '../lib/caseMetrics'
 import { DEADLINE_SOON_DAYS } from '../lib/config'
@@ -140,16 +140,15 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
     <div className="adm-sec adm-dept">
       <section className="rf-card adm-dept-sec" aria-labelledby="dept-card-h">
         <h3 id="dept-card-h">{agency.name}</h3>
-        {!agency.verified && <p className="ps-flag">소관 확인 필요 · 이 부서의 소관은 아직 확인 중인 자료예요.</p>}
         <dl className="adm-dept-dl">
           <dt>소속</dt>
           <dd>
-            {isTodo(agency.department) ? '확인 필요' : agency.department} ({agency.level})
+            {isTodo(agency.department) ? '-' : agency.department} ({agency.level})
           </dd>
           <dt>소관 유형</dt>
-          <dd>{agency.types.join(', ') || '확인 필요'}</dd>
+          <dd>{agency.types.join(', ') || '-'}</dd>
           <dt>위치 종류</dt>
-          <dd>{agency.locationKinds.join(', ') || '확인 필요'}</dd>
+          <dd>{agency.locationKinds.join(', ') || '-'}</dd>
           <dt>근거 법령</dt>
           <dd>
             {law.length > 0 && (
@@ -159,7 +158,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
                 ))}
               </ul>
             )}
-            {hasTodoLaw(agency) && <span className="bm-meta">{law.length > 0 ? '일부 조문은 확인 필요' : '확인 필요'}</span>}
+            {law.length === 0 && '-'}
           </dd>
         </dl>
       </section>
@@ -202,7 +201,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
             )
           })
         )}
-        <Sentences as="span" className="bm-meta">{`기한 경과, 기한 임박(${DEADLINE_SOON_DAYS}일 이내), 신규, 처리 중 순서예요. 누르면 민원 상세가 열려요. 이관을 보내고 답을 기다리는 건은 빠져 있어요.`}</Sentences>
+        <Sentences as="span" className="bm-meta">{`기한 경과, 기한 임박(${DEADLINE_SOON_DAYS}일 이내), 신규, 처리 중 순서예요.`}</Sentences>
       </section>
 
       <section className="rf-card adm-dept-sec" aria-labelledby="dept-in-h">
@@ -236,7 +235,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
         <h3 id="dept-plan-h">소관 지점의 개선계획 ({plan.length})</h3>
         {err && <Sentences as="p" className="rf-warn">{err}</Sentences>}
         {!data && !err && <Skeleton rows={3} label="이용 수요 자료를 불러오고 있어요" />}
-        {data && plan.length === 0 && <p className="rp-empty">이 부서 소관으로 확실한 지점이 아직 없어요.</p>}
+        {data && plan.length === 0 && <p className="rp-empty">이 부서 소관으로 확실한 지점이 없어요.</p>}
         {planShown.length > 0 && (
           <ol className="adm-dept-plan">
             {planShown.map((c, i) => {
@@ -273,7 +272,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
             개선계획·예산에서 입력하기
           </button>
         </div>
-        <Sentences as="span" className="bm-meta">소관이 확실한 지점만 보여요. 접수된 민원이 있거나 지점 종류로 소관이 하나로 정해지는 지점만 넣고, 불확실한 지점은 뺐어요. 순위는 우선순위(안) 점수 순이에요.</Sentences>
+        <Sentences as="span" className="bm-meta">소관이 확실한 지점만 순위대로 보여요.</Sentences>
       </section>
     </div>
   )

@@ -10,7 +10,7 @@ import { LOCATION_KINDS, guessLocationKind } from '../lib/agencyGuide'
 import { REPORT_TYPES } from '../lib/reportTypes'
 import { usePlan } from '../lib/planStore'
 import { PHOTOS_VISIBLE, photosFor } from '../lib/photos'
-import { publicRatingSource } from '../lib/displayText'
+import { publicIssue, publicRatingSource } from '../lib/displayText'
 import { STATUS_LABEL, userName } from '../lib/reportStore'
 import type { Barrier, Rating, Report } from '../types'
 
@@ -96,10 +96,10 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
         <dd>
           {b.type}
         </dd>
-        {b.issue && (
+        {publicIssue(b.issue) && (
           <>
             <dt>문제 요약</dt>
-            <dd>{b.issue}</dd>
+            <dd>{publicIssue(b.issue)}</dd>
           </>
         )}
         {b.measurements.length > 0 && (

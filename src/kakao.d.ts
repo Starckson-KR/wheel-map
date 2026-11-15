@@ -66,6 +66,26 @@ declare namespace kakao.maps {
   class CustomOverlay {
     constructor(options: CustomOverlayOptions)
     setMap(map: Map | null): void
+    setPosition(position: LatLng): void
+  }
+
+  interface CircleOptions {
+    map?: Map | null
+    center: LatLng
+    radius: number
+    strokeWeight?: number
+    strokeColor?: string
+    strokeOpacity?: number
+    fillColor?: string
+    fillOpacity?: number
+    zIndex?: number
+  }
+
+  class Circle {
+    constructor(options: CircleOptions)
+    setMap(map: Map | null): void
+    setPosition(position: LatLng): void
+    setRadius(radius: number): void
   }
 
   interface PolylineOptions {

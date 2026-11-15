@@ -179,7 +179,7 @@ export function computeRewards(reports: Report[], userIds: string[]): Record<str
                   { label: '조치 완료로 이어진 제보', now: counts.ledToAction, need: g3.ledToAction },
                 ]
               : [{ label: '동행 점검 참여', now: counts.companion, need: REWARD_GRADE_RULES.g4.companion }]
-      next = { name: nextDef.name, how: nextDef.how, progress, anyOf: grade === 1, ...(grade === 3 ? { note: '동행 점검 기능은 아직 준비 중이에요.' } : {}) }
+      next = { name: nextDef.name, how: nextDef.how, progress, anyOf: grade === 1 }
     }
     res[userId] = {
       userId,

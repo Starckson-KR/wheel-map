@@ -7,11 +7,11 @@
   display: none;
 }
 
-/* 모바일: 지도가 위쪽에 보이도록 화면의 아래쪽 60%만 쓴다 */
+/* 모바일: 지도가 위쪽에 보이도록 화면의 아래쪽 42%만 쓴다 */
 @media (max-width: 767px) {
   :root:not([data-view='desktop']) .rp.rt {
     inset: auto 0 0 0;
-    height: 62%;
+    height: 42%;
     padding-top: 0;
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     box-shadow: var(--shadow-sheet);
@@ -33,7 +33,7 @@
 /*  data-view="mobile" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
 :root[data-view='mobile'] .rp.rt {
     inset: auto 0 0 0;
-    height: 62%;
+    height: 42%;
     padding-top: 0;
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     box-shadow: var(--shadow-sheet);

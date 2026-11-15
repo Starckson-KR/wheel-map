@@ -167,7 +167,6 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
         <dt>사진</dt>
         <dd>
           <ReportPhotos keys={r.photos} />
-          {isSampleReport(r) && <Sentences as="span" className="bm-meta">앱에 들어 있는 체험용 그림이에요. 실제 현장 사진이 아니에요.</Sentences>}
         </dd>
         <dt>검증</dt>
         <dd>
@@ -248,12 +247,10 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
           )}
         </section>
       )}
-      {!canVoteNow && !canConfirm && !canRate && !canReject && r.status === 'pending' && (
-        <Sentences as="p" className="bm-meta">{r.userId === me.id
-            ? '내 제보는 내가 확인할 수 없어요. 다른 리뷰어가 확인해 줄 수 있어요.'
-            : me.role === 'verifier'
-              ? '지금 설정에서는 검증자가 확인할 수 없어요.'
-              : '이미 확인했어요.'}</Sentences>
+      {!canVoteNow && !canConfirm && !canRate && !canReject && r.status === 'pending' && r.userId !== me.id && (
+        <Sentences as="p" className="bm-meta">{me.role === 'verifier'
+            ? '지금 설정에서는 검증자가 확인할 수 없어요.'
+            : '이미 확인했어요.'}</Sentences>
       )}
       {msg && (
         <Sentences as="p" className="rf-warn" role="alert">

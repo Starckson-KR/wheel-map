@@ -71,7 +71,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
       const [cw, bus, fac] = await Promise.all([loadPubDataset('crosswalk'), loadPubDataset('bus'), loadPubDataset('facility')])
       const n = fillLargeDemo(pickCandidates({ crosswalk: cw.items, bus: bus.items, facility: fac.items }), barriers)
       setMsg('')
-      toast(n > 0 ? `대규모 시연 데이터 ${n}건을 채웠어요. 모두 가상이고, 초기화하면 지워져요.` : '대규모 시연 데이터가 이미 있어요.')
+      toast(n > 0 ? `대규모 시연 데이터 ${n}건을 채웠어요.` : '대규모 시연 데이터가 이미 있어요.')
     } catch {
       setMsg('위치 자료를 불러오지 못해 만들지 못했어요. 인터넷 연결을 확인해 주세요.')
     } finally {
@@ -128,7 +128,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
             <div className="ms-head">
               <div>
                 <h2>시연 도구</h2>
-                <Sentences as="p" className="ms-sub">발표용 설정이에요. 실제 로그인이나 접수가 아니에요.</Sentences>
+                <Sentences as="p" className="ms-sub">발표용 설정이에요.</Sentences>
               </div>
               <button type="button" className="bm-close" onClick={() => setOpen(false)}>
                 닫기
@@ -156,7 +156,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                   모의 연동(시연)
                 </button>
               </div>
-              <p className="bm-meta">모의 연동은 신문고에 실제로 접수하지 않고, 접수 과정만 보여 줘요.</p>
+              <p className="bm-meta">모의 연동은 신문고에 실제로 접수하지 않아요.</p>
             </div>
 
             <div className="ms-sec">
@@ -184,7 +184,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                   켜짐
                 </button>
               </div>
-              <p className="bm-meta">기기에서 움직임 줄이기를 켜 두었어도, 시연용으로 화면 움직임을 보여 줘요.</p>
+              <p className="bm-meta">기기의 움직임 줄이기와 상관없이 움직임을 보여 줘요.</p>
             </div>
 
             <div className="ms-sec">
@@ -197,7 +197,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                   꺼짐(키워드만)
                 </button>
               </div>
-              <Sentences as="p" className="bm-meta">끄면 홈 검색창이 인터넷 없이 키워드로만 찾아요. 오프라인 리허설과 발표 대비용이에요.</Sentences>
+              <Sentences as="p" className="bm-meta">끄면 홈 검색창이 키워드로만 찾아요.</Sentences>
             </div>
 
             <div className="ms-sec">
@@ -207,7 +207,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                   type="button"
                   onClick={() => {
                     const n = fillDemo(barriers)
-                    setMsg(n > 0 ? `시연 데이터 ${n}건을 채웠어요. '시연 데이터' 표시가 붙고, 초기화하면 지워져요.` : '시연 데이터가 이미 있어요.')
+                    setMsg(n > 0 ? `시연 데이터 ${n}건을 채웠어요.` : '시연 데이터가 이미 있어요.')
                   }}
                 >
                   시연 데이터 채우기
@@ -248,7 +248,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
               <label className="bm-meta">
                 <input type="checkbox" checked={shift} onChange={(e) => setShift(e.target.checked)} /> 가져올 때 날짜를 오늘 기준으로 옮기기
               </label>
-              <Sentences as="p" className="bm-meta">대규모 데이터는 가상 사용자 약 300명의 가상 제보예요. 파일은 data/demo/large-demo.json에서 받을 수 있어요.</Sentences>
+              <Sentences as="p" className="bm-meta">대규모 데이터는 가상 사용자 약 300명의 가상 제보예요.</Sentences>
               {msg && (
                 <Sentences as="p" className="rf-notice" role="status">
                   {msg}

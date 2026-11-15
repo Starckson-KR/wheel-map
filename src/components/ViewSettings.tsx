@@ -104,7 +104,6 @@ export default function ViewSettings({ floating = false }: { floating?: boolean 
                     </button>
                   ))}
                 </div>
-                <p className="bm-meta">크게를 고르면 화면 전체 글자가 커져요.</p>
               </div>
             </div>
           </>,

@@ -604,6 +604,10 @@
   font-weight: 700;
 }
 
+.ps-by {
+  white-space: nowrap;
+}
+
 .ps-timeline {
   position: relative;
   margin: var(--s-3) 0 0 6px;

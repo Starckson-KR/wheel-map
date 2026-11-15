@@ -26,7 +26,7 @@ export default function AdminRoute({ barriers, onOpen }: { barriers: Barrier[]; 
             <h3>{route.name}</h3>
 
             <div className="adm-ratio">
-              <strong>통과 가능 구간 비율(안): {pct(st.ratio)}</strong>
+              <strong>통과 가능 구간 비율: {pct(st.ratio)}</strong>
               <div className="adm-bar" role="img" aria-label={`○ ${st.counts.O}, △ ${st.counts.TRIANGLE}, X ${st.counts.X}, 평가 없음 ${st.counts.none}`}>
                 {(['O', 'TRIANGLE', 'X', 'none'] as const).map((k) =>
                   st.counts[k] > 0 ? (
@@ -40,7 +40,7 @@ export default function AdminRoute({ barriers, onOpen }: { barriers: Barrier[]; 
                 ○ {st.counts.O}곳 · △ {st.counts.TRIANGLE}곳 · X {st.counts.X}곳 · 평가 없음 {st.counts.none}곳 · 위치 미확정 {st.counts.unplaced}곳(비율 계산에서 제외)
               </span>
               <Sentences as="span" className="bm-meta">
-                통과 가능 구간 비율은 위치가 정해진 지점 가운데 ○인 지점의 비율이에요. 선과 영역도 한 지점으로 세고, △·X·평가 없음은 ○가 아닌 것으로 봐요. 재확인을 통과한 지점은 ○로 바뀌어요.
+                통과 가능 구간 비율은 위치가 정해진 지점 가운데 ○인 지점의 비율이에요.
               </Sentences>
             </div>
 

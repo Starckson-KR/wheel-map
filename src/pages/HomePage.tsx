@@ -207,7 +207,7 @@ export default function HomePage() {
       fillDemo(barriers)
       const n = fillLargeDemo(pickCandidates({ crosswalk: cw.items, bus: bus.items, facility: fac.items }), barriers)
       setFillMsg('')
-      toast(n > 0 ? '체험 데이터를 채웠어요. 모두 가상이고, 설정의 시연 도구에서 지울 수 있어요.' : '체험 데이터가 이미 있어요.')
+      toast(n > 0 ? '체험 데이터를 채웠어요.' : '체험 데이터가 이미 있어요.')
       go(TO.map)
     } catch {
       setFillMsg('위치 자료를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.')
@@ -280,7 +280,7 @@ export default function HomePage() {
           {needTrial && (
             <section className="hp-trial" aria-labelledby="h-trial">
               <h2 id="h-trial">처음이세요?</h2>
-              <Sentences as="p">체험 데이터를 채우면 지도·랭킹·개선 현황·행정 화면이 채워져요. 수업 프로토타입이라 모두 가상이고, 민원은 실제로 접수되지 않아요.</Sentences>
+              <Sentences as="p">체험 데이터를 채우면 지도와 랭킹이 채워져요. 모두 가상이고, 민원은 실제로 접수되지 않아요.</Sentences>
               <div className="hp-trial-act">
                 <button type="button" className="rf-primary" disabled={filling} onClick={fillTrial}>체험 데이터 채우기</button>
                 <button type="button" disabled={filling} onClick={() => setSkipTrial(true)}>그냥 둘러보기</button>

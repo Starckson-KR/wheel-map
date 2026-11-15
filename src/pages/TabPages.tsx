@@ -237,10 +237,10 @@ export function AlertsTab({ query = '' }: { query?: string }) {
         {shown.length === 0 ? (
           <div className="al-empty">
             <Sentences as="p" className="bm-meta">{filter === 'points'
-                ? '아직 받은 참여 점수가 없어요. 제보가 검증되면 점수가 쌓여요.'
+                ? '아직 받은 참여 점수가 없어요.'
                 : filter === 'report'
-                  ? '아직 민원 알림이 없어요. 문제를 신고하면 처리 상태가 바뀔 때마다 여기에 알려 드려요.'
-                  : '아직 받은 알림이 없어요. 문제를 신고하면 처리 상태와 참여 점수가 여기에 쌓여요.'}</Sentences>
+                  ? '아직 민원 알림이 없어요.'
+                  : '아직 받은 알림이 없어요.'}</Sentences>
             <div className="empty-act">
               <button type="button" className="rf-primary" onClick={() => go(filter === 'points' ? TO.map : TO.newReport)}>
                 {filter === 'points' ? '지도 보기' : '문제 신고하러 가기'}

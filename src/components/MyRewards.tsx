@@ -6,6 +6,7 @@ import { DEMO_USERS, useReports, userName } from '../lib/reportStore'
 import { REWARD_DAILY_CAP } from '../lib/config'
 import { GRADE_EMBLEMS, SPECIAL_EMBLEM, TYPE_EMBLEMS, changedRoads, computeRewards, type PointEvent } from '../lib/rewards'
 import type { Barrier, Report } from '../types'
+import { Sentences } from './Sentences'
 
 type Props = { barriers: Barrier[]; onOpenReports: () => void; onOpenReport: (id: string) => void; onClose?: () => void; embedded?: boolean }
 type Tab = 'title' | 'points' | 'roads'
@@ -64,8 +65,8 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
           </p>
         </div>
       </section>
-      {role === 'officer' && <p className="bm-meta">담당 공무원은 점수를 쌓지 않아요. 시민 사용자로 바꿔서 보세요.</p>}
-      {rw.grade === 0 && role !== 'officer' && <p className="rw-lead">검증된 제보가 생기면 첫 칭호를 받아요. 점수는 검증이 끝난 뒤에만 쌓여요.</p>}
+      {role === 'officer' && <Sentences as="p" className="bm-meta">담당 공무원은 점수를 쌓지 않아요.</Sentences>}
+      {rw.grade === 0 && role !== 'officer' && <Sentences as="p" className="rw-lead">검증된 제보가 생기면 첫 칭호를 받아요.</Sentences>}
 
       <div className="rp-tabs" role="tablist" aria-label="내 기여 보기">
         {TABS.map((t) => (
@@ -111,7 +112,6 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
                 )
               })}
             </ul>
-            <p className="bm-meta">칭호와 엠블럼 이름, 받는 조건은 모두 안(案)이에요. 팀 회의에서 확정해요. 엠블럼 그림도 임시예요.</p>
           </section>
           <section>
             <h4>내 제보</h4>
@@ -161,7 +161,6 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
               ))}
             </ul>
           )}
-          <p className="bm-meta">점수는 제보 기록에서 계산해요. 하루에 받을 수 있는 점수는 {REWARD_DAILY_CAP}점까지예요(안).</p>
         </section>
       )}
 

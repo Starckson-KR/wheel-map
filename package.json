@@ -11,6 +11,7 @@
     "prefetch": "node scripts/prefetch.ts"
   },
   "dependencies": {
+    "motion": "14.14.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zustand": "^5.0.16"

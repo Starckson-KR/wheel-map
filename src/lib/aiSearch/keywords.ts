@@ -8,6 +8,10 @@ const squash = (s: string) => s.toLowerCase().replace(/\s+/g, '')
 
 type Rule = [RegExp, number]
 
+// 「찾기·위치 묻기」 표현과 「문제를 알리는」 표현(공백 지운 글 기준). worker/src/rules.ts와 같은 기준이다.
+const FIND_CUE_SRC = /찾|어디|어느|근처|가까|알려|보여|위치|갈수있|이용할수|있나|있는지|있을까|있는곳|있는데/
+const PROBLEM_CUE = /신고|제보|민원|고장|잠겨|잠겼|잠김|막혀|막혔|막힘|막고|막아|없어|없다|없네|없음|없는데|없습|끊|깨져|깨진|깨졌|파손|구멍|패였|패인|덜컹|울퉁|좁아|좁은|좁다|위험|높아|가파|못(?!찾)|불편|더러|부서|흔들|짧아|부족|방치|쌓여|세워|불법/
+
 // 점수 규칙은 공백을 지운 글에 적용한다(「몇 등」→「몇등」).
 const RULES: Record<MovableIntent, Rule[]> = {
   report_new: [
@@ -17,7 +21,8 @@ const RULES: Record<MovableIntent, Rule[]> = {
     [/계단|턱|단차|경사로|급경사|가파/, 3],
     [/구멍|파손|깨져|깨진|깨졌|덜컹|울퉁|패였|패인|포트홀|보도블록|흔들/, 3],
     [/좁아|좁은|좁다/, 3],
-    [/고장|엘리베이터|엘베|수동문|자동문|화장실/, 3],
+    [/고장|엘리베이터|엘베|수동문|자동문/, 3],
+    [/화장실.{0,10}(없|고장|잠|막|더러|부서|파손|좁|못)|(없|고장|잠|막|더러|부서|파손).{0,6}화장실/, 5], // 화장실 문제는 신고, 그냥 화장실 말은 찾기
     [/쓰레기|킥보드|자전거|입간판|노점|공사|불법주|주차/, 3],
     [/점자블록|점자블럭|끊겨|끊어/, 3],
     [/못들어|못지나|못가|못올라|못내려|통과가?어렵|지나가기어렵|위험해|위험하/, 2],
@@ -71,6 +76,10 @@ const RULES: Record<MovableIntent, Rule[]> = {
     [/구청|시청|도로과|교통과|복지과/, 1],
   ],
   alerts: [[/알림|알람|새소식|혜택|공지|소식/, 3]],
+  toilet_find: [
+    [/화장실/, 3],
+    [FIND_CUE_SRC, 2],
+  ],
   help: [
     [/어떻게(써|쓰|사용|이용|하나요|해요)|사용법|사용방법|이용방법|쓰는법|쓰는방법|도움말|이용안내|처음|뭐할수|뭘할수|무엇을할수|설명/, 3],
     [/이앱|이서비스|앱사용/, 1],
@@ -113,7 +122,7 @@ export function guardIntent(question: string, intent: AiIntent): AiIntent {
 
 export type KeywordResult = { intent: AiIntent; score: number; ranked: { intent: MovableIntent; score: number }[] }
 
-const ORDER: MovableIntent[] = ['report_new', 'receipt_lookup', 'my_reports', 'my_score', 'route', 'bus', 'progress', 'agency', 'alerts', 'help']
+const ORDER: MovableIntent[] = ['report_new', 'toilet_find', 'receipt_lookup', 'my_reports', 'my_score', 'route', 'bus', 'progress', 'agency', 'alerts', 'help']
 const MIN_SCORE = 3
 
 export function scoreIntents(question: string): { intent: MovableIntent; score: number }[] {
@@ -130,6 +139,9 @@ export function keywordIntent(question: string): KeywordResult {
   const ranked = scoreIntents(question)
   const top = ranked[0]
   let intent: AiIntent = top && top.score >= MIN_SCORE ? top.intent : 'unknown'
+  // 문제를 알리는 말 없이 위치·있는 곳만 묻는 말(엘리베이터·주차장 어디 있어요)은 신고가 아니다. 앱에 그 시설을 찾아 주는 화면이 없으니 모른다고 한다.
+  const s = squash(question)
+  if (intent === 'report_new' && FIND_CUE_SRC.test(s) && !PROBLEM_CUE.test(s)) intent = 'unknown'
   // 신고하기와 길찾기·버스가 같은 점수면 문제 신고를 우선한다(ORDER 순서). help는 도움말 단서가 있어야만 통과한다.
   intent = guardIntent(question, intent)
   return { intent, score: top?.score ?? 0, ranked }

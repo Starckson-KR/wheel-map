@@ -6,6 +6,7 @@ import { RATING_STYLE } from '../lib/rating'
 import { STATUS_LABEL, nowMs, useReports } from '../lib/reportStore'
 import { ROUTES, loadCoordinators, routeStats, saveCoordinator } from '../lib/routeStats'
 import type { Barrier } from '../types'
+import { Sentences } from './Sentences'
 
 export default function AdminRoute({ barriers, onOpen }: { barriers: Barrier[]; onOpen: (id: string) => void }) {
   const reports = useReports((s) => s.reports)
@@ -38,9 +39,9 @@ export default function AdminRoute({ barriers, onOpen }: { barriers: Barrier[]; 
               <span className="bm-meta">
                 ○ {st.counts.O}곳 · △ {st.counts.TRIANGLE}곳 · X {st.counts.X}곳 · 평가 없음 {st.counts.none}곳 · 위치 미확정 {st.counts.unplaced}곳(비율 계산에서 제외)
               </span>
-              <span className="bm-meta">
+              <Sentences as="span" className="bm-meta">
                 통과 가능 구간 비율은 위치가 정해진 지점 가운데 ○인 지점의 비율이에요. 선과 영역도 한 지점으로 세고, △·X·평가 없음은 ○가 아닌 것으로 봐요. 재확인을 통과한 지점은 ○로 바뀌어요.
-              </span>
+              </Sentences>
             </div>
 
             <h4>이 경로에 걸린 기관 ({st.agencies.size}곳)</h4>
@@ -85,7 +86,6 @@ export default function AdminRoute({ barriers, onOpen }: { barriers: Barrier[]; 
                 담당 기관 저장하기
               </button>
             </div>
-            {!officer && <span className="bm-meta">담당 공무원(시연)만 정할 수 있어요. 이 브라우저에만 저장돼요.</span>}
 
             <h4>지점 목록</h4>
             <div className="adm-scroll">

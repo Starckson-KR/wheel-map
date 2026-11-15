@@ -6,6 +6,7 @@ import { EXTERNAL_STAGES, atFromYmd, externalUpdates, hasExternalAnswer, ymdOf }
 import { getMockStatus } from '../lib/mockComplaintApi'
 import { nowMs, useReports, userName } from '../lib/reportStore'
 import type { ExternalStage, Report } from '../types'
+import { Sentences } from './Sentences'
 
 const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('ko-KR', { dateStyle: 'medium' })
 
@@ -66,11 +67,9 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
   return (
     <div className="rf-card ex" aria-label="바깥 처리 상황">
       <strong>바깥 처리 상황</strong>
-      <p className="bm-meta">
-        {isMock
+      <Sentences as="p" className="bm-meta">{isMock
           ? '시연용 모의 조회로 불러온 내용이에요. 실제 신문고에서 가져온 것이 아니에요.'
-          : '신문고 같은 앱 밖에서 진행된 처리 상황을 시민이 직접 적어 두는 곳이에요. 앱 안의 처리 상태는 바뀌지 않아요.'}
-      </p>
+          : '신문고 같은 앱 밖에서 진행된 처리 상황을 시민이 직접 적어 두는 곳이에요. 앱 안의 처리 상태는 바뀌지 않아요.'}</Sentences>
 
       {list.length === 0 ? (
         <p className="bm-meta">아직 기록이 없어요.</p>
@@ -93,24 +92,22 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
       {c.external?.lastCheckedAt && <span className="bm-meta">마지막으로 기록한 때: {fmtDay(c.external.lastCheckedAt)}</span>}
 
       {overdue && (
-        <p className="ps-flag" role="status">
-          ⚠ {isMock ? '처리기한이 지났어요. 아래 \'처리 상황 불러오기(시연)\'로 모의 결과를 확인해 주세요.' : '처리기한이 지났어요. 누리집에서 결과를 확인하고 기록해 주세요.'}
-        </p>
+        <Sentences as="p" className="ps-flag" role="status">{`⚠ ${isMock ? '처리기한이 지났어요.' : '처리기한이 지났어요. 누리집에서 결과를 확인하고 기록해 주세요.'}`}</Sentences>
       )}
 
       {answered && r.status !== 'rechecked' && (
         <div className="ex-recheck" role="status">
           {r.status === 'resolved' && !readOnly ? (
             <>
-              <p>답변이 있었어요. 현장이 실제로 고쳐졌는지 재확인을 요청할 수 있어요.</p>
+              <Sentences as="p">답변이 있었어요. 현장이 실제로 고쳐졌는지 재확인을 요청할 수 있어요.</Sentences>
               <button type="button" onClick={goRecheck}>
                 재확인 하러 가기
               </button>
             </>
           ) : (
-            <p>
+            <Sentences as="p">
               답변이 있었어요. 현장이 실제로 고쳐졌는지 직접 확인해 보세요. 앱 안에서 조치가 완료로 기록되면 이 화면에서 재확인을 요청할 수 있어요.
-            </p>
+            </Sentences>
           )}
         </div>
       )}
@@ -120,9 +117,9 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
           누리집에서 처리 상황 확인하기
         </a>
       )}
-      {!readOnly && home && <span className="bm-meta">{c.channel} 누리집 첫 화면이 새 창으로 열려요. 거기서 접수번호로 조회해 주세요.</span>}
+      {!readOnly && home && <Sentences as="span" className="bm-meta">{`${c.channel} 누리집 첫 화면이 새 창으로 열려요. 거기서 접수번호로 조회해 주세요.`}</Sentences>}
 
-      {!readOnly && officer && <p className="bm-meta">바깥 처리 상황은 시민이 기록해요. 시연 도구에서 시민이나 검증자로 바꾸면 쓸 수 있어요.</p>}
+      {!readOnly && officer && <Sentences as="p" className="bm-meta">바깥 처리 상황은 시민이 기록해요.</Sentences>}
 
       {!readOnly && !officer && isMock && (
         <div className="rf-actions">
@@ -163,9 +160,9 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
         </fieldset>
       )}
       {msg && (
-        <p className="rf-warn" role="alert">
+        <Sentences as="p" className="rf-warn" role="alert">
           {msg}
-        </p>
+        </Sentences>
       )}
     </div>
   )

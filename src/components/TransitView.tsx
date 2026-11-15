@@ -11,6 +11,7 @@ import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import type { TItinerary, TLeg } from '../lib/transit/parse.ts'
 import { fetchTransit, hasStoredTransit, TRANSIT_FREE_SEARCH } from '../lib/transit/provider.ts'
 import BusArrivals from './BusArrivals'
+import { Sentences } from './Sentences'
 
 type StopInfo = { name: string; lat: number; lng: number; bis: (BisStop & { distM: number }) | null; warns: BoardingWarn[] }
 type ALeg = {
@@ -233,26 +234,26 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
     [bis, obstacles],
   )
 
-  if (!from || !to) return <p className="bm-meta">출발과 도착을 먼저 정해 주세요. 시연 경로를 고르면 바로 보여 드려요.</p>
+  if (!from || !to) return <Sentences as="p" className="bm-meta">출발과 도착을 먼저 정해 주세요.</Sentences>
 
   return (
     <div className="rt-sec" aria-live="polite">
       {status === 'idle' &&
         (TRANSIT_FREE_SEARCH ? (
           <>
-            <p className="bm-meta">버스 경로는 TMAP 대중교통 API로 받아요. 무료 상품은 하루 10건이라 한 번에 한 건씩만 받고, 같은 요청은 저장해 둬요.</p>
+            <Sentences as="p" className="bm-meta">출발·도착을 정했으면 버스 경로를 찾아 보세요.</Sentences>
             <button type="button" className="rf-primary" onClick={() => void load(true)}>
               버스 경로 찾기
             </button>
           </>
         ) : (
-          <p className="bm-meta">버스 경로는 발표용으로 미리 저장해 둔 시연 경로에서만 볼 수 있어요. 위에서 시연 경로를 골라 주세요.</p>
+          <Sentences as="p" className="bm-meta">위에서 시연 경로를 골라 주세요.</Sentences>
         ))}
       {status === 'loading' && <p className="rf-notice">버스 경로를 찾고 있어요…</p>}
       {status === 'error' && (
-        <p className="rf-warn" role="alert">
+        <Sentences as="p" className="rf-warn" role="alert">
           {message}
-        </p>
+        </Sentences>
       )}
 
       {status === 'done' && cur && (
@@ -353,7 +354,7 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
               ),
             )}
           </div>
-          <p className="bm-meta">출처: TMAP 대중교통(SK open API), 광주 BIS(광주버스정보). 저상버스 정보는 도착 예정 버스 기준이고, 실제로 휠체어 승차가 가능한지는 기사님과 정류장 상황에 따라 달라질 수 있어요.</p>
+          <Sentences as="p" className="bm-meta">저상버스 정보는 도착 예정 버스 기준이고, 실제로 휠체어 승차가 가능한지는 기사님과 정류장 상황에 따라 달라질 수 있어요.</Sentences>
         </>
       )}
     </div>

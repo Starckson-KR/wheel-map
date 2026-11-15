@@ -1,4 +1,6 @@
 import { PHOTO_MAX_EDGE, PHOTO_QUALITY } from './config'
+import { apiCall, getSession } from './account/api'
+import { markPhotoUploaded } from './account/photoLedger'
 
 // 제보 사진 보관(IndexedDB `wheelmap` DB). 서버가 없으므로 이 브라우저에만 저장된다.
 const DB_NAME = 'wheelmap'
@@ -33,7 +35,35 @@ async function withStore<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) =
 }
 
 export const savePhoto = (key: string, blob: Blob) => withStore('readwrite', (s) => s.put(blob, key)).then(() => undefined)
-export const loadPhoto = (key: string) => withStore<Blob | undefined>('readonly', (s) => s.get(key))
+export const loadLocalPhoto = (key: string) => withStore<Blob | undefined>('readonly', (s) => s.get(key))
+
+// 이 기기에 없으면 서버(다른 사람이 올린 사진)에서 받아 와 이 기기에 저장해 둔다. 서버에도 없으면 undefined(「올린 기기에서만 보여요」).
+const remoteMiss = new Set<string>()
+const remoteInflight = new Map<string, Promise<Blob | undefined>>()
+async function fetchRemotePhoto(key: string): Promise<Blob | undefined> {
+  const r = await apiCall(`/photos/${encodeURIComponent(key)}`, { wantBlob: true })
+  if (!r.blob) {
+    if (r.status === 404 || r.status === 400) remoteMiss.add(key)
+    return undefined
+  }
+  markPhotoUploaded(key)
+  try {
+    await savePhoto(key, r.blob)
+  } catch {
+    /* 저장 실패해도 이번에는 보여 준다 */
+  }
+  return r.blob
+}
+export async function loadPhoto(key: string): Promise<Blob | undefined> {
+  const local = await loadLocalPhoto(key)
+  if (local || !getSession() || remoteMiss.has(key)) return local
+  let p = remoteInflight.get(key)
+  if (!p) {
+    p = fetchRemotePhoto(key).finally(() => remoteInflight.delete(key))
+    remoteInflight.set(key, p)
+  }
+  return p
+}
 export const clearPhotos = () => withStore('readwrite', (s) => s.clear()).then(() => undefined)
 
 // 긴 변 1280px 이하 JPEG로 줄인다. 캔버스에 다시 그리므로 EXIF(촬영 위치·시각 등)는 남지 않는다.

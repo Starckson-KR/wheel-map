@@ -87,3 +87,22 @@ curl -s -X POST https://wheelmap-ai.<계정>.workers.dev/intent \
 - 앱 쪽 검색창, 키워드 폴백, `intent → TO.*` 변환표, 「참고용」 안내 표시는 앱 단계에서 합니다.
 - `help` 의도의 이동 대상 화면은 아직 정해지지 않았습니다(TODO).
 - 요청 JSON 필드 이름(`question`)과 응답 필드는 이 문서가 기준이며, 앱 구현 때 바꿀 수 있습니다.
+
+## 간편 계정·공유 제보 (D1 `wheelmap-db`, 같은 Worker·같은 주소)
+피어 리뷰용입니다. 이름(한글·영문·숫자·공백 1~10자, 중복 불가) + 숫자 4자리로 가입하고, 제보는 모든 계정이 공유합니다. 설정은 본인만 봅니다. PIN은 PBKDF2-SHA256(10만 회, 사용자별 salt)로 해시해 저장하고 세션 토큰도 해시만 저장합니다. 이름·PIN·토큰·IP는 로그에 남기지 않습니다. 같은 `Authorization: Bearer <토큰>`(30일).
+| 경로 | 설명 |
+|---|---|
+| POST `/auth/signup`, `/auth/login` | `{name, pin}` → `{ok, token, user:{id,name}}`. 실패 `{ok:false, code:'bad_input'｜'taken'｜'invalid'｜'locked', message}`. 이름·IP별 5회 실패 시 10분 잠금(이름 전체 30회도 잠금) |
+| POST `/auth/logout`, GET `/auth/me` | 세션 삭제 / 내 정보 |
+| GET·PUT `/prefs` | 본인 설정(허용 키만, 16KB). PUT `{data:{키:값｜null}}`은 키별 병합 |
+| GET `/reports?since=ms` | 변경분(공유). `{serverTime, cursor, more, reports[], users:{id:이름}}` |
+| PUT `/reports/:id` | 제보 한 건(64KB). 새 제보는 `userId`가 내 계정이어야 함, `demo`·`demoSet`은 거부. 기존 건은 history·투표자를 합집합으로 병합하고 나머지는 보낸 값 |
+| PUT·GET `/photos/:id` | 사진 본문(JPEG/PNG/WebP, 400KB). 올린 사람만 덮어쓰기 |
+쓰기(제보·사진·설정)는 계정당 하루 `DAILY_WRITE_LIMIT`(300)회. 허용 출처만(Authorization·Content-Type, GET/POST/PUT/DELETE/OPTIONS). 오류 본문은 `{ok:false, code, message}`.
+시험: `node --test worker/test/*.test.ts` (가짜 D1은 `node:sqlite`). 마이그레이션: `worker/migrations/0001_accounts_reports.sql`.
+
+### 리뷰가 끝난 뒤 전체 데이터 지우기 (`worker` 폴더에서, 되돌릴 수 없음)
+```
+npx.cmd wrangler d1 execute wheelmap-db --remote --command "DELETE FROM photos; DELETE FROM reports; DELETE FROM prefs; DELETE FROM sessions; DELETE FROM write_quota; DELETE FROM throttle; DELETE FROM users;"
+```
+계정 하나만: `... --command "DELETE FROM users WHERE name='이름'"` 후 그 사람의 sessions·prefs·reports(`author_id`)·photos(`owner_id`)도 같은 방식으로 지웁니다. 데이터베이스째 없애려면 `npx.cmd wrangler d1 delete wheelmap-db`.

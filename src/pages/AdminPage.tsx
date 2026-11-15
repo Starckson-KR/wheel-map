@@ -17,6 +17,8 @@ import { parseHash } from '../lib/nav'
 import { loadBarriers } from '../lib/seed'
 import type { Report } from '../types'
 import { confirmSheet, toast } from '../lib/uiStore'
+import CaseTitle from '../components/CaseTitle'
+import { Sentences } from '../components/Sentences'
 
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
@@ -131,7 +133,7 @@ export default function AdminPage() {
       <li key={r.id} className="adm-case">
         <button type="button" className={'adm-row' + (selected === r.id ? ' on' : '')} onClick={() => setSelected(r.id)}>
           <span className="adm-row-main">
-            <strong>{caseName(r)}</strong>
+            <CaseTitle r={r} caseName={caseName} />
             <span className="bm-meta">
               {r.type} · 접수 {c ? fmtDate(new Date(c.submittedAt).getTime()) : '—'} · 처리기한{' '}
               {c ? fmtDate(new Date(c.submittedAt).getTime() + c.deadlineDays * 86400000) : '—'} · {findAgencyName(agencyOf(r) ?? '')}
@@ -195,7 +197,7 @@ export default function AdminPage() {
           <div className="adm-wrap">
           <div className="adm-head">
             <h2>민원 처리 현황</h2>
-            <span className="bm-meta">{officer ? '담당 공무원으로 보고 있어요. 처리 버튼을 쓸 수 있어요.' : '지금은 열람만 할 수 있어요. 처리 버튼은 시연 도구에서 담당 공무원으로 바꾸면 쓸 수 있어요.'}</span>
+            <Sentences as="span" className="bm-meta">{officer ? '처리 버튼을 쓸 수 있어요.' : '지금은 열람만 할 수 있어요.'}</Sentences>
             {offset > 0 && <span className="adm-demo" style={{ alignSelf: 'flex-start' }}>앱 안 날짜 +{offset}일 (시간 앞당기기)</span>}
           </div>
           <div className="rp-tabs adm-sections" role="tablist" aria-label="행정 화면 구분">
@@ -261,7 +263,7 @@ export default function AdminPage() {
               ) : (
                 <ul className="rp-list">{list.map(row)}</ul>
               )}
-              <span className="bm-meta">신규는 접수·배정만 되고 시작하기 전이에요. 처리 중은 조치 중, 조치 완료는 조치와 재확인을 마친 건이에요. 이관 요청은 수락을 기다리는 건이고, 보낸 기관과 받는 기관 모두에 보여요.</span>
+              <Sentences as="span" className="bm-meta">신규는 접수·배정만 되고 시작하기 전이에요. 처리 중은 조치 중, 조치 완료는 조치와 재확인을 마친 건이에요. 이관 요청은 수락을 기다리는 건이고, 보낸 기관과 받는 기관 모두에 보여요.</Sentences>
             </div>
           )}
 
@@ -299,7 +301,7 @@ export default function AdminPage() {
 
           {section === 'inspect' && (
             <div className="adm-sec">
-              <p className="bm-meta">마지막 점검일(조치를 마치거나 재확인을 통과하면 바뀌어요)에 주기를 더해 다음 점검일을 계산해요. 주기는 고정형 6개월, 일시형 1개월이에요.</p>
+              <Sentences as="p" className="bm-meta">마지막 점검일(조치를 마치거나 재확인을 통과하면 바뀌어요)에 주기를 더해 다음 점검일을 계산해요. 주기는 고정형 6개월, 일시형 1개월이에요.</Sentences>
               {inspect.length === 0 ? (
                 <p className="rp-empty">점검 기록이 있는 건이 없어요.</p>
               ) : (
@@ -308,7 +310,7 @@ export default function AdminPage() {
                     <li key={r.id}>
                       <button type="button" className="adm-row" onClick={() => setSelected(r.id)}>
                         <span className="adm-row-main">
-                          <strong>{caseName(r)}</strong>
+                          <CaseTitle r={r} caseName={caseName} />
                           <span className="bm-meta">
                             {r.type}({r.category === 'fixed' ? '고정형' : '일시형'}) · 마지막 점검 {fmtDate(ni.lastMs)} · 다음 점검 {fmtDate(ni.dueMs)}
                           </span>

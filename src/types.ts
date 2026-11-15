@@ -115,6 +115,7 @@ export type Report = {
   }
   demo?: boolean // 시연 데이터 채우기로 만든 건
   demoSet?: 'large' // 대규모 시연 데이터(가상 사용자 약 300명)로 만든 건
+  sample?: boolean // "샘플 사진으로 해 보기"로 올린 제보(사진이 앱에 든 그림이라는 표시)
   lastCheckedAt?: string // 사후 점검 기준일(조치 완료·재확인 통과 시 갱신)
   transfers?: {
     fromAgencyId: string

@@ -5,6 +5,17 @@ body,
   height: 100%;
   margin: 0;
 }
+/* 주소창·툴바가 오르내려도 화면 높이를 정확히(100vh는 주소창 높이만큼 어긋난다) */
+@supports (height: 100dvh) {
+  body,
+  #root {
+    height: 100dvh;
+  }
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%; /* 안드로이드 크롬이 글자를 제멋대로 키우지 않게 */
+}
 
 body {
   font-family: var(--font);
@@ -16,7 +27,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
+  /* 한국어 줄바꿈: 낱말 중간에서 끊지 않고(keep-all), 아주 긴 주소·영문만 필요할 때 끊으며,
+     마지막 줄에 한두 글자만 남지 않게 한다(pretty). 문장 단위 줄바꿈은 <Sentences>가 맡는다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
 }
+
+/* 제목류는 줄 길이를 고르게 */
+:is(h1, h2, h3, h4) { text-wrap: balance; }
 
 h1,
 h2,
@@ -292,6 +311,8 @@ h4 {
 }
 
 .bm .rf-seg button {
+  position: relative;
+  isolation: isolate;
   flex: 1;
   min-height: var(--touch);
   border-radius: var(--r-sm);
@@ -299,10 +320,17 @@ h4 {
   color: var(--text-sub);
 }
 
+/* 선택된 칸의 흰 배경은 motion의 <SegBg>(layoutId)가 그려서 칸 사이를 미끄러진다 */
 .bm .rf-seg button.on {
-  background: var(--bg);
   color: var(--text-strong);
-  box-shadow: var(--shadow-1);
+}
+.seg-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--seg-bg, var(--bg));
+  box-shadow: var(--seg-shadow, var(--shadow-1));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -625,3 +653,70 @@ html[data-text='large'] {
   position: absolute;
   inset: -4px;
 }
+
+/* ───── 외톨이 칸이 없는 격자 ─────
+   열 수는 개수에 맞춰 src/lib/gridCols.ts(colsStyle)가 --cols·--cols-sm 으로 넘겨준다.
+   CSS만 쓸 때는 아래 개수별 클래스(.n2~.n6)로 같은 효과를 낸다(마지막 줄을 가운데로 숨기지 않고 열 수 자체를 맞춘다). */
+.bal-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+}
+@media (max-width: 339px) {
+  .bal-grid { grid-template-columns: repeat(var(--cols-sm, var(--cols, 2)), minmax(0, 1fr)); }
+}
+
+/* ───── 칩 줄·버튼 줄: 개수에 맞춰 열 수를 정한다(외톨이 칸 금지) ─────
+   짧은 글자 칩(아이콘+짧은 이름)은 1→1열, 2→2열, 3→3열, 4→2×2, 5→3+2, 6→3×2, 7·8→4열, 9→3×3.
+   긴 글자 칩·버튼은 2열로 두고, 홀수 개면 마지막 칸이 줄 전체를 차지한다(칸이 혼자 남지 않는다).
+   JS로 만드는 격자는 src/lib/gridCols.ts(colsStyle)를 쓴다. */
+html :is(.pgp-chips, .lp-extra .hm-tools),
+html :is(.hm-counts, .lp-chips, .hp-ai-chips, .adm-top-tools, .al-chips, .bus-dirs) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+html :is(.hm-counts, .pgp-chips, .lp-extra .hm-tools, .lp-chips, .hp-ai-chips, .adm-top-tools, .al-chips, .bus-dirs) > * {
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  word-break: keep-all;
+}
+html :is(.hm-counts, .lp-chips, .hp-ai-chips, .adm-top-tools, .al-chips, .bus-dirs) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(1):last-child) { grid-template-columns: minmax(0, 1fr); }
+html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(3):last-child),
+html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(5):last-child),
+html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(6):last-child),
+html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(9):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(7):last-child),
+html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(8):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.hp-ai-chips > li > button { width: 100%; justify-content: center; }
+html .hm-counts > .hm-count { height: auto; min-height: 32px; padding: 4px 12px 4px 6px; }
+
+/* 문장 단위 줄바꿈: <Sentences> — 한 문장이 끝나면 다음 문장은 새 줄 */
+.sent { display: block; }
+.sent + .sent { margin-top: 0.2em; }
+/* 짧은 라벨·안내: 두 줄이 되면 줄 길이를 고르게(끝줄에 한 글자만 남지 않게) */
+.hp-n > span, .bm button.hp-chip, .hp-tile-t, .bn-sum, .bn-dl dd, .ob-sub, .ob-feat small { text-wrap: balance; }
+/* 오류 문구 앞 "!" 표시는 첫 문장 줄 안에 둔다(문장이 블록이라 따로 한 줄이 되지 않게) */
+.rf-err:has(> .sent)::before { content: none; }
+.rf-err > .sent:first-child::before { content: '! '; font-weight: 800; }
+/* 좁은 폭의 혜택 카드: 항목 이름을 위에 두고 내용을 한 줄 전체 폭으로 보여 줘 3~4줄로 늘어지지 않게 */
+@media (max-width: 480px) {
+  .bn-dl > div:is(div) { flex-direction: column; gap: 0; }
+  .bn-dl > div > dt { width: auto; font-size: 0.92em; }
+}
+
+/* 잘리면 안 되는 한 줄 요약·목록 제목: 두 줄까지 보여 준다 */
+html body .hm-title, html body .lr-title, html body .lr-sub {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  text-wrap: balance;
+}
+html body .hp-n > span { -webkit-line-clamp: 3; }
+/* 버튼 글자는 줄바꿈하지 않는다 */
+.bm button.rf-nowrap { white-space: nowrap; flex: none; }
+.hp-intro { text-wrap: balance; }
+
+/* 글자 크게: 혜택 요약만 한 단계 작게(3줄로 늘어지지 않게) */
+html[data-text='large'] .bn-sum { font-size: var(--fs-small); }

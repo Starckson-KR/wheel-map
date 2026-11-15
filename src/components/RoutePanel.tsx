@@ -15,6 +15,7 @@ import { boardingNear } from '../lib/bus/boarding.ts'
 import BusArrivals from './BusArrivals'
 import SheetHandle from './SheetHandle'
 import TransitView from './TransitView'
+import { Sentences } from './Sentences'
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
@@ -135,8 +136,8 @@ function PlacePicker(props: {
           </button>
         )}
       </div>
-      {msg && <p className="bm-meta">{msg}</p>}
-      {preset && !value && items.length > 0 && <p className="bm-meta">검색에서 가져온 말이에요. 아래에서 장소를 골라 주세요.</p>}
+      {msg && <Sentences as="p" className="bm-meta">{msg}</Sentences>}
+      {preset && !value && items.length > 0 && <Sentences as="p" className="bm-meta">검색에서 가져온 말이에요. 아래에서 장소를 골라 주세요.</Sentences>}
       {items.length > 0 && outside && <p className="bm-meta">광주 북구 밖의 결과예요.</p>}
       {items.length > 0 && (
         <ul className="rt-results">
@@ -354,7 +355,7 @@ export default function RoutePanel(props: Props) {
   const stopsBlock = result?.extras && (
     <section className="rf-card rt-sec">
       <h3>출발·도착 근처 버스정류장 ({ROUTE_STOP_RADIUS_M}m 안)</h3>
-      <p className="bm-meta">정류장을 누르면 다음 저상버스를 볼 수 있어요. 정류장에 버스 타기 불편한 곳이 있으면 같이 알려 드려요.</p>
+      <Sentences as="p" className="bm-meta">정류장을 누르면 다음 저상버스를 볼 수 있어요. 정류장에 버스 타기 불편한 곳이 있으면 같이 알려 드려요.</Sentences>
       {(
         [
           ['출발', result.extras.stops.start],
@@ -390,7 +391,6 @@ export default function RoutePanel(props: Props) {
           )}
         </div>
       ))}
-      <p className="bm-meta">정류장 출처: 광주 BIS 정류소(광주버스정보).</p>
     </section>
   )
 
@@ -419,7 +419,7 @@ export default function RoutePanel(props: Props) {
                       ))}
                     </ul>
                   )}
-                  <p className="bm-meta">출처: 전국횡단보도표준데이터(북구청). 보도턱 낮춤은 있고 없고만 알 수 있고 높이는 몰라서 ○△X 판정은 아니에요.</p>
+                  <Sentences as="p" className="bm-meta">보도턱 낮춤은 있고 없고만 알 수 있어요. ○△X 판정은 아니에요.</Sentences>
                 </>
               )
             })()}
@@ -431,7 +431,7 @@ export default function RoutePanel(props: Props) {
               <b>장애인편의시설</b> ({ROUTE_DEST_RADIUS_M}m 안, 이름과 주소가 맞는 시설을 먼저 보여 줘요)
             </p>
             {result.extras.dest.facilities.length === 0 ? (
-              <p className="bm-meta">이 범위에 등록된 장애인편의시설 자료가 없어요. 자료에 없다는 뜻이고, 시설이 없다고 확인한 건 아니에요.</p>
+              <Sentences as="p" className="bm-meta">이 범위에 등록된 장애인편의시설 자료가 없어요. 자료에 없다는 뜻이고, 시설이 없다고 확인한 건 아니에요.</Sentences>
             ) : (
               <ul className="rt-plain">
                 {result.extras.dest.facilities.slice(0, 6).map((f) => (
@@ -456,7 +456,7 @@ export default function RoutePanel(props: Props) {
                 ))}
               </ul>
             )}
-            <p className="bm-meta">출처: 한국사회보장정보원 장애인편의시설 현황, 행정안전부 공중화장실정보. 공공데이터라서 판정은 아니에요.</p>
+            <Sentences as="p" className="bm-meta">공공데이터라서 판정은 아니에요.</Sentences>
           </section>
         </details>
       )}
@@ -500,7 +500,7 @@ export default function RoutePanel(props: Props) {
 
       <section className="rt-sec">
         <h3>시연 경로</h3>
-        <p className="bm-meta">{FREE_SEARCH ? '미리 저장해 둔 경로예요. 경로를 따로 요청하지 않고 바로 보여 줘요.' : '발표용으로 미리 저장해 둔 경로 중에서 골라 주세요.'}</p>
+        <Sentences as="p" className="bm-meta">{FREE_SEARCH ? '미리 저장해 둔 경로예요.' : '미리 저장해 둔 경로 중에서 골라 주세요.'}</Sentences>
         <ul className="rt-pairs">
           {DEMO_PAIRS.map((p) => (
             <li key={p.id}>
@@ -518,7 +518,6 @@ export default function RoutePanel(props: Props) {
       {FREE_SEARCH && (
         <section className="rf-card rt-sec">
           <h3>직접 검색 (개발 모드)</h3>
-          <p className="bm-meta">검색 1회에 경로 요청은 최대 {ROUTE_CFG.maxAttempts}번이에요. 같은 요청은 개발 서버가 저장해 뒀다가 다시 써요.</p>
           <PlacePicker label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), setFrom(p))} onPickMap={() => onPickRequest(picking === 'from' ? null : 'from')} preset={props.presetFrom ?? undefined} />
           <PlacePicker label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p))} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} />
           <button type="button" className="rf-primary" disabled={!canRun} onClick={() => from && to && run(from, to, pairId, `${from.name} → ${to.name}`)}>
@@ -548,9 +547,9 @@ export default function RoutePanel(props: Props) {
         </p>
       )}
       {mode === 'walk' && status === 'error' && (
-        <p className="rf-warn" role="alert">
+        <Sentences as="p" className="rf-warn" role="alert">
           {error}
-        </p>
+        </Sentences>
       )}
 
       {mode === 'walk' && status === 'done' && result && activeCard && (
@@ -640,7 +639,7 @@ export default function RoutePanel(props: Props) {
           {finalSummary && finalSummary.stops.length > 0 && (
             <section className="rf-card rt-sec">
               <h3>버스 타기 불편한 정류장 {finalSummary.boardingCount}곳</h3>
-              <p className="bm-meta">걸어서 지나가는 건 막히지 않아요. 이 정류장에서 버스를 타고 내리기가 불편하다는 뜻이에요.</p>
+              <Sentences as="p" className="bm-meta">걸어서 지나가는 건 막히지 않아요. 이 정류장에서 버스를 타고 내리기가 불편하다는 뜻이에요.</Sentences>
               <ul className="rt-hits">
                 {finalSummary.stops.map((s) => (
                   <li key={s.o.id}>
@@ -704,9 +703,9 @@ export default function RoutePanel(props: Props) {
               </ul>
             )}
             {finalSummary && finalSummary.entryMid.length > 0 && (
-              <p className="bm-meta">길 중간에 들어가기 불편한 건물 {finalSummary.entryMid.length}곳이 있어요. 지나가는 데는 영향이 없어서 판정에는 넣지 않았어요.</p>
+              <Sentences as="p" className="bm-meta">{`길 중간에 들어가기 불편한 건물 ${finalSummary.entryMid.length}곳이 있어요. 지나가는 데는 영향이 없어서 판정에는 넣지 않았어요.`}</Sentences>
             )}
-            <p className="bm-meta">장애요소를 누르면 상세 정보가 열려요. 평가는 지금 기준이고, 재확인을 통과한 곳은 ○로 보여요.</p>
+            <Sentences as="p" className="bm-meta">장애요소를 누르면 상세 정보가 열려요.</Sentences>
             <p className="bm-meta">
               우회 시도 {result.res.attempts.filter((a) => a.result !== 'at-endpoint').length}번 · 경로 요청 {result.res.requests}번
               {FREE_SEARCH && ` (저장본 ${result.stats.stored} · 개발 서버 저장 ${result.stats.cached} · 새 TMAP 호출 ${result.stats.requested})`}

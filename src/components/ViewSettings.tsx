@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getTextSize, getTheme, getView, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
 import SheetHandle from './SheetHandle'
+import { Sentences } from './Sentences'
 
 const VIEWS: { id: ViewMode; label: string }[] = [
   { id: 'auto', label: '자동' },
@@ -39,7 +40,6 @@ export default function ViewSettings({ floating = false }: { floating?: boolean 
               <div className="ms-head">
                 <div>
                   <h2>화면 설정</h2>
-                  <p className="ms-sub">이 기기에 저장돼요.</p>
                 </div>
                 <button type="button" className="bm-close" onClick={() => setOpen(false)}>
                   닫기
@@ -63,7 +63,7 @@ export default function ViewSettings({ floating = false }: { floating?: boolean 
                     </button>
                   ))}
                 </div>
-                <p className="bm-meta">자동은 창 너비에 맞춰요. 모바일은 PC에서도 폰 크기로 보여 줘요.</p>
+                <Sentences as="p" className="bm-meta">자동은 창 너비에 맞춰요. 모바일은 PC에서도 폰 크기로 보여 줘요.</Sentences>
               </div>
               <div className="ms-sec">
                 <h3>화면 색</h3>

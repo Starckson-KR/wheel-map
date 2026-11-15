@@ -1,13 +1,12 @@
 /* 확인 시트·토스트·스낵바·스켈레톤 같은 공통 UI. 색은 tokens.css의 토큰만 쓴다. */
 
 /* ───── 확인 시트 ───── */
-.cs-root { position: fixed; inset: 0; z-index: 110; display: flex; align-items: flex-end; justify-content: center; }
-.cs-dim { position: absolute; inset: 0; background: rgb(25 31 40 / 0.48); animation: cs-fade var(--t-sheet) var(--ease-out); }
+.cs-root { position: fixed; inset: 0 0 var(--tabbar-h); z-index: 110; display: flex; align-items: flex-end; justify-content: center; }
+.cs-dim { position: absolute; inset: 0; background: rgb(25 31 40 / 0.48); }
 .cs-sheet {
   position: relative; box-sizing: border-box; width: 100%; max-width: 480px;
-  padding: var(--s-6) var(--s-5) calc(var(--safe-bottom) + var(--s-5));
+  padding: var(--s-6) var(--s-5) var(--s-5);
   border-radius: var(--r-xl) var(--r-xl) 0 0; background: var(--bg); box-shadow: var(--shadow-sheet);
-  animation: cs-up var(--t-sheet) var(--ease-drawer);
 }
 .cs-sheet h2 { margin: 0; color: var(--text-strong); font-size: var(--fs-head); font-weight: 800; line-height: 1.35; }
 .cs-sheet p { margin: var(--s-2) 0 0; color: var(--text-sub); font-size: var(--fs-body); line-height: 1.5; }
@@ -15,27 +14,23 @@
 .cs-actions button {
   flex: 1; min-height: 52px; padding: 0 var(--s-4); border: 0; border-radius: var(--r-lg);
   font: inherit; font-size: var(--fs-body); font-weight: 700; cursor: pointer;
-  transition: transform var(--t-press) var(--ease-out), background var(--t-fast) var(--ease-out);
+  transition: background var(--t-fast) var(--ease-out);
 }
-.cs-actions button:active { transform: scale(0.97); }
 .cs-actions button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .cs-cancel { background: var(--grey-100); color: var(--text); }
 .cs-ok { background: var(--blue-600); color: var(--on-primary); }
 .cs-ok.danger { background: var(--danger); }
-@keyframes cs-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-@keyframes cs-fade { from { opacity: 0; } to { opacity: 1; } }
 
 /* ───── 토스트(2초)·스낵바(되돌리기) ───── */
 .nt-lane {
   position: fixed; z-index: 105; right: var(--gutter); left: var(--gutter);
-  bottom: calc(var(--safe-bottom) + 80px); display: flex; justify-content: center; pointer-events: none;
+  bottom: calc(var(--tabbar-h) + var(--s-4)); display: flex; justify-content: center; pointer-events: none;
 }
 .nt-item {
   display: flex; align-items: center; gap: var(--s-3); box-sizing: border-box; max-width: 420px;
   min-height: 48px; padding: var(--s-2) var(--s-4); border-radius: var(--r-lg);
   background: #2b323c; box-shadow: var(--shadow-2); color: #ffffff;
   font-size: var(--fs-small); line-height: 1.4; pointer-events: auto;
-  animation: nt-in var(--t-sheet) var(--ease-out);
 }
 .nt-item button {
   flex: none; min-width: 44px; min-height: 44px; margin: 0 calc(var(--s-2) * -1) 0 0; padding: 0 var(--s-3);
@@ -43,7 +38,6 @@
   font: inherit; font-size: var(--fs-small); font-weight: 800; cursor: pointer;
 }
 .nt-item button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(142 193 255 / 0.6); }
-@keyframes nt-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
   html:not(.motion-force) .cs-dim,
@@ -97,3 +91,7 @@
   html:not(.motion-force) .rf-spin { animation-duration: 2.4s; }
 }
 .rf-preset { margin: 0 0 var(--s-3); color: var(--blue-700); font-weight: 600; }
+
+/* ───── motion 누름(PressButton): 크기는 motion이 inline으로 바꾸므로 CSS의 transform 전환과 :active 크기는 끈다 ───── */
+.mt, .mt:active:not(:disabled), .bm button.mt:active:not(:disabled) { transform: none; }
+.mt, .bm button.mt { transition-property: background-color, border-color, color, opacity, box-shadow !important; }

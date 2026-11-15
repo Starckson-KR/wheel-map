@@ -2,7 +2,7 @@ import { TO } from '../nav'
 import { placeFromQuery, typeFromQuery, withQuery } from './handoff'
 
 // AI 검색창의 의도 목록과 이동 대상. 모델은 이 목록의 id만 고를 수 있고, 주소와 안내 문구는 모두 여기(앱)에 고정돼 있다.
-export const AI_INTENTS = ['report_new', 'receipt_lookup', 'my_reports', 'route', 'bus', 'progress', 'my_score', 'agency', 'alerts', 'help', 'unknown'] as const
+export const AI_INTENTS = ['report_new', 'receipt_lookup', 'my_reports', 'route', 'bus', 'progress', 'my_score', 'agency', 'alerts', 'help', 'toilet_find', 'unknown'] as const
 export type AiIntent = (typeof AI_INTENTS)[number]
 export type MovableIntent = Exclude<AiIntent, 'unknown'>
 export type SlotKey = 'type' | 'place' | 'from' | 'to'
@@ -22,6 +22,7 @@ export const SLOT_KEYS: Record<AiIntent, readonly SlotKey[]> = {
   agency: [],
   alerts: [],
   help: [],
+  toilet_find: [],
   unknown: [],
 }
 
@@ -37,6 +38,7 @@ export const INTENT_LABEL: Record<MovableIntent, string> = {
   agency: '담당 기관 안내',
   alerts: '혜택알림',
   help: '이용 안내',
+  toilet_find: '장애인화장실 위치 보기',
 }
 
 // 이동 주소. report_new는 검증된 유형(type), route는 검증된 출발·도착(from·to)을 쿼리로 더한다(buildHash).
@@ -52,6 +54,7 @@ const HASH: Record<MovableIntent, string | null> = {
   agency: TO.agency,
   alerts: TO.alerts,
   help: null,
+  toilet_find: TO.map, // 지도의 장애인화장실 레이어는 기본으로 켜져 있다
 }
 
 const RANK_RE = /등수|몇\s*등|\d\s*등|순위|랭킹|위예요|위에요/
@@ -83,6 +86,7 @@ export function withRo(word: string): string {
 export function noteFor(intent: MovableIntent, slots: Slots = {}): string | undefined {
   const h = buildHash(intent, slots)
   if (h === null) return undefined
+  if (intent === 'toilet_find') return '장애인화장실이 표시된 지도를 열어요'
   if (intent === 'report_new') {
     const t = typeFromQuery(slots.type)
     return t ? `${t} 유형으로 신고 화면을 열어요` : undefined

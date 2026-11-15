@@ -13,9 +13,9 @@ const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
 const SHOW_WAITING = 3
 
 const TEXT: Record<ChallengeId, { title: string; desc: string }> = {
-  infoGap: { title: '정보가 부족한 곳 살펴보기', desc: '평가가 없거나 위치가 정해지지 않은 곳 근처에서 새 제보가 검증되면 채워져요.' },
+  infoGap: { title: '정보가 부족한 곳 살펴보기', desc: '평가가 없는 곳 근처에서 새 제보를 남겨요.' },
   recheck: { title: '개선 여부 확인하기', desc: '조치가 끝났다는 곳에서 지금은 지나갈 수 있는지 확인해 주세요.' },
-  newReport: { title: '새 장애요인 알리기', desc: '길에서 만난 불편이 검증되면 채워져요.' },
+  newReport: { title: '새 장애요인 알리기', desc: '길에서 만난 불편을 알려요.' },
 }
 
 function placeOf(r: Report): string {

@@ -1,14 +1,21 @@
 import { useEffect, useRef } from 'react'
+import { AnimatePresence, m, useIsPresent } from 'motion/react'
 import { closeConfirm, dismissNotice, useUi } from '../lib/uiStore'
+import { PressButton } from './motionKit'
+import { FADE, FADE_OUT, SPRING } from '../lib/motionTokens'
+import { Sentences } from './Sentences'
 
 // 확인 시트(바텀시트)와 토스트·스낵바를 그리는 곳. App에 한 번만 둔다.
-function ConfirmSheet() {
-  const req = useUi((s) => s.confirm)
+type Req = NonNullable<ReturnType<typeof useUi.getState>['confirm']>
+
+// 나가는 동안(isPresent=false)에는 포커스를 바로 돌려주고, 화면 읽기 프로그램·키보드·클릭에서 빠진다(inert).
+function ConfirmView({ req }: { req: Req }) {
   const ref = useRef<HTMLDivElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const present = useIsPresent()
 
   useEffect(() => {
-    if (!req) return
+    if (!present) return
     const opener = document.activeElement as HTMLElement | null
     cancelRef.current?.focus() // 실수로 엔터를 눌러도 위험한 쪽이 실행되지 않게 취소에 먼저 둔다
     const onKey = (e: KeyboardEvent) => {
@@ -41,26 +48,40 @@ function ConfirmSheet() {
       window.removeEventListener('keydown', onKey, true)
       opener?.focus?.()
     }
-  }, [req])
+  }, [present])
 
-  if (!req) return null
   return (
-    <div className="cs-root">
-      <div className="cs-dim" onClick={() => closeConfirm(false)} />
-      <div ref={ref} className="cs-sheet" role="alertdialog" aria-modal="true" aria-labelledby="cs-title" aria-describedby={req.body ? 'cs-body' : undefined}>
+    <div className="cs-root" inert={!present} aria-hidden={!present || undefined}>
+      <m.div className="cs-dim" onClick={() => closeConfirm(false)} initial={{ opacity: 0 }} animate={{ opacity: 1, transition: FADE }} exit={{ opacity: 0, transition: FADE_OUT }} />
+      <m.div
+        ref={ref}
+        className="cs-sheet"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="cs-title"
+        aria-describedby={req.body ? 'cs-body' : undefined}
+        initial={{ y: '100%' }}
+        animate={{ y: 0, transition: SPRING.sheet }}
+        exit={{ y: '100%', transition: { ...SPRING.sheet, restDelta: 0.5 } }}
+      >
         <h2 id="cs-title">{req.title}</h2>
-        {req.body && <p id="cs-body">{req.body}</p>}
+        {req.body && <Sentences as="p" id="cs-body">{req.body}</Sentences>}
         <div className="cs-actions">
-          <button ref={cancelRef} type="button" className="cs-cancel" onClick={() => closeConfirm(false)}>
+          <PressButton ref={cancelRef} type="button" className="cs-cancel" onClick={() => closeConfirm(false)}>
             {req.cancelLabel ?? '취소'}
-          </button>
-          <button type="button" className={'cs-ok' + (req.danger ? ' danger' : '')} onClick={() => closeConfirm(true)}>
+          </PressButton>
+          <PressButton type="button" className={'cs-ok' + (req.danger ? ' danger' : '')} onClick={() => closeConfirm(true)}>
             {req.confirmLabel ?? '확인'}
-          </button>
+          </PressButton>
         </div>
-      </div>
+      </m.div>
     </div>
   )
+}
+
+function ConfirmSheet() {
+  const req = useUi((s) => s.confirm)
+  return <AnimatePresence>{req && <ConfirmView key={req.id} req={req} />}</AnimatePresence>
 }
 
 function NoticeBar() {
@@ -72,8 +93,15 @@ function NoticeBar() {
   }, [n])
   return (
     <div className="nt-lane" role="status" aria-live="polite">
+      <AnimatePresence mode="popLayout" initial={false}>
       {n && (
-        <div key={n.id} className="nt-item">
+        <m.div
+          key={n.id}
+          className="nt-item"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0, transition: { y: SPRING.sheet, opacity: FADE } }}
+          exit={{ opacity: 0, y: 6, transition: FADE_OUT }}
+        >
           <span>{n.message}</span>
           {n.undo && (
             <button
@@ -86,8 +114,9 @@ function NoticeBar() {
               {n.undoLabel}
             </button>
           )}
-        </div>
+        </m.div>
       )}
+      </AnimatePresence>
     </div>
   )
 }

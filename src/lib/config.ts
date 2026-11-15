@@ -116,3 +116,6 @@ export const CHALLENGE_NEAR_RADIUS_M = 50 // "정보가 부족한 곳 근처"로
 // AI 검색창(홈): 의도 분류 Worker 주소. 공개 주소라 비밀이 아니다. 다른 Worker를 쓰려면 VITE_AI_INTENT_URL로 덮어쓴다.
 // import.meta.env는 Vite 밖(Node 시험)에서는 없으므로 ?.로 읽는다.
 export const AI_INTENT_URL: string = import.meta.env?.VITE_AI_INTENT_URL || 'https://wheelmap-ai.wotjd0202329.workers.dev'
+
+// 간편 계정·공유 제보 서버 주소. 기본은 위 AI Worker와 같은 주소(같은 Worker가 계정·제보도 맡는다). 다른 주소를 쓰려면 VITE_ACCOUNT_URL로 덮어쓴다.
+export const ACCOUNT_URL: string = (import.meta.env?.VITE_ACCOUNT_URL || AI_INTENT_URL).replace(/\/+$/, '')

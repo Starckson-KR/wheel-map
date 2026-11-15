@@ -10,38 +10,39 @@
   min-height: 0;
 }
 
-/* ───── 탭 바: 모바일은 아래, PC는 위 ───── */
+/* ───── 탭 바: 모바일은 아래, PC는 위 ─────
+   어떤 화면·시트·길찾기·제보 중에도 같은 자리, 같은 높이, 같은 칸 너비로 보인다(높이는 --tabbar-h). */
 .tabbar {
   --tab-on: var(--blue-700);
+  position: relative;
   flex: none;
   display: flex;
+  box-sizing: border-box;
+  height: var(--tabbar-h);
   background: var(--bg);
   border-top: 1px solid var(--line);
   padding: 0 0 var(--safe-bottom);
   z-index: var(--z-modal);
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: hidden;
 }
-.tabbar::-webkit-scrollbar { display: none; }
 :root[data-theme='dark'] .tabbar {
   --tab-on: var(--primary);
 }
 .tabbar-btn {
-  flex: 1 0 auto;
+  flex: 1 1 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-height: 56px;
-  min-width: 44px;
-  padding: 6px 6px;
+  min-width: 0;
+  padding: 0 2px;
   border: 0;
   background: none;
   color: var(--text-sub);
   font: inherit;
-  font-size: var(--fs-caption);
+  font-size: min(var(--fs-caption), 13px); /* 글자 크게에서도 칸 모양이 변하지 않게 상한을 둔다 */
   font-weight: 600;
   line-height: 1.25;
   white-space: nowrap;
@@ -61,11 +62,29 @@
 .tabbar-btn:active {
   background: var(--grey-100);
 }
-.tabbar-btn svg { transition: transform var(--t-press) var(--ease-out); }
+.tabbar-btn { position: relative; }
+/* 선택 표시: motion의 layoutId로 탭 사이를 미끄러진다. 탭 칸 크기는 그대로(절대 위치) */
+.tabbar-ind {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 24px;
+  height: 3px;
+  margin-left: -12px;
+  border-radius: 0 0 3px 3px;
+  background: var(--tab-on);
+  pointer-events: none;
+}
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .tabbar-ind { top: auto; bottom: 0; left: var(--s-2); right: var(--s-2); width: auto; margin-left: 0; border-radius: 3px 3px 0 0; }
+}
+:root[data-view='desktop'] .tabbar-ind { top: auto; bottom: 0; left: var(--s-2); right: var(--s-2); width: auto; margin-left: 0; border-radius: 3px 3px 0 0; }
+.tabbar-btn svg { flex: none; transition: transform var(--t-press) var(--ease-out); }
 .tabbar-btn:active svg { transform: scale(0.88); }
 
 @media (min-width: 768px) {
   :root:not([data-view='mobile']) .tabbar {
+    height: auto;
     order: -1;
     border-top: 0;
     border-bottom: 1px solid var(--line);
@@ -83,6 +102,7 @@
   }
 }
 :root[data-view='desktop'] .tabbar {
+  height: auto;
   order: -1;
   justify-content: center;
   border-top: 0;
@@ -119,20 +139,21 @@
 }
 @media (min-width: 768px) {
   :root:not([data-view='mobile']) {
+    --tabbar-h: 0px;
     --pg-max: 960px;
     --tile-cols: 3;
     --news-cols: 4;
   }
 }
 :root[data-view='desktop'] {
+  --tabbar-h: 0px;
   --pg-max: 960px;
   --tile-cols: 3;
   --news-cols: 4;
 }
 .app-keep[hidden] { display: none; }
 .app-keep, .app-view { position: absolute; inset: 0; }
-.app-view, .app-keep:not([hidden]) { animation: pg-fade 180ms var(--ease-out) both; }
-@keyframes pg-fade { from { opacity: 0; } to { opacity: 1; } }
+/* 화면 전환 움직임은 App.tsx의 motion이 맡는다 */
 
 .bm.pg {
   background: var(--bg-page);
@@ -561,32 +582,36 @@
   box-shadow: var(--shadow-1);
 }
 .hp-chips {
-  display: flex;
-  gap: var(--s-2);
-  overflow-x: auto;
-  scrollbar-width: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--s-1);
+  margin: 0;
   padding: var(--s-1) 0 var(--s-3);
+  list-style: none;
 }
-.hp-chips::-webkit-scrollbar { display: none; }
+.hp-chips > li { min-width: 0; }
 .bm button.hp-chip {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--s-1);
-  min-width: 80px;
-  padding: var(--s-1);
+  width: 100%;
+  min-width: 0;
+  padding: var(--s-1) 0;
   background: none;
   color: var(--text);
   font-size: var(--fs-small);
   font-weight: 600;
   line-height: 1.3;
-  white-space: nowrap;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .hp-chip-ic {
   display: grid;
   place-items: center;
-  width: 60px;
-  height: 60px;
+  width: min(60px, 100%);
+  aspect-ratio: 1;
   border-radius: var(--r-full);
   background: var(--bg-sub);
   border: 2px solid var(--line);
@@ -629,13 +654,12 @@
 
 .hs-back {
   position: fixed;
-  inset: 0;
+  inset: 0 0 var(--tabbar-h);
   z-index: var(--z-modal);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   background: rgb(0 0 0 / 0.45);
-  animation: hs-fade var(--t-sheet) var(--ease-out) both;
 }
 .hs-sheet {
   box-sizing: border-box;
@@ -643,14 +667,11 @@
   max-width: 640px;
   max-height: 85%;
   overflow-y: auto;
-  padding: var(--s-4) var(--s-4) calc(var(--s-5) + var(--safe-bottom));
+  padding: var(--s-4) var(--s-4) var(--s-5);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
   background: var(--bg);
   box-shadow: var(--shadow-sheet);
-  animation: hs-up var(--t-sheet) var(--ease-drawer) both;
 }
-@keyframes hs-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes hs-up { from { transform: translateY(100%); } to { transform: none; } }
 .hs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-2); }
 .hs-head h2 { margin: 0; font-size: var(--fs-head); font-weight: 800; color: var(--text-strong); }
 .bm button.hs-x {
@@ -744,7 +765,7 @@
 .bn-dl { display: flex; flex-direction: column; gap: var(--s-1); margin: 0; font-size: var(--fs-small); }
 .bn-dl > div { display: flex; gap: var(--s-3); }
 .bn-dl dt { flex: none; width: 4.5em; color: var(--text-sub); }
-.bn-dl dd { margin: 0; min-width: 0; color: var(--text-strong); overflow-wrap: anywhere; }
+.bn-dl dd { margin: 0; min-width: 0; color: var(--text-strong); overflow-wrap: anywhere;  text-wrap: balance; }
 .bn-unk { margin: 0; color: var(--amber-700); font-size: var(--fs-small); }
 .bn-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-3); }
 .bn-link, .bn-open {
@@ -754,3 +775,28 @@
 :root[data-theme='dark'] .bn-link, :root[data-theme='dark'] .bn-open { color: var(--primary); }
 .bn-link:focus-visible, .bn-open:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .bn-note { margin: 0; padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--amber-50); color: var(--amber-700); font-size: var(--fs-small); font-weight: 600; }
+
+/* ───── 첫 화면: 앱 목적 한 줄, 체험 데이터 카드, 이용 안내 3단계 ───── */
+.hp-intro { margin: 0; color: var(--text); font-size: var(--fs-small); font-weight: 600; line-height: 1.5; text-wrap: balance; word-break: keep-all; }
+.hp-trial { display: grid; gap: var(--s-2); padding: var(--s-4); border-radius: var(--r-md); background: var(--blue-50); }
+.hp-trial h2 { margin: 0; color: var(--blue-700); font-size: var(--fs-sub); font-weight: 800; }
+.hp-trial p { margin: 0; color: var(--text-strong); font-size: var(--fs-small); line-height: 1.5; word-break: keep-all; }
+.hp-trial-act { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin-top: var(--s-1); }
+.hp-trial-act button { min-height: var(--touch); padding: 0 var(--s-2); border-radius: var(--r-md); font-size: var(--fs-small); white-space: nowrap; }
+.bm .hp-trial-act button:not(.rf-primary) { background: var(--bg); color: var(--text-strong); }
+.hp-trial .hp-trial-msg { color: var(--text-sub); }
+.hp-steps { display: grid; gap: var(--s-3); margin: 0; padding: 0 var(--s-4) var(--s-2); list-style: none; }
+.hp-steps li { display: flex; gap: var(--s-3); align-items: flex-start; }
+.hp-steps b { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--r-full); background: var(--blue-50); color: var(--blue-700); font-size: var(--fs-caption); }
+.hp-steps span { display: grid; gap: 2px; font-size: var(--fs-small); line-height: 1.5; word-break: keep-all; }
+.hp-steps strong { color: var(--text-strong); }
+.hp-notice div[role='note'] > p { padding-top: var(--s-1); }
+
+/* 혜택알림 구역 탭 */
+.al-seg { margin-bottom: var(--s-3); }
+.bm .al-seg button { padding: 0 var(--s-1); font-size: var(--fs-small); font-weight: 700; white-space: nowrap; }
+.al-panel { display: grid; gap: var(--s-3); }
+
+/* 혜택 카드 대상 칸 괄호 설명 접기 */
+.bn-fold { display: block; min-height: 44px; margin: 0; padding: 0; background: none; border: 0; color: var(--blue-700); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.bn-fold-body[hidden] { display: none; }

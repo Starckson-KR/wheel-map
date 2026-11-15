@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
+import { SegBg } from './motionKit'
 import { computeRanking, rankDelta, type RankPeriod, type RankRow } from '../lib/ranking'
-import { DEMO_USERS, nowMs, rankingUserIds, userName, useReports } from '../lib/reportStore'
+import { nowMs, rankingUserIds, userName, useReports } from '../lib/reportStore'
+import { Sentences } from './Sentences'
 
 const TOP_N = 10
 const PERIODS: { id: RankPeriod; tab: string; idle: string }[] = [
@@ -55,7 +57,6 @@ export default function ParticipationRanking() {
   const def = PERIODS.find((p) => p.id === period) ?? PERIODS[0]
   const top = res.ranked.filter((r) => (r.rank ?? 99) <= TOP_N).slice(0, TOP_N)
   // 기록 없는 사람 이름은 시연 사용자만 나열한다(가상 사용자 수백 명을 다 적지 않는다)
-  const idleShown = res.idle.filter((r) => DEMO_USERS.some((u) => u.id === r.userId))
   const mine = res.rows.find((r) => r.userId === userId)
   const mineOut = mine && mine.rank !== null && !top.includes(mine) ? mine : null
 
@@ -87,6 +88,7 @@ export default function ParticipationRanking() {
             onClick={() => setPeriod(p.id)}
             onKeyDown={(e) => onKey(e, i)}
           >
+            {period === p.id && <SegBg group="seg-rank" />}
             {p.tab}
           </button>
         ))}
@@ -94,7 +96,7 @@ export default function ParticipationRanking() {
       <div id="rk-panel" role="tabpanel" aria-labelledby={`rk-tab-${period}`} className="rk-panel">
         <p className="bm-meta">{res.range.label}</p>
         {top.length === 0 ? (
-          <p className="bm-meta rk-empty">{def.idle}. 제보가 검증되면 여기에 순위가 생겨요.</p>
+          <Sentences as="p" className="bm-meta rk-empty">{`${def.idle}.`}</Sentences>
         ) : (
           <ol className="rk-list" aria-label={`${def.tab} 참여 순위`}>
             {top.map((r) => (
@@ -109,18 +111,7 @@ export default function ParticipationRanking() {
             <Line row={mineOut} me />
           </div>
         )}
-        {idleShown.length > 0 && (
-          <p className="bm-meta rk-idle">
-            {def.idle}: {idleShown.map((r) => (r.userId === userId ? `${userName(r.userId)}(나)` : userName(r.userId))).join(', ')}
-            {res.idle.length > idleShown.length && ` 외 ${res.idle.length - idleShown.length}명`}
-          </p>
-        )}
       </div>
-      <ul className="rk-notes bm-meta">
-        <li>검증된 기여만 점수로 세요. 중복·반려된 제보는 빠져요.</li>
-        <li>랭킹은 참여를 돕는 보조 기능이에요.</li>
-        <li>제보가 적은 곳이 안전하다는 뜻은 아니에요.</li>
-      </ul>
     </section>
   )
 }

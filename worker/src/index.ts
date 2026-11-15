@@ -11,6 +11,7 @@ import {
   sanitizeQuestion,
 } from './intents.ts'
 import { applyRules, isNonsense } from './rules.ts'
+import { handleAccount, isAccountPath } from './account.ts'
 import type { ApiBody } from './intents.ts'
 import type { Env } from './types'
 
@@ -54,15 +55,16 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
       status: 204,
       headers: {
         'access-control-allow-origin': origin as string,
-        'access-control-allow-methods': 'POST, OPTIONS',
-        'access-control-allow-headers': 'content-type',
+        'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'access-control-allow-headers': 'content-type, authorization',
         'access-control-max-age': '600',
         vary: 'Origin',
       },
     })
   }
-  if (request.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)
   const path = new URL(request.url).pathname
+  if (isAccountPath(path)) return handleAccount(request, env, origin as string, { now: deps.now })
+  if (request.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)
   if (path !== '/' && path !== '/intent') return json({ ok: false, error: 'not_found' }, 404, origin)
 
   const declared = Number(request.headers.get('content-length') ?? '0')

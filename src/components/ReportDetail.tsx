@@ -9,7 +9,11 @@ import { fmtDate } from '../lib/caseMetrics'
 import { useRecurrence } from '../lib/useRecurrence'
 import { CATEGORY_LABEL, REJECT_REASONS } from '../lib/reportTypes'
 import { DEMO_USERS, STATUS_LABEL, isExpired, useReports, userName } from '../lib/reportStore'
+import { coordText, useAddress } from '../lib/addressCache'
+import { isSampleReport } from '../lib/samplePhotos'
 import type { Barrier, Rating } from '../types'
+import { Sentences } from './Sentences'
+import '../styles/review.css'
 
 type Props = {
   reportId: string
@@ -22,6 +26,18 @@ type Props = {
 }
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
+
+// 위치 한 줄: 주소(없으면 동 이름, 그것도 없으면 좌표)
+function ReportPlace({ lat, lng, kind }: { lat: number; lng: number; kind?: string }) {
+  const a = useAddress(lat, lng)
+  const text = a.full ? `${a.full} 부근` : a.status === 'loading' ? '주소를 찾고 있어요…' : coordText(lat, lng)
+  return (
+    <>
+      {text}
+      {kind && <> · {kind}</>}
+    </>
+  )
+}
 
 export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpenReport, onOpenSeed, readOnlyExternal }: Props) {
   const reports = useReports((s) => s.reports)
@@ -66,7 +82,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       <SheetHandle onDown={onClose} />
       <div className="bm-detail-head">
         <h2>
-          {r.seedId ? `팀 조사 지점 ${r.seedId} · ${r.type}` : `시민 제보 · ${r.type}`}
+          {r.seedId ? `${seedName(r.seedId) ?? '팀 조사 지점'} · ${r.type}` : `시민 제보 · ${r.type}`}
         </h2>
         <button type="button" className="bm-close" onClick={onClose} aria-label="닫기">
           닫기
@@ -76,6 +92,12 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       <p>
         <span className={'rp-badge rp-' + r.status}>{STATUS_LABEL[r.status]}</span>{' '}
         <span className={'rf-cat rf-cat-' + r.category}>{CATEGORY_LABEL[r.category]}</span>
+        {isSampleReport(r) && (
+          <>
+            {' '}
+            <span className="rv-chip">샘플 사진</span>
+          </>
+        )}
         {r.demoSet === 'large' && (
           <>
             {' '}
@@ -94,7 +116,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
 
       {r.status === 'merged' && (
         <p className="rf-notice">
-          이 제보는 기존 건에 합쳐졌어요.{' '}
+          <span className="sent">이 제보는 기존 건에 합쳐졌어요.</span>
           {target ? (
             <button type="button" onClick={() => onOpenReport(target.id)}>
               {target.type} 제보 ({userName(target.userId)})
@@ -109,7 +131,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
 
       {recurrence.byId.get(r.id) && (
         <p className="rf-notice adm-recur-note" role="status">
-          이 곳은 {fmtDate(recurrence.byId.get(r.id)?.priorActionMs ?? 0)}에 조치된 뒤 다시 신고됐어요(재발 {recurrence.byId.get(r.id)?.nth}회).{' '}
+          <span className="sent">이 곳은 {fmtDate(recurrence.byId.get(r.id)?.priorActionMs ?? 0)}에 조치된 뒤 다시 신고됐어요(재발 {recurrence.byId.get(r.id)?.nth}회).</span>
           <button type="button" className="adm-link" onClick={() => onOpenReport(recurrence.byId.get(r.id)?.priorId ?? r.id)}>
             앞선 건 보기
           </button>
@@ -117,10 +139,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       )}
 
       {r.category === 'temporary' && r.expiresAt && (
-        <p className={expired ? 'rf-warn' : 'rf-notice'} role="status">
-          {expired ? '유효기간이 지났어요. 다시 확인이 필요해요.' : `${fmt(r.expiresAt)}까지 유효해요.`}
-          {!expired && ' 지나면 다시 확인해야 해요.'}
-        </p>
+        <Sentences as="p" className={expired ? 'rf-warn' : 'rf-notice'} role="status">{`${expired ? '유효기간이 지났어요. 다시 확인이 필요해요.' : `${fmt(r.expiresAt)}까지 유효해요.`} ${!expired && ' 지나면 다시 확인해야 해요.'}`}</Sentences>
       )}
 
       <dl>
@@ -130,8 +149,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
         </dd>
         <dt>위치</dt>
         <dd>
-          위도 {r.lat.toFixed(5)}, 경도 {r.lng.toFixed(5)}
-          {r.locationKind && <> · {r.locationKind}</>}
+          <ReportPlace lat={r.lat} lng={r.lng} kind={r.locationKind} />
         </dd>
         <dt>설명</dt>
         <dd>{r.description}</dd>
@@ -149,6 +167,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
         <dt>사진</dt>
         <dd>
           <ReportPhotos keys={r.photos} />
+          {isSampleReport(r) && <Sentences as="span" className="bm-meta">앱에 들어 있는 체험용 그림이에요. 실제 현장 사진이 아니에요.</Sentences>}
         </dd>
         <dt>검증</dt>
         <dd>
@@ -162,7 +181,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
             </>
           )}
           {v.result === 'rejected' && <>반려 사유: {v.reason}</>}
-          {r.status === 'verified' && !v.rating && <>검증자 판정을 기다리고 있어요. 판정 전에는 지도에 &quot;평가 없음&quot; 색으로 보여요.</>}
+          {r.status === 'verified' && !v.rating && <><span className="sent">검증자 판정을 기다리고 있어요.</span></>}
           {v.rating && <>검증자 판정: {RATING_STYLE[v.rating].label} ({userName(v.verifierId ?? 'verifier')})</>}
         </dd>
       </dl>
@@ -232,18 +251,16 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
         </section>
       )}
       {!canVoteNow && !canConfirm && !canRate && !canReject && r.status === 'pending' && (
-        <p className="bm-meta">
-          {r.userId === me.id
-            ? '내 제보는 내가 확인할 수 없어요. 시연 도구에서 다른 시민이나 검증자로 바꿔 보세요.'
+        <Sentences as="p" className="bm-meta">{r.userId === me.id
+            ? '내 제보는 내가 확인할 수 없어요. 다른 리뷰어가 확인해 줄 수 있어요.'
             : me.role === 'verifier'
               ? '지금 설정에서는 검증자가 확인할 수 없어요.'
-              : '이미 확인했어요.'}
-        </p>
+              : '이미 확인했어요.'}</Sentences>
       )}
       {msg && (
-        <p className="rf-warn" role="alert">
+        <Sentences as="p" className="rf-warn" role="alert">
           {msg}
-        </p>
+        </Sentences>
       )}
 
       {merged.length > 0 && (

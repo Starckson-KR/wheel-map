@@ -34,10 +34,30 @@ export function getTheme(): ThemeMode {
   return v === 'light' || v === 'dark' ? v : 'system'
 }
 
+// 휴대폰인데 폭이 768px 이상으로 잡히는 경우(브라우저의 '데스크톱 사이트' 보기, 일부 삼성 인터넷 등)에도 '자동'이 모바일 화면이 되게 한다.
+// 터치 기기이면서 화면(screen) 짧은 변이 600px 미만이면 휴대폰으로 본다. 폭이 좁아 원래 모바일인 경우는 건드리지 않는다.
+function isWidePhone(): boolean {
+  try {
+    return window.innerWidth >= 768 && window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600
+  } catch {
+    return false
+  }
+}
+
 export function applyView(v: ViewMode) {
   const el = document.documentElement
-  if (v === 'auto') el.removeAttribute('data-view')
-  else el.setAttribute('data-view', v)
+  if (v === 'auto') {
+    if (isWidePhone()) {
+      el.setAttribute('data-view', 'mobile')
+      el.setAttribute('data-autophone', '1')
+    } else {
+      el.removeAttribute('data-view')
+      el.removeAttribute('data-autophone')
+    }
+  } else {
+    el.removeAttribute('data-autophone')
+    el.setAttribute('data-view', v)
+  }
 }
 
 const dark = () => window.matchMedia('(prefers-color-scheme: dark)')
@@ -92,6 +112,14 @@ export function initPrefs() {
   applyView(getView())
   applyMotionForce(getMotionForce())
   applyTheme(getTheme())
+  // 자동일 때 화면 폭이 바뀌면(회전 등) 휴대폰 판정을 다시 한다
+  window.addEventListener('resize', () => {
+    if (getView() !== 'auto') return
+    const el = document.documentElement
+    const before = el.getAttribute('data-view')
+    applyView('auto')
+    if (before !== el.getAttribute('data-view')) window.dispatchEvent(new Event('wheelmap:viewchange'))
+  })
   dark().addEventListener('change', () => {
     if (getTheme() === 'system') applyTheme('system')
   })

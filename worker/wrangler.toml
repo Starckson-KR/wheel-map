@@ -14,3 +14,12 @@ ALLOWED_ORIGINS = "https://starckson-kr.github.io,http://localhost:5173"
 # IP별 분당 횟수, 전체 하루 상한(문자열로 적는다)
 RATE_PER_MINUTE = "10"
 DAILY_LIMIT = "500"
+# 하루 계정당 쓰기 상한(제보·사진·설정 저장 합계)
+DAILY_WRITE_LIMIT = "300"
+
+# 간편 계정·공유 제보 저장소(Cloudflare D1, 무료)
+[[d1_databases]]
+binding = "DB"
+database_name = "wheelmap-db"
+database_id = "cefa78de-61e1-4f5b-9e5e-5a3d5cd4e7ab"
+migrations_dir = "migrations"

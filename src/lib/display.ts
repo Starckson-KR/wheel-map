@@ -69,13 +69,13 @@ export function categoryOf(impact: ImpactKey, rating: Rating | 'none'): Category
 }
 
 export const CATEGORY_INFO: Record<Category, { glyph: string; label: string }> = {
-  hard: { glyph: '길', label: '지나가기 어려운 곳' },
-  caution: { glyph: '△', label: '지날 때 주의할 곳' },
-  boarding: { glyph: '승', label: '버스 타기 불편 정류장' },
-  entry: { glyph: '입', label: '들어가기 불편한 곳' },
+  hard: { glyph: '길', label: '어려운 곳' },
+  caution: { glyph: '△', label: '주의' },
+  boarding: { glyph: '승', label: '버스 불편' },
+  entry: { glyph: '입', label: '입구 불편' },
   zone: { glyph: '◆', label: '주의 구역' },
   ok: { glyph: '○', label: '괜찮은 곳' },
-  none: { glyph: '?', label: '평가 없는 곳' },
+  none: { glyph: '?', label: '평가 없음' },
 }
 
 export const CATEGORY_ORDER: Category[] = ['hard', 'boarding', 'entry', 'zone', 'caution', 'ok', 'none']

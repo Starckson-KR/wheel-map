@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { PHOTO_MAX_COUNT, TEMP_VALID_HOURS } from '../lib/config'
+import { PHOTO_MAX_COUNT, TEMP_VALID_HOURS, VOTES_REQUIRED } from '../lib/config'
+import { coordText, useAddress } from '../lib/addressCache'
+import { SAMPLE_SCENES, markSampleReport, sampleBlob, type SampleSceneId } from '../lib/samplePhotos'
+import { go as navGo } from '../lib/nav'
 import { findDuplicates } from '../lib/duplicates'
 import { LOCATION_KINDS } from '../lib/agencyGuide'
 import { resizeImage, savePhoto } from '../lib/photoStore'
@@ -8,9 +11,11 @@ import { newReportId, nowMs, useReports, userName } from '../lib/reportStore'
 import type { Barrier } from '../types'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { prefersCalm } from '../lib/viewPrefs'
+import { Sentences } from './Sentences'
+import '../styles/review.css'
 
 export type Loc = { lat: number; lng: number }
-type Photo = { id: string; blob: Blob; url: string }
+type Photo = { id: string; blob: Blob; url: string; sample?: boolean }
 type Step = 1 | 2 | 3 | 4
 
 type Props = {
@@ -42,6 +47,9 @@ const STEP_Q: Record<Step, { q: string; sub?: string }> = {
 let photoSeq = 0
 const newPhotoId = () => `p${++photoSeq}-${crypto.randomUUID()}`
 
+// 제보 번호: 저장된 id를 알아보기 쉽게 대문자로 보여 준다(예: R-LX3K9A2F)
+const reportNo = (id: string) => id.replace(/^r-/i, 'R-').toUpperCase()
+
 const num = (s: string) => (s.trim() === '' ? undefined : Number(s))
 
 export default function ReportFlow({ location, onLocation, onPickStart, hidden, seeds, onClose, onOpenReport, initialType = null }: Props) {
@@ -63,6 +71,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const [photoMsg, setPhotoMsg] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  const [sampleBusy, setSampleBusy] = useState(false)
   const [done, setDone] = useState<{ id: string; merged: boolean; photoFailed: boolean } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const photosRef = useRef(photos)
@@ -83,6 +92,9 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
     const t = setTimeout(() => panelRef.current?.querySelector('.rf-type.on')?.scrollIntoView({ block: 'nearest', behavior: prefersCalm() ? 'auto' : 'smooth' }), 120)
     return () => clearTimeout(t)
   }, [presetType])
+
+  const addr = useAddress(location?.lat ?? 0, location?.lng ?? 0, !!location)
+  const placeText = location ? (addr.full ? `${addr.full} 부근` : addr.status === 'loading' ? '주소를 찾고 있어요…' : coordText(location.lat, location.lng)) : ''
 
   const info = REPORT_TYPES.find((t) => t.type === type) ?? null
 
@@ -108,6 +120,26 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
       } catch (err) {
         setPhotoMsg(err instanceof Error ? err.message : '사진을 처리하지 못했어요.')
       }
+    }
+  }
+
+  // 사진이 없는 사람을 위한 체험용 그림. 같은 경로(긴 변 줄이기가 필요 없는 JPEG)로 사진 목록에 넣는다.
+  const addSample = async (sceneId: SampleSceneId) => {
+    if (photos.length >= PHOTO_MAX_COUNT || sampleBusy) return
+    setSampleBusy(true)
+    try {
+      const blob = await sampleBlob(sceneId)
+      const p: Photo = { id: newPhotoId(), blob, url: URL.createObjectURL(blob), sample: true }
+      setPhotos((prev) => (prev.length >= PHOTO_MAX_COUNT ? prev : [...prev, p]))
+      setErr('photos', '')
+      setPhotoMsg('')
+      const scene = SAMPLE_SCENES.find((s) => s.id === sceneId)
+      if (scene && !description.trim()) setDescription(scene.description)
+      toast('샘플 사진을 추가했어요')
+    } catch (err) {
+      setPhotoMsg(err instanceof Error ? err.message : '샘플 사진을 만들지 못했어요.')
+    } finally {
+      setSampleBusy(false)
     }
   }
 
@@ -217,9 +249,12 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
         locationKind,
         photos: keys,
         ...(w !== undefined || c !== undefined ? { measurements: { ...(w !== undefined ? { widthM: w } : {}), ...(c !== undefined ? { curbCm: c } : {}) } } : {}),
+        // 샘플 사진으로 올린 제보는 표시를 남긴다(서버 공유에도 함께 전달됨)
+        ...(photos.some((p) => p.sample) ? { sample: true } : {}),
       },
       mergeInto,
     )
+    if (photos.some((p) => p.sample)) markSampleReport(r.id)
     setBusy(false)
     setDone({ id: r.id, merged: !!mergeInto, photoFailed })
   }
@@ -253,22 +288,58 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
       {done ? (
         <div className="rf-body">
-          <div className="rf-done" role="status">
+          <div className="rf-done rv-done" role="status">
             <span className="rf-done-mark" aria-hidden="true" />
             <h2 className="rf-q">{done.merged ? '기존 건에 합쳐서 등록했어요' : '제보를 등록했어요'}</h2>
-            <p>
-              {done.merged
+            <span className="rv-no">제보 번호 {reportNo(done.id)}</span>
+            <Sentences as="p">{done.merged
                 ? '기존 건의 제보 목록에 추가됐어요.'
-                : '지금은 "검증 대기" 상태예요. 다른 시민이나 검증자가 확인하면 지도에 나타나요.'}
-            </p>
-            {done.photoFailed && <p className="rf-warn">일부 사진은 이 브라우저에 저장하지 못했어요. 제보 기록은 저장됐어요.</p>}
+                : '지금은 "검증 대기" 상태예요. 다른 시민이 확인하면 지도에 나타나요.'}</Sentences>
+            {!done.merged && (
+              <>
+                <ol className="rv-steps" aria-label="다음에 일어나는 일">
+                  <li>
+                    <span className="n" aria-hidden="true">1</span>
+                    <span>
+                      <strong>다른 시민 확인</strong>
+                      <span className="t">다른 시민 {VOTES_REQUIRED}명이 현장이 맞다고 확인하면 검증돼요.</span>
+                    </span>
+                  </li>
+                  <li>
+                    <span className="n" aria-hidden="true">2</span>
+                    <span>
+                      <strong>기관 접수</strong>
+                      <span className="t">검증된 제보는 담당 기관에 접수하는 방법을 안내해요.</span>
+                    </span>
+                  </li>
+                  <li>
+                    <span className="n" aria-hidden="true">3</span>
+                    <span>
+                      <strong>처리 결과 알림</strong>
+                      <span className="t">기관이 고치면 알려 드리고, 시민이 다시 확인해요.</span>
+                    </span>
+                  </li>
+                </ol>
+                <Sentences as="p" className="rv-tip">
+                  다른 리뷰어가 내 제보를 확인해 줄 수 있어요.
+                </Sentences>
+              </>
+            )}
+            {done.photoFailed && <Sentences as="p" className="rf-warn">일부 사진은 이 브라우저에 저장하지 못했어요. 제보 기록은 저장됐어요.</Sentences>}
           </div>
           <div className="rf-actions">
-            <button type="button" onClick={onClose}>
-              닫기
+            <button type="button" onClick={() => onOpenReport(done.id)}>
+              내용 보기
             </button>
-            <button type="button" className="rf-primary" onClick={() => onOpenReport(done.id)}>
-              제보 내용 보기
+            <button
+              type="button"
+              className="rf-primary"
+              onClick={() => {
+                onClose()
+                navGo('#/report?section=mine')
+              }}
+            >
+              내 제보 보기
             </button>
           </div>
         </div>
@@ -282,9 +353,9 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
           {step === 1 && (
             <>
               {presetType && type === presetType && (
-                <p className="bm-meta rf-preset" role="status">
+                <Sentences as="p" className="bm-meta rf-preset" role="status">
                   검색에서 고른 유형이에요. 다르면 바꿔 주세요.
-                </p>
+                </Sentences>
               )}
               {(['fixed', 'temporary'] as const).map((cat) => (
                 <fieldset key={cat} className="rf-group">
@@ -354,17 +425,17 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   aria-invalid={!!errors.location}
                   aria-describedby={errors.location ? 'rf-e-location' : undefined}
                 >
-                  {location ? `위치를 정했어요 · 위도 ${location.lat.toFixed(5)}, 경도 ${location.lng.toFixed(5)}` : '아직 위치를 정하지 않았어요.'}
+                  {location ? `위치를 정했어요 · ${placeText}` : '아직 위치를 정하지 않았어요.'}
                 </div>
                 {errors.location && !location && (
                   <p id="rf-e-location" className="rf-err" role="alert">
-                    {errors.location}
+                    <Sentences as="span">{errors.location}</Sentences>
                   </p>
                 )}
                 {gpsMsg && (
-                  <p className={locSource === 'gps' && !location ? 'rf-warn' : 'bm-meta'} role="status">
+                  <Sentences as="p" className={locSource === 'gps' && !location ? 'rf-warn' : 'bm-meta'} role="status">
                     {gpsMsg}
-                  </p>
+                  </Sentences>
                 )}
               </section>
 
@@ -391,7 +462,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 </label>
                 {errors.locationKind ? (
                   <p id="rf-e-locationKind" className="rf-err" role="alert">
-                    {errors.locationKind}
+                    <Sentences as="span">{errors.locationKind}</Sentences>
                   </p>
                 ) : (
                   <span className="bm-meta">어느 기관이 맡는 곳인지 안내하는 데 써요.</span>
@@ -416,16 +487,16 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
             <>
               <section id="rf-f-photos" tabIndex={-1} className="rf-sec" aria-describedby={errors.photos ? 'rf-e-photos' : undefined}>
                 <h3>
-                  사진 <span className="bm-meta">1~{PHOTO_MAX_COUNT}장</span>
+                  사진 <span className="rv-req">필수</span> <span className="bm-meta">1~{PHOTO_MAX_COUNT}장</span>
                 </h3>
                 <div className="rf-notice">
-                  사진에 <strong>얼굴과 차량 번호판이 나오지 않게</strong> 가리거나 피해서 찍어 주세요. 자동으로 가려 주지는 않아요. 사진은 이 기기에서 긴 변 1280px로 줄여 저장하고, 촬영 위치 같은 부가 정보는 지워요.
+                  <span className="sent"><strong>얼굴과 차량 번호판이 나오지 않게</strong> 찍어 주세요.</span>
                 </div>
                 {photos.length > 0 && (
                   <div className="rf-photos">
                     {photos.map((p, i) => (
                       <div key={p.id} className="rf-photo">
-                        <img src={p.url} alt={`첨부 사진 ${i + 1}`} />
+                        <img src={p.url} alt={`${p.sample ? '샘플 사진' : '첨부 사진'} ${i + 1}`} />
                         <button type="button" onClick={() => removePhoto(p.id)} aria-label={`사진 ${i + 1} 삭제`}>
                           삭제
                         </button>
@@ -438,6 +509,18 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     사진 추가 ({photos.length}/{PHOTO_MAX_COUNT})
                     <input className="rf-file" type="file" accept="image/*" capture="environment" multiple onChange={onFiles} aria-invalid={!!errors.photos} aria-describedby={errors.photos ? 'rf-e-photos' : undefined} />
                   </label>
+                )}
+                {photos.length < PHOTO_MAX_COUNT && (
+                  <div className="rv-sample">
+                    <Sentences as="p">올릴 사진이 없나요? 체험용 그림으로 끝까지 해 볼 수 있어요. 제보에 &quot;샘플 사진&quot;이라고 표시돼요.</Sentences>
+                    <div className="rv-sample-btns">
+                      {SAMPLE_SCENES.map((s) => (
+                        <button key={s.id} type="button" disabled={sampleBusy} onClick={() => addSample(s.id)}>
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 {errors.photos && photos.length === 0 && (
                   <p id="rf-e-photos" className="rf-err" role="alert">
@@ -547,7 +630,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
               {duplicates.length > 0 && (
                 <section className="rf-card rf-dup" aria-label="중복 확인">
                   <strong>이미 제보된 곳일 수 있어요</strong>
-                  <p>같은 유형({info.type})이 반경 15m 안에 있어요. 같은 곳이라면 기존 건에 합쳐 주세요.</p>
+                  <Sentences as="p">{`같은 유형(${info.type})이 반경 15m 안에 있어요. 같은 곳이라면 기존 건에 합쳐 주세요.`}</Sentences>
                   {duplicates.map((d) => (
                     <div key={d.id} className="rf-dup-item">
                       <span>
@@ -557,7 +640,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                           {dist(d.distanceM)} 떨어져 있어요{d.at ? ` · ${new Date(d.at).toLocaleDateString('ko-KR')} 제보` : ''}
                         </span>
                       </span>
-                      <button type="button" className="rf-primary" disabled={busy} onClick={() => submit(d.id)}>
+                      <button type="button" className="rf-primary rf-nowrap" disabled={busy} onClick={() => submit(d.id)}>
                         합치기
                       </button>
                     </div>
@@ -573,10 +656,12 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   </dd>
                   <dt>위치</dt>
                   <dd>
-                    {locationKind} · 위도 {location.lat.toFixed(5)}, 경도 {location.lng.toFixed(5)}
+                    {locationKind} · {placeText}
                   </dd>
                   <dt>사진</dt>
-                  <dd>{photos.length}장</dd>
+                  <dd>
+                    {photos.length}장{photos.some((p) => p.sample) && ' (샘플 사진)'}
+                  </dd>
                   <dt>설명</dt>
                   <dd>{description.trim()}</dd>
                   {(num(widthM) !== undefined || num(curbCm) !== undefined) && (
@@ -591,11 +676,11 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   {info.category === 'temporary' && (
                     <>
                       <dt>유효기간</dt>
-                      <dd>등록하고 {TEMP_VALID_HOURS}시간 동안이에요. 지나면 다시 확인해야 해요.</dd>
+                      <dd><Sentences as="span">{`등록하고 ${TEMP_VALID_HOURS}시간 동안이에요. 지나면 다시 확인해야 해요.`}</Sentences></dd>
                     </>
                   )}
                   <dt>작성자</dt>
-                  <dd>{userName(userId)} (시연용 사용자)</dd>
+                  <dd>{userName(userId)}</dd>
                 </dl>
               </section>
               <div className="rf-actions">

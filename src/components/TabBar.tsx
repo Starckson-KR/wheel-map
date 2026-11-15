@@ -1,4 +1,6 @@
+import { m } from 'motion/react'
 import Icon from './Icon'
+import { SPRING } from '../lib/motionTokens'
 import { TO, go, type PageId } from '../lib/nav'
 
 const TABS: { page: PageId; to: string; label: string; icon: string }[] = [
@@ -15,6 +17,7 @@ export default function TabBar({ page }: { page: PageId }) {
     <nav className="tabbar" aria-label="주요 메뉴">
       {TABS.map((t) => (
         <button key={t.page} type="button" className="tabbar-btn" aria-current={page === t.page ? 'page' : undefined} aria-label={t.label} onClick={() => go(t.to)}>
+          {page === t.page && <m.span layoutId="tabbar-ind" className="tabbar-ind" transition={SPRING.quick} aria-hidden="true" />}
           <Icon name={t.icon} size={22} />
           <span>{t.label}</span>
         </button>

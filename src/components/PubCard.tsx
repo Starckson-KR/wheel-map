@@ -1,4 +1,5 @@
 import { PUB_LAYERS, type PubDataset, type PubItem, type PubLayerId } from '../lib/publicLayers'
+import { Sentences } from './Sentences'
 
 type Props = { layer: PubLayerId; item: PubItem; dataset: PubDataset; onClose: () => void }
 
@@ -52,7 +53,7 @@ export default function PubCard({ layer, item, dataset, onClose }: Props) {
         </button>
       </div>
       <p className="pc-addr">{item.address || '주소 정보 없음'}</p>
-      {item.fields['geocoded'] === true && <p className="rf-notice">주소로 찾은 위치예요. 오차가 있을 수 있어요.</p>}
+      {item.fields['geocoded'] === true && <Sentences as="p" className="rf-notice">주소로 찾은 위치예요. 오차가 있을 수 있어요.</Sentences>}
       <dl className="pc-dl">
         {rows(layer, item).map(([k, v]) => (
           <div key={k}>

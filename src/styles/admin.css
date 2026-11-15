@@ -734,3 +734,22 @@
 .adm-brand button {
   white-space: nowrap;
 }
+
+/* 지표 칸(.adm-kpis): 좁은 화면에서는 짝수 개는 2열, 홀수 개는 1열로 두어 마지막 줄에 칸 하나만 남지 않게 한다 */
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .adm-kpis { grid-template-columns: minmax(0, 1fr); }
+  :root:not([data-view='desktop']) .adm-kpis:has(> :nth-child(2):last-child),
+  :root:not([data-view='desktop']) .adm-kpis:has(> :nth-child(4):last-child),
+  :root:not([data-view='desktop']) .adm-kpis:has(> :nth-child(6):last-child),
+  :root:not([data-view='desktop']) .adm-kpis:has(> :nth-child(8):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+:root[data-view='mobile'] .adm-kpis { grid-template-columns: minmax(0, 1fr); }
+:root[data-view='mobile'] .adm-kpis:has(> :nth-child(2):last-child),
+:root[data-view='mobile'] .adm-kpis:has(> :nth-child(4):last-child),
+:root[data-view='mobile'] .adm-kpis:has(> :nth-child(6):last-child),
+:root[data-view='mobile'] .adm-kpis:has(> :nth-child(8):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* 넓은 화면: 한 줄에 다 넣는다(5개 이하) */
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .adm-kpis { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  :root:not([data-view='mobile']) .adm-kpis:has(> :nth-child(7):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

@@ -312,3 +312,34 @@ test('understand: AI가 유형을 못 채우면 키워드 규칙으로 보충한
   assert.equal(r.source, 'ai')
   assert.deepEqual(r.slots, { type: '경사로 없음' })
 })
+
+// 찾기 vs 신고: 위치를 묻는 말은 신고가 아니다. 앱에 찾아 줄 화면이 있는 것은 장애인화장실(지도 레이어)뿐이라 나머지 시설 찾기는 unknown.
+const FIND_VS_REPORT: Q[] = [
+  ['휠체어 타고 갈 수 있는 화장실 알려줘', ['toilet_find']],
+  ['근처 장애인화장실 어디 있어요', ['toilet_find']],
+  ['가까운 화장실 찾아줘', ['toilet_find']],
+  ['화장실 위치 보여줘', ['toilet_find']],
+  ['장애인화장실이 없어요', ['report_new']],
+  ['화장실 문이 고장났어요', ['report_new']],
+  ['장애인 화장실이 잠겨 있어요', ['report_new']],
+  ['화장실 신고하고 싶어요', ['report_new']],
+  ['엘리베이터 어디 있어요', ['unknown']],
+  ['엘리베이터가 고장났어요', ['report_new']],
+  ['경사로 있는 입구 찾아줘', ['unknown']],
+  ['경사로가 너무 가팔라요', ['report_new']],
+  ['근처 장애인 주차장 알려줘', ['unknown']],
+  ['장애인 주차구역에 차가 불법주차했어요', ['report_new']],
+  ['점자블록 있는 길 어디예요', ['unknown']],
+  ['점자블록이 끊겨 있어요', ['report_new']],
+]
+
+test('찾기 표현은 화장실만 지도로, 문제 표현은 신고로 간다', () => {
+  const r = grade(FIND_VS_REPORT)
+  assert.deepEqual(r.miss, [])
+})
+
+test('장애인화장실 찾기는 지도 화면(#/map)으로 이동한다', () => {
+  const t = targetFor('toilet_find', '화장실 알려줘')
+  assert.equal(t.hash, '#/map')
+  assert.ok(t.note)
+})

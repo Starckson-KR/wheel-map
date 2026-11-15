@@ -1,0 +1,145 @@
+/* 피어 리뷰 전 다듬기: 주소 표시, 샘플 사진, 제보 완료 안내 */
+
+/* 필수·선택 표시 */
+.rv-req {
+  margin-left: var(--s-1);
+  color: var(--danger);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+
+/* 샘플 사진 버튼 줄 */
+.rv-sample {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--bg-sub);
+}
+
+.rv-sample p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.rv-sample-btns {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.bm .rv-sample-btns button {
+  flex: 1 1 140px;
+  min-height: var(--touch);
+  padding: 0 var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+/* "샘플 사진" 칩 */
+.rv-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--grey-100);
+  color: var(--grey-700);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 목록·상세의 주소 줄 */
+.rv-addr {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rv-addr--wrap {
+  white-space: normal;
+}
+
+/* 제보 완료 화면 */
+.rv-done {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.rv-no {
+  align-self: center;
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.rv-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: 0;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--bg-sub);
+  list-style: none;
+  text-align: left;
+}
+
+.rv-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.rv-steps .n {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--on-primary);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+
+.rv-steps strong {
+  display: block;
+  color: var(--text-strong);
+  font-size: var(--fs-small);
+}
+
+.rv-steps span.t {
+  display: block;
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.rv-tip {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  text-align: left;
+  word-break: keep-all;
+}

@@ -10,6 +10,8 @@ import BarrierDetail from './BarrierDetail'
 import ReportDetail from '../components/ReportDetail'
 import ViewSettings from '../components/ViewSettings'
 import { isDesktopLayout } from '../lib/viewPrefs'
+import { colsStyle } from '../lib/gridCols'
+import { useVisibleAddress } from '../lib/addressCache'
 import DemoTools, { MockStrip } from '../components/DemoTools'
 import { useSheetSnap, type Snap } from '../components/useSheetSnap'
 import { placeFromQuery, typeFromQuery } from '../lib/aiSearch/handoff'
@@ -41,6 +43,7 @@ import {
   type PubItem,
   type PubLayerId,
 } from '../lib/publicLayers'
+import { Sentences } from '../components/Sentences'
 
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
@@ -63,7 +66,35 @@ function ratingKeyOf(b: Barrier, override?: Map<string, Rating | undefined>): Ra
 }
 
 // 아래 시트에 보여 줄 한 줄(팀 조사 지점 또는 시민 제보)
-type HomeRow = { key: string; kind: 'seed' | 'report'; id: string; title: string; sub: string; rating: Rating | 'none'; cat: Category; impact: ImpactKey }
+type HomeRow = { key: string; kind: 'seed' | 'report'; id: string; title: string; sub: string; rating: Rating | 'none'; cat: Category; impact: ImpactKey; pos?: { lat: number; lng: number; type: string; at: string } }
+
+// 지도 아래 목록의 한 줄. 시민 제보는 보이는 줄만 주소를 조회해 "유형 · 주소 · 접수일"로 서로 구분되게 한다.
+// 목록에서는 제목 끝의 괄호 설명을 떼고 보인다(상세에서는 전체 제목). 데이터는 그대로.
+const listTitle = (t: string) => t.replace(/\s*\([^()]*\)\s*$/, '') || t
+
+function HomeListRow({ r, onPick }: { r: HomeRow; onPick: (r: HomeRow) => void }) {
+  const [ref, addr] = useVisibleAddress<HTMLLIElement>(r.pos?.lat ?? 0, r.pos?.lng ?? 0)
+  const st = styleOf(r.impact, r.rating)
+  const d = r.pos ? new Date(r.pos.at) : null
+  const date = d && !Number.isNaN(d.getTime()) ? `${d.getMonth() + 1}/${d.getDate()} 접수` : ''
+  const title = r.pos ? `${r.pos.type}${addr.short ? ` · ${addr.short}` : ''}` : r.title
+  const sub = r.pos ? [r.sub, date].filter(Boolean).join(' · ') : r.sub
+  return (
+    <li ref={r.pos ? ref : undefined}>
+      <button type="button" className="lr" onClick={() => onPick(r)}>
+        <i className="lr-glyph" style={{ background: st.color, color: st.ink }}>
+          {st.glyph}
+        </i>
+        {r.impact !== 'zone' && <i className="lr-kind" aria-hidden="true">{IMPACT_INFO[r.impact].glyph}</i>}
+        <span className="lr-main">
+          <span className="lr-title">{listTitle(title)}</span>
+          <span className="lr-sub">{sub}</span>
+        </span>
+        <span className="lr-chev" aria-hidden="true" />
+      </button>
+    </li>
+  )
+}
 
 // 지도 핀: 줌에 따라 점(dot) → 점+종류(chip) → 이름까지(full)
 type PinMode = 'lite' | 'dot' | 'chip' | 'full'
@@ -1058,7 +1089,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     }
     for (const r of reports) {
       if (!SHOWN_ON_MAP.includes(r.status) || r.seedId || !inView(r.lat, r.lng)) continue
-      rows.push({ key: r.id, kind: 'report', id: r.id, title: `시민 제보 · ${r.type}`, sub: r.verification.rating ? STATUS_LABEL[r.status] : '판정을 기다리고 있어요', rating: r.verification.rating ?? 'none', impact: impactOfReport(r.type, r.locationKind), cat: categoryOf(impactOfReport(r.type, r.locationKind), r.verification.rating ?? 'none') })
+      rows.push({ key: r.id, kind: 'report', id: r.id, pos: { lat: r.lat, lng: r.lng, type: r.type, at: r.history[0]?.at ?? '' }, title: `시민 제보 · ${r.type}`, sub: r.verification.rating ? STATUS_LABEL[r.status] : '판정을 기다리고 있어요', rating: r.verification.rating ?? 'none', impact: impactOfReport(r.type, r.locationKind), cat: categoryOf(impactOfReport(r.type, r.locationKind), r.verification.rating ?? 'none') })
     }
     const order: Record<string, number> = { X: 0, TRIANGLE: 1, none: 2, O: 3 }
     return rows.sort((a, b) => order[a.rating] - order[b.rating])
@@ -1088,6 +1119,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
   const overlayOpen = flowOpen || panelOpen || routeOpen || picking || !!routePick || progressMode
   const behind = !!(selectedId || selectedReportId || pubSel)
+  const legendCount = (progressMode ? PROGRESS_ORDER.length : 9) + PUB_LAYERS.filter((l) => layers[l.id]).length
 
   const locateMe = () => {
     const k = kRef.current
@@ -1117,7 +1149,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   // 아래 시트 단계별로 보이는 높이를 내용의 실제 높이에 맞춘다(글자가 커지거나 줄이 바뀌어도 버튼이 잘리지 않게)
   useEffect(() => {
     const sheet = sheetRef.current
-    const cta = sheet?.querySelector<HTMLElement>('.hm-s-cta')
+    const cta = sheet?.querySelector<HTMLElement>('.hm-grip')
     const mid = sheet?.querySelector<HTMLElement>('.hm-s-mid')
     if (!sheet || !cta || !mid) return
     const apply = () => {
@@ -1189,7 +1221,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
         <div className="hm-panel">
         <header className={'hm-top' + (routeOpen || behind ? ' hm-top--route' : '')}>
-          <MockStrip />
           <div className="hm-card">
             <div className="hm-bar hm-bar--desk">
               <h1 className="hm-brand">
@@ -1221,10 +1252,16 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               </button>
             </div>
           </div>
-          <button type="button" className="hm-legend-toggle" aria-expanded={legendOpen} onClick={() => setLegendOpen((v) => !v)}>
-            범례<span aria-hidden="true"> {legendOpen ? '▴' : '▾'}</span>
+          <div className="hm-chips">
+            <MockStrip />
+          </div>
+          <button type="button" className="hm-legend-toggle" aria-expanded={legendOpen} aria-label={legendOpen ? '범례 접기' : '범례 보기'} title="범례" onClick={() => setLegendOpen((v) => !v)}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="M10 9v4.5M10 6.4v.1" />
+            </svg>
           </button>
-          <ul className={'hm-legend' + (legendOpen ? '' : ' hm-legend--shut')} aria-label={progressMode ? '범례: 색과 글자는 개선 진행 단계' : '범례: 색과 ○△X는 정도, 길·승·입·◆는 영향 종류'}>
+          <ul className={'hm-legend' + (legendOpen ? '' : ' hm-legend--shut')} style={colsStyle(legendCount, 3, 2)} aria-label={progressMode ? '범례: 색과 글자는 개선 진행 단계' : '범례: 색과 ○△X는 정도, 길·승·입·◆는 영향 종류'}>
             {progressMode &&
               PROGRESS_ORDER.map((s) => (
                 <li key={s}>
@@ -1286,28 +1323,25 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 <h2 className="hm-title">
                   {!view ? '지도를 불러오고 있어요' : here.length > 0 ? `장애요소 ${here.length}곳${hereCount('hard') > 0 ? ` · 어려운 곳 ${hereCount('hard')}` : ''}` : '여기에는 등록된 장애요소가 없어요'}
                 </h2>
-                <button type="button" className="hm-snapbtn" aria-expanded={snap > 0} onClick={() => setSnap(SNAP_BTN[snap].next)}>
-                  {SNAP_BTN[snap].label}
-                  <span aria-hidden="true"> {SNAP_BTN[snap].up ? '▲' : '▼'}</span>
+                <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
+                  제보하기
+                </button>
+                <button type="button" className="hm-snapbtn" aria-expanded={snap > 0} aria-label={SNAP_BTN[snap].label} title={SNAP_BTN[snap].label} onClick={() => setSnap(SNAP_BTN[snap].next)}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d={SNAP_BTN[snap].up ? 'm5 12.5 5-5 5 5' : 'm5 7.5 5 5 5-5'} />
+                  </svg>
                 </button>
               </div>
             </div>
             <button type="button" className="hm-locate" onClick={locateMe} aria-label="내 위치로 이동">
               내 위치
             </button>
-            <div className="hm-s-cta">
-              <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
-                문제 제보하기
-              </button>
-              <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setRewardsOpen(false); setPanelOpen(true) }}>
-                제보 현황
-              </button>
-              <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setPanelOpen(false); setRewardsOpen(true) }}>
-                내 기여
-              </button>
-            </div>
             <div className="hm-s-mid">
-              <p className="hm-eyebrow">{locMsg || '지금 지도에 보이는 곳'}</p>
+              {locMsg && (
+                <Sentences as="p" className="hm-eyebrow" role="status">
+                  {locMsg}
+                </Sentences>
+              )}
               {here.length > 0 && (
                 <ul className="hm-stats" aria-label="핵심 분류별 개수">
                   <li className="hm-stat">
@@ -1339,9 +1373,17 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 </ul>
               )}
               {hereProv > 0 && <p className="hm-prov-note">위치 임시 {hereProv}곳 (확인 전, 위 숫자에는 넣지 않았어요)</p>}
-              <button type="button" className="hm-cta-sub hm-cta-progress" onClick={openProgress}>
-                개선 현황 보기
-              </button>
+              <div className="hm-s-cta">
+                <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setRewardsOpen(false); setPanelOpen(true) }}>
+                  제보 현황
+                </button>
+                <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setPanelOpen(false); setRewardsOpen(true) }}>
+                  내 기여
+                </button>
+                <button type="button" className="hm-cta-sub hm-cta-progress" onClick={openProgress}>
+                  개선 현황
+                </button>
+              </div>
             </div>
             <div className="hm-more">
               {here.length > 0 && restCats.length > 0 && (
@@ -1368,19 +1410,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               ) : (
                 <ul className="lr-list">
                   {here.slice(0, 40).map((r) => (
-                    <li key={r.key}>
-                      <button type="button" className="lr" onClick={() => pickRow(r)}>
-                        <i className="lr-glyph" style={{ background: styleOf(r.impact, r.rating).color, color: styleOf(r.impact, r.rating).ink }}>
-                          {styleOf(r.impact, r.rating).glyph}
-                        </i>
-                        {r.impact !== 'zone' && <i className="lr-kind" aria-hidden="true">{IMPACT_INFO[r.impact].glyph}</i>}
-                        <span className="lr-main">
-                          <span className="lr-title">{r.title}</span>
-                          <span className="lr-sub">{r.sub}</span>
-                        </span>
-                        <span className="lr-chev" aria-hidden="true" />
-                      </button>
-                    </li>
+                    <HomeListRow key={r.key} r={r} onPick={pickRow} />
                   ))}
                 </ul>
               )}
@@ -1395,7 +1425,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                             {ratingOf(b, seedOverride).glyph}
                           </i>
                           <span className="lr-main">
-                            <span className="lr-title">{shortName(b.id, b.name)}</span>
+                            <span className="lr-title">{listTitle(shortName(b.id, b.name))}</span>
                             <span className="lr-sub">위치 임시 · 아직 확인 전이에요</span>
                           </span>
                           <span className="lr-chev" aria-hidden="true" />
@@ -1417,7 +1447,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                           </i>
                           <span className="lr-main">
                             <span className="lr-title">
-                              {shortName(b.id, b.name)}
+                              {listTitle(shortName(b.id, b.name))}
                             </span>
                             <span className="lr-sub">위치를 아직 정하지 못했어요</span>
                           </span>
@@ -1468,7 +1498,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
         {picking && (
           <div className="rf-pick" role="status">
-            <span>지도를 눌러 위치를 정해 주세요. 마커를 끌어 옮길 수도 있어요.</span>
+            <Sentences as="span">지도를 눌러 위치를 정해 주세요. 마커를 끌어 옮길 수도 있어요.</Sentences>
             <button type="button" className="rf-primary" disabled={!draftPos} onClick={() => setPicking(false)}>
               이 위치로 정하기
             </button>
@@ -1513,7 +1543,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
         {routePick && (
           <div className="rf-pick" role="status">
-            <span>{routePick === 'from' ? '출발' : '도착'} 위치를 지도에서 눌러 주세요. 핀을 눌러도 돼요.</span>
+            <Sentences as="span">{`${routePick === 'from' ? '출발' : '도착'} 위치를 지도에서 눌러 주세요. 핀을 눌러도 돼요.`}</Sentences>
             <button type="button" onClick={() => setRoutePick(null)}>
               닫기
             </button>

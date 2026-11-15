@@ -131,7 +131,7 @@
   bottom: 0;
   z-index: 4;
   margin: auto calc(var(--gutter) * -1) 0;
-  padding: var(--s-3) var(--gutter) calc(var(--safe-bottom) + var(--s-4));
+  padding: var(--s-3) var(--gutter) var(--s-4);
   background: linear-gradient(to bottom, transparent, var(--bg) 10px);
   flex-wrap: nowrap;
 }

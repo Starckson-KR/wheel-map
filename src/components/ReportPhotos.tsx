@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { usePhotoUrls } from '../lib/usePhotoUrls'
+import { Sentences } from './Sentences'
 
 export function ReportThumb({ photoKey, alt }: { photoKey?: string; alt: string }) {
   const { urls } = usePhotoUrls(photoKey ? [photoKey] : [])
@@ -34,7 +35,7 @@ export default function ReportPhotos({ keys }: { keys: string[] }) {
         ))}
       </div>
       {(failed || (urls.length === keys.length && shown.length < keys.length)) && (
-        <span className="bm-meta">일부 사진을 불러오지 못했어요. 이 브라우저에 저장되지 않았거나 초기화됐을 수 있어요.</span>
+        <Sentences as="span" className="bm-meta">일부 사진을 불러오지 못했어요.</Sentences>
       )}
       {open !== null && urls[open] && (
         <div className="bm-lightbox" role="dialog" aria-modal="true" aria-label="사진 확대" onClick={() => setOpen(null)}>

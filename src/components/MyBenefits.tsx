@@ -1,11 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import Icon from './Icon'
-import { BENEFITS, BENEFITS_CHECKED_AT } from '../lib/benefitsData'
+import { RiseLi } from './motionKit'
+import { useRiseOnce } from '../lib/useRiseOnce'
+import { BENEFITS } from '../lib/benefitsData'
 import {
   CATEGORIES, buildView, categoryLabel, clearPrefs, hasPrefs, loadPrefs, periodText, savePrefs,
   type Benefit, type BenefitCategory, type BenefitPrefs, type WheelchairUse,
 } from '../lib/benefits'
 import { nowMs } from '../lib/reportStore'
+import { Sentences } from './Sentences'
+import { tidyBreaks } from '../lib/sentences'
 
 const WHEEL: { id: WheelchairUse; label: string }[] = [
   { id: 'user', label: '이용해요' },
@@ -13,26 +17,50 @@ const WHEEL: { id: WheelchairUse; label: string }[] = [
   { id: 'none', label: '선택 안 함' },
 ]
 
-const dateText = (iso: string) => `${iso.slice(0, 4)}년 ${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`
 
-function BenefitCard({ b }: { b: Benefit }) {
-  const need = b.status === '확인 필요'
+// 긴 문의 글: " · "로 이어 붙인 항목은 줄을 나누고, 전화번호는 한 덩어리로 둔다(글은 그대로).
+function SplitLines({ text }: { text: string }) {
+  const parts = text.split(' · ')
+  if (parts.length < 2) return <>{tidyBreaks(text)}</>
+  return <>{parts.map((p, i) => <span key={i} className="sent">{tidyBreaks(p)}</span>)}</>
+}
+
+// 대상 칸: 끝에 붙은 긴 괄호 설명(10자 넘음)은 "자세히"를 눌러야 펼친다. 짧은 괄호는 그대로 보인다.
+function TargetText({ text }: { text: string }) {
+  const [open, setOpen] = useState(false)
+  const id = useId()
+  const m = text.match(/^(.+?)\s*(\([^()]+\))$/)
+  if (!m || m[2].length - 2 <= 10) return <>{tidyBreaks(text)}</>
   return (
-    <li className="bn-card">
+    <>
+      <span className="sent">{tidyBreaks(m[1])}</span>
+      <button type="button" className="bn-fold" aria-expanded={open} aria-controls={id} onClick={() => setOpen((v) => !v)}>
+        {open ? '접기' : '자세히'}
+      </button>
+      <span id={id} className="sent bn-fold-body" hidden={!open}>{tidyBreaks(m[2])}</span>
+    </>
+  )
+}
+
+// 정해지지 않은 값("확인 필요")은 그 칸을 보여 주지 않는다.
+const known = (v: string) => v.trim() !== '' && !v.includes('확인 필요')
+
+function BenefitCard({ b, i, first }: { b: Benefit; i: number; first: boolean }) {
+  const period = periodText(b)
+  const contact = b.agency + (b.contact && known(b.contact) ? ' · ' + b.contact : '')
+  return (
+    <RiseLi className="bn-card" first={first} i={i}>
       <div className="bn-tags">
         <span className={'bn-tag bn-tag-' + b.category}>{categoryLabel(b.category)}</span>
-        {need && <span className="bn-tag bn-tag-need">확인 필요</span>}
       </div>
       <h3>{b.title}</h3>
-      <p className="bn-sum">{b.summary}</p>
+      <Sentences as="p" className="bn-sum">{b.summary}</Sentences>
       <dl className="bn-dl">
-        <div><dt>대상</dt><dd>{b.target}</dd></div>
-        <div><dt>기간</dt><dd>{periodText(b)}</dd></div>
-        <div><dt>신청·문의</dt><dd>{b.agency}{b.contact && b.contact !== '확인 필요' ? ` · ${b.contact}` : ''}</dd></div>
+        {known(b.target) && <div><dt>대상</dt><dd><TargetText text={b.target} /></dd></div>}
+        {known(period) && <div><dt>기간</dt><dd>{period}</dd></div>}
+        {known(contact) && <div><dt>신청·문의</dt><dd><SplitLines text={contact} /></dd></div>}
       </dl>
-      {b.unknowns.length > 0 && <p className="bn-unk">아직 확인하지 못한 것: {b.unknowns.join(', ')}</p>}
       <div className="bn-foot">
-        <span className="bm-meta">확인일 {dateText(b.confirmedAt)} · {b.sourceName}</span>
         <a
           className="bn-link"
           href={b.sourceUrl}
@@ -43,11 +71,12 @@ function BenefitCard({ b }: { b: Benefit }) {
           자세히 보기 <Icon name="chev" size={16} />
         </a>
       </div>
-    </li>
+    </RiseLi>
   )
 }
 
 export default function MyBenefits() {
+  const riseBn = useRiseOnce('benefits')
   const [prefs, setPrefs] = useState<BenefitPrefs>(loadPrefs)
   const [open, setOpen] = useState(false)
   const [showRest, setShowRest] = useState(false)
@@ -69,7 +98,6 @@ export default function MyBenefits() {
   return (
     <section className="pg-card" id="pg-benefits" tabIndex={-1} aria-labelledby="bn-h">
       <h2 id="bn-h">나에게 맞는 혜택·행사</h2>
-      <p className="bm-meta">광주 북구와 광주광역시, 중앙부처 누리집에서 직접 확인한 항목이에요.</p>
 
       <button type="button" className="bn-set" aria-expanded={open} aria-controls="bn-panel" onClick={() => setOpen((v) => !v)}>
         <span>나에게 맞게 보기 <small>{hasPrefs(prefs) ? '설정했어요' : '선택 사항'}</small></span>
@@ -98,7 +126,6 @@ export default function MyBenefits() {
               ))}
             </div>
           </div>
-          <p className="bm-meta bn-priv">이 기기에만 저장돼요. 서버로 보내지 않고, 장애 유형이나 소득은 묻지 않아요.</p>
           <button type="button" className="pg-wide bn-clear" onClick={reset} disabled={!hasPrefs(prefs)}>
             설정 지우기
           </button>
@@ -107,7 +134,7 @@ export default function MyBenefits() {
 
       {total === 0 ? (
         <div className="al-empty">
-          <p className="bm-meta">지금 볼 수 있는 혜택·행사가 없어요. 기간이 지난 항목은 숨겨요. 공식 누리집에서 새 소식을 확인해 주세요.</p>
+          <Sentences as="p" className="bm-meta">지금 볼 수 있는 혜택·행사가 없어요.</Sentences>
           <div className="empty-act">
             <a className="bn-open" href="https://bukgu.gwangju.kr/menu.es?mid=a10305000000" target="_blank" rel="noopener noreferrer" aria-label="북구청 장애인복지 누리집 열기, 새 창으로 열려요">
               북구청 장애인복지 보기
@@ -118,9 +145,9 @@ export default function MyBenefits() {
         <>
           <h3 className="bn-gh">내 설정에 맞는 혜택 {view.matched.length}개</h3>
           {view.matched.length === 0 ? (
-            <p className="bm-meta">설정에 맞는 혜택이 아직 없어요. 아래에서 다른 혜택을 볼 수 있어요.</p>
+            <Sentences as="p" className="bm-meta">설정에 맞는 혜택이 아직 없어요. 아래에서 다른 혜택을 볼 수 있어요.</Sentences>
           ) : (
-            <ul className="bn-list">{view.matched.map((b) => <BenefitCard key={b.id} b={b} />)}</ul>
+            <ul className="bn-list">{view.matched.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} />)}</ul>
           )}
           {view.groups.length > 0 && (
             <button type="button" className="pg-wide" aria-expanded={showRest || view.matched.length === 0} onClick={() => setShowRest((v) => !v)}>
@@ -130,7 +157,7 @@ export default function MyBenefits() {
           {(showRest || view.matched.length === 0) && view.groups.map((g) => (
             <div key={g.category}>
               <h3 className="bn-gh">{categoryLabel(g.category)}</h3>
-              <ul className="bn-list">{g.items.map((b) => <BenefitCard key={b.id} b={b} />)}</ul>
+              <ul className="bn-list">{g.items.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} />)}</ul>
             </div>
           ))}
         </>
@@ -138,13 +165,12 @@ export default function MyBenefits() {
         view.groups.map((g) => (
           <div key={g.category}>
             <h3 className="bn-gh">{categoryLabel(g.category)}</h3>
-            <ul className="bn-list">{g.items.map((b) => <BenefitCard key={b.id} b={b} />)}</ul>
+            <ul className="bn-list">{g.items.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} />)}</ul>
           </div>
         ))
       )}
 
-      {total > 0 && <p className="bn-note" role="note">내용은 바뀔 수 있어요. 신청 전에 기관 누리집에서 확인해 주세요.</p>}
-      <p className="bm-meta">목록 확인일 {dateText(BENEFITS_CHECKED_AT)}</p>
+      {total > 0 && <Sentences as="p" className="bn-note" role="note">내용은 바뀔 수 있어요. 신청 전에 기관 누리집에서 확인해 주세요.</Sentences>}
     </section>
   )
 }

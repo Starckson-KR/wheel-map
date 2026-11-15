@@ -32,10 +32,10 @@ export type EmblemDef = { id: string; name: string; glyph: string; tone: EmblemT
 export const GRADE_EMBLEMS: EmblemDef[] = [
   { id: 'g1', grade: 1, name: '길 살핌이', glyph: '🌱', tone: 'green', how: '검증된 제보 1건' },
   { id: 'g2', grade: 2, name: '길 지킴이', glyph: '🌿', tone: 'green', how: '검증된 제보 5건 또는 확인 투표 20회' },
-  { id: 'g3', grade: 3, name: '길 잇는 사람', glyph: '🌳', tone: 'blue', how: '검증된 제보 15건과, 조치 완료로 이어진 제보 3건' },
+  { id: 'g3', grade: 3, name: '길 잇는 사람', glyph: '🌳', tone: 'blue', how: '검증된 제보 15건, 조치 완료 제보 3건' },
   { id: 'g4', grade: 4, name: '동네 무장애 파수꾼', glyph: '🏅', tone: 'amber', how: '동행 점검 3회 참여' },
 ]
-export const SPECIAL_EMBLEM: EmblemDef = { id: 'special', name: '경로 개척자', glyph: '🧭', tone: 'purple', how: '한 경로의 장애요소를 모두 조치 완료로 이끌기' }
+export const SPECIAL_EMBLEM: EmblemDef = { id: 'special', name: '경로 개척자', glyph: '🧭', tone: 'purple', how: '한 경로의 장애요소 모두 조치 완료' }
 export const TYPE_EMBLEMS: EmblemDef[] = [
   { id: 'stop', name: '정류장 탐험가', glyph: '🚏', tone: 'blue', how: `정류장 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
   { id: 'cross', name: '횡단보도 감시자', glyph: '🚸', tone: 'amber', how: `횡단보도 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },

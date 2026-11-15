@@ -9,6 +9,7 @@ import { findAgencyName } from '../lib/agencyName'
 import { agencyOf, flagsOf, pendingTransfer } from '../lib/caseMetrics'
 import { listAgencies } from '../lib/agencyGuide'
 import type { Report } from '../types'
+import { Sentences } from './Sentences'
 
 const DAY = 86400000
 const fmt = (iso: string | number) => new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
@@ -212,7 +213,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
             <strong>다른 기관으로 이관</strong>
             {(r.transfers?.length ?? 0) > 0 && <span className="bm-meta"> · 이관 {r.transfers?.length}회</span>}
           </summary>
-          <p className="bm-meta">지금 맡은 기관은 {findAgencyName(agencyOf(r) ?? '')}이에요. 받는 기관의 공무원이 수락하면 그 기관이 맡아요.</p>
+          <Sentences as="p" className="bm-meta">{`지금 맡은 기관은 ${findAgencyName(agencyOf(r) ?? '')}이에요. 받는 기관의 공무원이 수락하면 그 기관이 맡아요.`}</Sentences>
           <label className="rf-field">
             이관할 기관
             <select value={toAgency} onChange={(e) => setToAgency(e.target.value)}>
@@ -248,13 +249,13 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
           </div>
         </details>
       )}
-      {pendingTransfer(r) && <p className="ps-flag">이관을 요청했어요. {findAgencyName(pendingTransfer(r)?.toAgencyId ?? '')}가 수락하기를 기다리고 있어요.</p>}
+      {pendingTransfer(r) && <Sentences as="p" className="ps-flag">{`이관을 요청했어요. ${findAgencyName(pendingTransfer(r)?.toAgencyId ?? '')}가 수락하기를 기다리고 있어요.`}</Sentences>}
 
       {r.status === 'resolved' && (
         <div className="rf-card" id="ps-recheck" aria-label="재확인">
           <strong>재확인: 이제 지나갈 수 있나요?</strong>
           {officer ? (
-            <p className="bm-meta">재확인은 시민이나 검증자가 해요. 시연 도구에서 사용자를 바꿔 주세요.</p>
+            <Sentences as="p" className="bm-meta">재확인은 시민이나 검증자가 해요.</Sentences>
           ) : (
             <div className="rf-actions">
               <button type="button" className="rf-primary" onClick={() => act(recheck(r.id, true))}>
@@ -268,9 +269,9 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
         </div>
       )}
       {msg && (
-        <p className="rf-warn" role="alert">
+        <Sentences as="p" className="rf-warn" role="alert">
           {msg}
-        </p>
+        </Sentences>
       )}
 
       <div>

@@ -8,6 +8,7 @@ import { getMotionForce, setMotionForce } from '../lib/viewPrefs'
 import { getAiEnabled, setAiEnabled } from '../lib/aiSearch/aiPref'
 import { loadPubDataset } from '../lib/publicLayers'
 import { BADGE_TEXT, FILE_MAX_BYTES, pickCandidates } from '../lib/demoLarge'
+import { Sentences } from './Sentences'
 
 // 시연용 모의 연동 표시: 모의 접수 모드에서는 어느 화면에서나 계속 보인다.
 export function MockStrip() {
@@ -126,7 +127,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
             <div className="ms-head">
               <div>
                 <h2>시연 도구</h2>
-                <p className="ms-sub">발표용 설정이에요. 실제 로그인이나 접수가 아니에요.</p>
+                <Sentences as="p" className="ms-sub">발표용 설정이에요. 실제 로그인이나 접수가 아니에요.</Sentences>
               </div>
               <button type="button" className="bm-close" onClick={() => setOpen(false)}>
                 닫기
@@ -160,7 +161,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
             <div className="ms-sec">
               <h3>시간 앞당기기</h3>
               <div className="ms-row">
-                <span className="bm-meta">앱 안의 날짜만 움직여요. 지금 +{offset}일</span>
+                <Sentences as="span" className="bm-meta">{`앱 안의 날짜만 움직여요. 지금 +${offset}일`}</Sentences>
                 <span className="rf-actions">
                   <button type="button" onClick={() => advanceDays(7)}>
                     +7일
@@ -195,7 +196,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
                   꺼짐(키워드만)
                 </button>
               </div>
-              <p className="bm-meta">끄면 홈 검색창이 인터넷 없이 키워드로만 찾아요. 오프라인 리허설과 발표 대비용이에요.</p>
+              <Sentences as="p" className="bm-meta">끄면 홈 검색창이 인터넷 없이 키워드로만 찾아요. 오프라인 리허설과 발표 대비용이에요.</Sentences>
             </div>
 
             <div className="ms-sec">
@@ -246,11 +247,11 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
               <label className="bm-meta">
                 <input type="checkbox" checked={shift} onChange={(e) => setShift(e.target.checked)} /> 가져올 때 날짜를 오늘 기준으로 옮기기
               </label>
-              <p className="bm-meta">대규모 데이터는 가상 사용자 약 300명의 가상 제보예요. 파일은 data/demo/large-demo.json에서 받을 수 있어요.</p>
+              <Sentences as="p" className="bm-meta">대규모 데이터는 가상 사용자 약 300명의 가상 제보예요. 파일은 data/demo/large-demo.json에서 받을 수 있어요.</Sentences>
               {msg && (
-                <p className="rf-notice" role="status">
+                <Sentences as="p" className="rf-notice" role="status">
                   {msg}
-                </p>
+                </Sentences>
               )}
             </div>
 

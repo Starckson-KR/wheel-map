@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, m, useIsPresent } from 'motion/react'
 import Icon from '../components/Icon'
+import { PressButton, RiseLi } from '../components/motionKit'
+import { useRiseOnce } from '../lib/useRiseOnce'
+import { FADE, FADE_OUT, SPRING } from '../lib/motionTokens'
 import DemoTools, { MockStrip } from '../components/DemoTools'
 import ViewSettings from '../components/ViewSettings'
 import SheetHandle from '../components/SheetHandle'
@@ -13,10 +17,13 @@ import { CountText } from '../components/CountUp'
 import AiSearch from '../components/AiSearch'
 import { BENEFITS } from '../lib/benefitsData'
 import { homeCount, loadPrefs } from '../lib/benefits'
+import { loadPubDataset } from '../lib/publicLayers'
+import { pickCandidates } from '../lib/demoLarge'
+import { Sentences } from '../components/Sentences'
 
 const TILES = [
   { icon: 'report', label: '문제 신고하기', to: TO.newReport },
-  { icon: 'list', label: '내 민원 진행 상황', to: TO.report },
+  { icon: 'list', label: '내 민원 현황', to: TO.report },
   { icon: 'bus', label: '저상버스 도착', to: TO.bus },
   { icon: 'map', label: '동행지도', to: TO.map },
   { icon: 'check', label: '개선 현황', to: TO.progress },
@@ -43,7 +50,7 @@ const GUIDES = [
     ],
   },
   {
-    id: 'enter', icon: 'enter', label: '건물 들어가기',
+    id: 'enter', icon: 'enter', label: '건물 출입',
     lines: [
       { t: '도착지 출입이 불편한지 먼저 봐요', d: '길찾기 결과의 도착지 출입 안내를 읽어요', to: TO.route },
       { t: '출입구 주변 불편을 지도에서 찾아요', d: '지도에서 출입구 표시를 눌러요', to: TO.map },
@@ -51,7 +58,7 @@ const GUIDES = [
     ],
   },
   {
-    id: 'file', icon: 'help', label: '민원 넣는 법',
+    id: 'file', icon: 'help', label: '신고 방법',
     lines: [
       { t: '문제 신고하기로 시작해요', d: '유형, 위치, 사진과 설명 순서로 남겨요', to: TO.newReport },
       { t: '내 민원 진행 상황을 확인해요', d: '민원신고 탭에서 단계를 볼 수 있어요', to: TO.report },
@@ -67,7 +74,7 @@ const MENU = [
   { icon: 'map', label: '동행지도', to: TO.map },
   { icon: 'bus', label: '저상버스 도착', to: TO.bus },
   { icon: 'report', label: '문제 신고하기', to: TO.newReport },
-  { icon: 'list', label: '내 민원 진행 상황', to: TO.report },
+  { icon: 'list', label: '내 민원 현황', to: TO.report },
   { icon: 'check', label: '개선 현황', to: TO.progress },
   { icon: 'building', label: '담당 기관 안내', to: TO.agency },
   { icon: 'bell', label: '혜택알림', to: TO.alerts },
@@ -76,15 +83,35 @@ const MENU = [
 
 function MenuSheet({ onClose }: { onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
+  const present = useIsPresent()
   useEffect(() => {
+    if (!present) return // 닫히는 동안에는 키 입력을 받지 않는다
     ref.current?.querySelector('button')?.focus()
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
-  }, [onClose])
+  }, [onClose, present])
   return (
-    <div className="hs-back" onClick={onClose}>
-      <div ref={ref} className="hs-sheet" role="dialog" aria-modal="true" aria-label="전체메뉴" onClick={(e) => e.stopPropagation()}>
+    <m.div
+      className="hs-back"
+      onClick={onClose}
+      inert={!present}
+      aria-hidden={!present || undefined}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: FADE }}
+      exit={{ opacity: 0, transition: FADE_OUT }}
+    >
+      <m.div
+        ref={ref}
+        className="hs-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label="전체메뉴"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ y: '100%' }}
+        animate={{ y: 0, transition: SPRING.sheet }}
+        exit={{ y: '100%', transition: { ...SPRING.sheet, restDelta: 0.5 } }}
+      >
         <div className="hs-head">
           <h2>전체메뉴</h2>
           <button type="button" className="hs-x" aria-label="닫기" onClick={onClose}><Icon name="close" size={22} /></button>
@@ -100,8 +127,8 @@ function MenuSheet({ onClose }: { onClose: () => void }) {
             </li>
           ))}
         </ul>
-      </div>
-    </div>
+      </m.div>
+    </m.div>
   )
 }
 
@@ -131,7 +158,6 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
         <div className="ms-head">
           <div>
             <h2>설정</h2>
-            <p className="ms-sub">이 기기에 저장돼요.</p>
           </div>
           <button type="button" className="bm-close" onClick={onClose}>닫기</button>
         </div>
@@ -159,9 +185,36 @@ export default function HomePage() {
   const userId = useReports((s) => s.userId)
   const [gid, setGid] = useState(GUIDES[0].id)
   const [menu, setMenu] = useState(false)
+  const riseTiles = useRiseOnce('home-tiles')
+  const riseNews = useRiseOnce('home-news')
   const [settings, setSettings] = useState(false)
   const [notice, setNotice] = useState(false)
   const [more, setMore] = useState(false)
+  const [filling, setFilling] = useState(false)
+  const [fillMsg, setFillMsg] = useState('')
+  const [skipTrial, setSkipTrial] = useState(false)
+  const fillDemo = useReports((s) => s.fillDemo)
+  const fillLargeDemo = useReports((s) => s.fillLargeDemo)
+  // 체험 데이터(대규모 시연 데이터)가 없을 때만 홈 맨 위에 안내 카드를 보인다
+  const needTrial = !skipTrial && !reports.some((r) => r.demoSet === 'large')
+  // 시연 도구의 「대규모 시연 데이터 채우기」와 같은 store 함수를 쓴다(시민 A 몫은 기존 시연 10건 fillDemo가 채운다)
+  const fillTrial = async () => {
+    setFilling(true)
+    setFillMsg('가상 데이터를 만드는 중이에요…')
+    try {
+      const barriers = loadBarriers()
+      const [cw, bus, fac] = await Promise.all([loadPubDataset('crosswalk'), loadPubDataset('bus'), loadPubDataset('facility')])
+      fillDemo(barriers)
+      const n = fillLargeDemo(pickCandidates({ crosswalk: cw.items, bus: bus.items, facility: fac.items }), barriers)
+      setFillMsg('')
+      toast(n > 0 ? '체험 데이터를 채웠어요. 모두 가상이고, 설정의 시연 도구에서 지울 수 있어요.' : '체험 데이터가 이미 있어요.')
+      go(TO.map)
+    } catch {
+      setFillMsg('위치 자료를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.')
+    } finally {
+      setFilling(false)
+    }
+  }
   const chipsRef = useRef<HTMLUListElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
   // AI 검색의 「이용 안내」 결과: 홈의 이용 안내 확인하기를 펼치고 그 자리로 옮긴다
@@ -201,7 +254,7 @@ export default function HomePage() {
       { tone: 'blue', t: doing > 0 ? `처리 중인 내 민원이 ${doing}건 있어요` : '처리 중인 내 민원이 아직 없어요', to: TO.report },
       { tone: 'green', t: myRank ? `이번 주 내 순위 ${myRank}위예요 · ${pts}점을 모았어요` : `이번 주 참여 점수 ${pts}점을 모았어요`, to: TO.alerts },
       { tone: 'amber', t: recheck > 0 ? `재확인을 기다리는 민원이 ${recheck}건 있어요` : '재확인을 기다리는 민원이 없어요', to: TO.report },
-      { tone: 'purple', t: wait > 0 ? `확인을 기다리는 제보가 ${wait}건 있어요` : '확인을 기다리는 제보가 없어요', to: TO.report },
+      { tone: 'purple', t: wait > 0 ? `확인할 제보가 ${wait}건 있어요` : '확인할 제보가 없어요', to: TO.report },
       ...(bn.count > 0 ? [{ tone: 'green', wide: true, t: bn.personal ? `나에게 맞는 혜택 ${bn.count}개를 찾았어요` : `알아두면 좋은 혜택·행사 ${bn.count}개를 모았어요`, to: TO.benefits }] : []),
     ]
   }, [reports, userId])
@@ -223,13 +276,34 @@ export default function HomePage() {
             </div>
           </header>
 
+
+          {needTrial && (
+            <section className="hp-trial" aria-labelledby="h-trial">
+              <h2 id="h-trial">처음이세요?</h2>
+              <Sentences as="p">체험 데이터를 채우면 지도·랭킹·개선 현황·행정 화면이 채워져요. 수업 프로토타입이라 모두 가상이고, 민원은 실제로 접수되지 않아요.</Sentences>
+              <div className="hp-trial-act">
+                <button type="button" className="rf-primary" disabled={filling} onClick={fillTrial}>체험 데이터 채우기</button>
+                <button type="button" disabled={filling} onClick={() => setSkipTrial(true)}>그냥 둘러보기</button>
+              </div>
+              {fillMsg && <Sentences as="p" className="hp-trial-msg" role="status">{fillMsg}</Sentences>}
+            </section>
+          )}
+
           <div className="hp-notice" ref={noticeRef}>
             <button type="button" aria-expanded={notice} onClick={() => setNotice((v) => !v)}>
-              <Icon name="bell" size={18} />
-              <span>이용 안내 확인하기</span>
+              <Icon name="help" size={18} />
+              <span>이용 안내 · 이렇게 해 보세요</span>
               <span className={'hp-nchev' + (notice ? ' on' : '')}><Icon name="chev" size={16} /></span>
             </button>
-            {notice && <p role="note">발표용 시연 프로토타입이에요. 민원 접수는 실제로 보내지지 않아요.</p>}
+            {notice && (
+              <div role="note">
+                <ol className="hp-steps">
+                  <li><b>1</b><span><strong>찾기</strong>동행지도에서 지나기 어려운 곳과 내 길의 ○△X를 봐요.</span></li>
+                  <li><b>2</b><span><strong>신고하기</strong>불편한 곳을 만나면 문제 신고하기로 사진과 위치를 남겨요.</span></li>
+                  <li><b>3</b><span><strong>개선 확인</strong>개선 현황과 혜택알림에서 처리 과정과 내 점수를 확인해요.</span></li>
+                </ol>
+              </div>
+            )}
           </div>
 
           <AiSearch onHelp={openHelp} />
@@ -240,13 +314,13 @@ export default function HomePage() {
               <button type="button" className="hp-plus" aria-label="전체 기능 보기" onClick={() => setMenu(true)}><Icon name="plus" size={20} /></button>
             </div>
             <ul className="hp-tiles">
-              {TILES.map((t) => (
-                <li key={t.label}>
-                  <button type="button" className="hp-tile" onClick={() => go(t.to)}>
+              {TILES.map((t, i) => (
+                <RiseLi key={t.label} first={riseTiles} i={i}>
+                  <PressButton type="button" className="hp-tile" onClick={() => go(t.to)}>
                     <span className="hp-tile-t">{t.label}</span>
                     <span className="hp-tile-ic"><Icon name={t.icon} size={20} /></span>
-                  </button>
-                </li>
+                  </PressButton>
+                </RiseLi>
               ))}
             </ul>
           </section>
@@ -255,12 +329,12 @@ export default function HomePage() {
             <h2 id="h-news" className="hp-tab"><span>소식 <Icon name="chev" size={14} /></span></h2>
             <div className="hp-board">
               <ul className="hp-news">
-                {news.map((n) => (
-                  <li key={n.t} className={'wide' in n ? 'hp-news-wide' : undefined}>
-                    <button type="button" className={'hp-n hp-n-' + n.tone} onClick={() => go(n.to)}>
+                {news.map((n, i) => (
+                  <RiseLi key={n.t} first={riseNews} i={i} className={'wide' in n ? 'hp-news-wide' : undefined}>
+                    <PressButton type="button" className={'hp-n hp-n-' + n.tone} onClick={() => go(n.to)}>
                       <span><CountText text={n.t} /></span>
-                    </button>
-                  </li>
+                    </PressButton>
+                  </RiseLi>
                 ))}
               </ul>
             </div>
@@ -304,7 +378,7 @@ export default function HomePage() {
           </section>
         </div>
       </div>
-      {menu && <MenuSheet onClose={() => setMenu(false)} />}
+      <AnimatePresence>{menu && <MenuSheet onClose={() => setMenu(false)} />}</AnimatePresence>
       {settings && <SettingsSheet onClose={() => setSettings(false)} />}
     </div>
   )

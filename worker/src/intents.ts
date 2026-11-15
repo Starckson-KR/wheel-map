@@ -21,6 +21,7 @@ export const INTENTS = {
   agency: { to: 'TO.agency', slots: [], desc: '어느 기관이 담당하는지(담당 기관 안내) 알고 싶다' },
   alerts: { to: 'TO.alerts', slots: [], desc: '알림을 확인하고 싶다' },
   help: { to: '(TODO 확인 필요: 사용법 화면)', slots: [], desc: '앱 사용법·도움말이 필요하다' },
+  toilet_find: { to: 'TO.map (장애인화장실 레이어)', slots: [], desc: '휠체어로 이용할 수 있는 장애인화장실이 어디 있는지 찾고 싶다(화장실이 없다·고장이라는 신고는 report_new)' },
   unknown: { to: '(이동 없음)', slots: [], desc: '위 어느 것도 아니다, 잘 모르겠다' },
 } as const
 
@@ -227,6 +228,7 @@ export function buildSystemPrompt(strict = false): string {
 아래 목록의 intent 중 하나만 고른다. 목록에 없는 값은 쓰지 않는다. 확실하지 않으면 unknown.
 기관명·법령·접수번호·전화번호·기한·설명은 절대 쓰지 않는다. 지어내지 않는다.
 점수·포인트·칭호·등수·순위는 my_score, 내가 올린 신고·내 민원의 결과와 처리 상황은 my_reports, 동네 전체가 얼마나 개선됐는지는 progress다.
+화장실이 어디 있는지 찾는 말은 toilet_find, 화장실이 없다·고장·잠겼다고 알리는 말은 report_new다. 엘리베이터·주차장 같은 시설의 위치만 묻는 말은 신고가 아니므로 unknown이다.
 앱 사용법을 묻는 말만 help다. 처리기한·법령·전화번호·앱 내부 설정·뜻 없는 입력·날씨 같은 딴 얘기는 unknown이다.
 출력은 JSON 객체 하나, 한 줄만. 앞뒤에 다른 글자·설명·코드블록 금지. 형식: {"intent":"...","slots":{},"confidence":0.0~1.0}
 slots의 place·from·to에는 질문에 실제로 나온 낱말만 넣고(20자 이내), 없으면 비운다. type은 다음 중 하나만: ${types}${retry}
@@ -249,6 +251,10 @@ ${list}
 질문: 내가 올린 신고 결과 -> {"intent":"my_reports","slots":{},"confidence":0.85}
 질문: 우리 동네 얼마나 고쳐졌어요 -> {"intent":"progress","slots":{},"confidence":0.85}
 질문: 이 앱 어떻게 써요 -> {"intent":"help","slots":{},"confidence":0.9}
+질문: 휠체어 타고 갈 수 있는 화장실 알려줘 -> {"intent":"toilet_find","slots":{},"confidence":0.9}
+질문: 근처 장애인화장실 어디 있어요 -> {"intent":"toilet_find","slots":{},"confidence":0.9}
+질문: 장애인화장실이 없어요 -> {"intent":"report_new","slots":{"type":"장애인화장실 없음"},"confidence":0.9}
+질문: 엘리베이터 어디 있어요 -> {"intent":"unknown","slots":{},"confidence":0.8}
 질문: 처리기한이 며칠이에요 -> {"intent":"unknown","slots":{},"confidence":0.9}
 질문: 담당 공무원 전화번호 알려줘 -> {"intent":"unknown","slots":{},"confidence":0.9}
 질문: ㅇㅅㅇ -> {"intent":"unknown","slots":{},"confidence":0.9}

@@ -96,7 +96,7 @@ test('출처: 허용 밖·Origin 없음은 403, 모델 호출 없음', async () 
 test('OPTIONS 사전 요청: 허용 출처만 204', async () => {
   const ok = await handle(req(null, { method: 'OPTIONS' }), env(good), deps())
   assert.equal(ok.status, 204)
-  assert.equal(ok.headers.get('access-control-allow-methods'), 'POST, OPTIONS')
+  assert.equal(ok.headers.get('access-control-allow-methods'), 'GET, POST, PUT, DELETE, OPTIONS')
   assert.equal((await handle(req(null, { method: 'OPTIONS', origin: 'https://evil.example' }), env(good), deps())).status, 403)
 })
 

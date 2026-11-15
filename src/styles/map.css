@@ -41,7 +41,7 @@
   color: var(--red-700);
 }
 
-/* ───── 위쪽 카드 ───── */
+/* ───── 위쪽: 얇은 검색 한 줄 + 작은 원형 버튼(네이버·카카오 지도처럼 지도를 거의 가리지 않는다) ───── */
 .hm-top {
   position: absolute;
   top: 0;
@@ -50,8 +50,8 @@
   z-index: var(--z-map-ui);
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-  padding: calc(var(--safe-top) + var(--s-3)) var(--s-4) 0;
+  gap: 6px;
+  padding: calc(var(--safe-top) + 8px) 8px 0;
   pointer-events: none;
 }
 
@@ -62,11 +62,9 @@
 .hm-card {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-  padding: var(--s-2);
-  border-radius: var(--r-xl);
-  background: var(--bg);
-  box-shadow: var(--shadow-2);
+  padding: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .hm-bar {
@@ -104,35 +102,42 @@
 .hm-searchrow {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: 8px;
 }
 
 .bm button.hm-iconbtn {
   flex: none;
   display: grid;
   place-items: center;
-  width: 48px;
-  min-height: 48px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   padding: 0;
-  border-radius: var(--r-lg);
-  background: var(--grey-100);
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: var(--shadow-2);
   color: var(--grey-800);
 }
 
 .bm button.hm-search {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   min-width: 0;
-  min-height: 48px;
+  height: 44px;
+  min-height: 44px;
   padding: 0 var(--s-4);
-  border-radius: var(--r-lg);
-  background: var(--grey-100);
+  border-radius: var(--r-full);
+  background: var(--bg);
+  box-shadow: var(--shadow-2);
   color: var(--text-sub);
   font-size: var(--fs-body);
   font-weight: 500;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bm button.hm-search::before {
@@ -143,33 +148,55 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none' stroke='%236b7684' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='9' r='5.5'/%3E%3Cpath d='M13.2 13.2l3.3 3.3'/%3E%3C/svg%3E") center / 20px no-repeat;
 }
 
-.hm-legend {
+/* 안전장치 표시(시연용 가상 데이터·모의 연동)는 검색줄 아래 왼쪽의 작은 칩으로 */
+.hm-chips {
   display: flex;
-  gap: 6px;
-  margin: 0;
-  padding: 2px 0 4px;
-  list-style: none;
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: calc(100% - 52px);
 }
-
-.hm-legend::-webkit-scrollbar {
+.hm-chips:empty {
   display: none;
 }
 
+/* 범례: 평소에는 작은 원형 버튼 하나, 누르면 카드가 열린다 */
+.hm-legend {
+  position: absolute;
+  top: calc(var(--safe-top) + 106px);
+  left: 8px;
+  right: 8px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: 6px;
+  max-height: min(50vh, 360px);
+  margin: 0;
+  padding: 10px;
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  box-shadow: var(--shadow-2);
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 339px) {
+  .hm-legend { grid-template-columns: repeat(var(--cols-sm, var(--cols, 2)), minmax(0, 1fr)); }
+}
+
 .hm-legend li {
-  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  padding: 0 10px 0 4px;
+  min-width: 0;
+  min-height: 28px;
+  padding: 2px 8px 2px 4px;
   border-radius: var(--r-full);
-  background: var(--bg);
-  box-shadow: var(--shadow-1);
+  background: var(--grey-100);
   color: var(--text-strong);
   font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .hm-legend i,
@@ -200,8 +227,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--s-2);
-  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
-  border-radius: var(--r-lg);
+  max-width: calc(100% - 52px);
+  padding: 2px 4px 2px var(--s-4);
+  border-radius: var(--r-full);
   background: var(--bg);
   box-shadow: var(--shadow-1);
   font-size: var(--fs-small);
@@ -219,7 +247,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px var(--s-3);
+  padding: 2px 10px;
   border-radius: var(--r-full);
   background: var(--purple-700);
   color: #fff;
@@ -476,8 +504,8 @@
 }
 
 .hm-sheet {
-  --vis-min: 132px; /* 최소 단계에서 보이는 높이(실제 값은 내용 높이를 재서 채운다) */
-  --vis-mid: 250px; /* 기본 단계에서 보이는 높이 */
+  --vis-min: 60px; /* 최소 단계에서 보이는 높이: 손잡이 + 한 줄(실제 값은 내용 높이를 재서 채운다) */
+  --vis-mid: 190px; /* 기본 단계에서 보이는 높이 */
   position: absolute;
   left: 0;
   right: 0;
@@ -487,7 +515,7 @@
   flex-direction: column;
   box-sizing: border-box;
   height: min(76%, 600px);
-  padding: 0 var(--s-5) calc(var(--safe-bottom) + var(--s-4));
+  padding: 0 var(--s-4);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
   background: var(--bg);
   box-shadow: var(--shadow-sheet);
@@ -533,18 +561,21 @@
   flex: 1;
   min-width: 0;
   margin: 0;
+  overflow: hidden;
   color: var(--text-strong);
-  font-size: var(--fs-sub);
+  font-size: var(--fs-body);
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: -0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 손잡이 + 한 줄 요약: 시트 윗부분 전체를 잡고 끌 수 있다(높이 44px 이상) */
 .hm-grip {
   flex: none;
-  margin: 0 calc(var(--s-5) * -1);
-  padding: 0 var(--s-5);
+  margin: 0 calc(var(--s-4) * -1);
+  padding: 0 var(--s-4);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -555,7 +586,7 @@
   display: block;
   width: 36px;
   height: 4px;
-  margin: 10px auto 0;
+  margin: 8px auto 0;
   border-radius: 2px;
   background: var(--grey-300);
 }
@@ -565,23 +596,34 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--s-2);
-  min-height: 44px;
+  min-height: 48px;
 }
 
 .bm button.hm-snapbtn {
+  position: relative;
   flex: none;
-  min-height: 44px;
-  padding: 0 var(--s-1);
-  background: none;
-  color: var(--blue-700);
-  font-size: var(--fs-caption);
-  font-weight: 700;
-  white-space: nowrap;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--grey-100);
+  color: var(--grey-800);
+}
+.bm button.hm-snapbtn::before,
+.bm button.hm-cta-main::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
 }
 
+/* 기본 단계의 동작 버튼 3개: 한 줄에 같은 폭으로 */
 .hm-s-cta {
   flex: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-2);
 }
 
@@ -589,8 +631,8 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-  margin-top: var(--s-3);
+  gap: 10px;
+  padding-bottom: var(--s-4);
 }
 
 .hm-s-mid .hm-eyebrow {
@@ -691,20 +733,20 @@
 }
 
 .bm button.hm-cta-main {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 48px;
-  padding: 0 var(--s-3);
-  border-radius: var(--r-lg);
-  font-size: var(--fs-body);
+  position: relative;
+  flex: none;
+  min-height: 36px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-full);
+  font-size: var(--fs-small);
   white-space: nowrap;
 }
 
 .bm button.hm-cta-sub {
-  flex: none;
-  min-height: 48px;
-  padding: 0 var(--s-3);
-  border-radius: var(--r-lg);
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-md);
   background: var(--blue-50);
   color: var(--blue-700);
   font-size: var(--fs-small);
@@ -719,7 +761,7 @@
 .hm-more {
   flex: 1;
   min-height: 0;
-  margin-top: var(--s-4);
+  padding-bottom: var(--s-4);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -866,7 +908,7 @@
   flex-direction: column;
   box-sizing: border-box;
   max-height: 82%;
-  padding: 0 var(--s-5) calc(var(--safe-bottom) + var(--s-6));
+  padding: 0 var(--s-5) var(--s-6);
   overflow-y: auto;
   overscroll-behavior: contain;
   border-radius: var(--r-xl) var(--r-xl) 0 0;
@@ -957,7 +999,7 @@
   position: absolute;
   left: var(--s-4);
   right: var(--s-4);
-  bottom: calc(var(--safe-bottom) + var(--s-4));
+  bottom: var(--s-4);
   z-index: 26;
   max-height: 60%;
   overflow-y: auto;
@@ -1025,7 +1067,7 @@
   gap: var(--s-2);
   box-sizing: border-box;
   max-height: 86%;
-  padding: 0 var(--s-5) calc(var(--safe-bottom) + var(--s-5));
+  padding: 0 var(--s-5) var(--s-5);
   overflow-y: auto;
   overscroll-behavior: contain;
   border-radius: var(--r-xl) var(--r-xl) 0 0;
@@ -1841,15 +1883,28 @@
 }
 
 .bm button.hm-legend-toggle {
-  align-self: flex-start;
-  min-height: 36px;
-  padding: 0 var(--s-3);
-  border-radius: var(--r-full);
+  position: absolute;
+  top: calc(var(--safe-top) + 60px);
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 50%;
   background: var(--bg);
   box-shadow: var(--shadow-1);
-  color: var(--text-strong);
-  font-size: var(--fs-caption);
-  font-weight: 700;
+  color: var(--grey-800);
+}
+.bm button.hm-legend-toggle::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+}
+.bm button.hm-legend-toggle[aria-expanded='true'] {
+  background: var(--blue-50);
+  color: var(--blue-700);
 }
 
 @media (max-width: 767px) {
@@ -1989,3 +2044,17 @@
 .hm-more > .hm-counts-label {
   margin: 0 0 6px;
 }
+
+/* ───── PC 보기(왼쪽 패널): 위쪽 줄은 예전 모양(회색 입력, 한 칸 위 표시 칩) ───── */
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .hm-chips { order: -1; max-width: none; }
+  :root:not([data-view='mobile']) .bm button.hm-search { height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
+  :root:not([data-view='mobile']) .bm button.hm-iconbtn { width: 48px; height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
+  :root:not([data-view='mobile']) .hm-panel .hm-legend { top: auto; left: auto; max-height: none; --cols: 3; }
+  :root:not([data-view='mobile']) .hm-focus { max-width: none; }
+}
+:root[data-view='desktop'] .hm-chips { order: -1; max-width: none; }
+:root[data-view='desktop'] .bm button.hm-search { height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
+:root[data-view='desktop'] .bm button.hm-iconbtn { width: 48px; height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
+:root[data-view='desktop'] .hm-panel .hm-legend { top: auto; left: auto; max-height: none; }
+:root[data-view='desktop'] .hm-focus { max-width: none; }

@@ -7,6 +7,7 @@ import { nowMs, useReports } from '../lib/reportStore'
 import { RATING_STYLE } from '../lib/rating'
 import { toast } from '../lib/uiStore'
 import type { Barrier, Report } from '../types'
+import { Sentences } from './Sentences'
 
 export function MockBadge() {
   return (
@@ -128,8 +129,8 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
       {mode === 'mock' && <MockBadge />}
 
       <h4>소관 기관</h4>
-      {!kind && <p className="rf-warn">어떤 곳인지 정보가 없어 소관 기관을 찾지 못했어요. 확인이 필요해요.</p>}
-      {kind && matches.length === 0 && <p className="rf-warn">이 유형과 장소에 맞는 소관 기관을 자료에서 찾지 못했어요. 확인이 필요해요. 국민신문고로 접수하면 소관 기관으로 넘어가요(민원 처리에 관한 법률 제16조).</p>}
+      {!kind && <Sentences as="p" className="rf-warn">어떤 곳인지 정보가 없어 소관 기관을 찾지 못했어요. 확인이 필요해요.</Sentences>}
+      {kind && matches.length === 0 && <Sentences as="p" className="rf-warn">이 유형과 장소에 맞는 소관 기관을 자료에서 찾지 못했어요. 확인이 필요해요. 국민신문고로 접수하면 소관 기관으로 넘어가요(민원 처리에 관한 법률 제16조).</Sentences>}
       {matches.map((m) => (
         <div key={m.agency.id} className={'cg-ag' + (m.candidate ? ' cand' : '')}>
           <strong>{m.agency.name}</strong>{' '}
@@ -186,7 +187,7 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
           ),
         )}
       </div>
-      <p className="bm-meta">외부 사이트는 새 탭에서 열려요. 두 신문고 모두 본인 인증이 필요해서 앱이 대신 제출할 수는 없어요.</p>
+      <Sentences as="p" className="bm-meta">외부 사이트는 새 탭에서 열려요. 두 신문고 모두 본인 인증이 필요해서 앱이 대신 제출할 수는 없어요.</Sentences>
 
       <h4>민원 문안</h4>
       <textarea id="cg-text" className="cg-text" readOnly rows={12} value={text} aria-label="자동 작성된 민원 문안" />
@@ -197,13 +198,13 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
         </button>
       </div>
       {copied && (
-        <p className="bm-meta" role="status">
+        <Sentences as="p" className="bm-meta" role="status">
           {copied}
-        </p>
+        </Sentences>
       )}
 
       <h4>접수했다면 기록해 주세요</h4>
-      {official && <p className="rf-warn">공무원은 접수를 신청할 수 없어요. 시연 도구에서 시민이나 검증자로 바꿔 주세요.</p>}
+      {official && <Sentences as="p" className="rf-warn">공무원은 접수를 신청할 수 없어요.</Sentences>}
       <label className="rf-field">
         접수 채널
         <select value={chosen} onChange={(e) => setChannel(e.target.value)}>
@@ -236,9 +237,9 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
         </>
       )}
       {err && (
-        <p className="rf-warn" role="alert">
+        <Sentences as="p" className="rf-warn" role="alert">
           {err}
-        </p>
+        </Sentences>
       )}
     </section>
   )

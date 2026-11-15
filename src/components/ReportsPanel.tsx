@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import { go, TO } from '../lib/nav'
 import { ReportThumb } from './ReportPhotos'
+import { RiseLi, SegBg } from './motionKit'
+import { useRiseOnce } from '../lib/useRiseOnce'
 import { STATUS_LABEL, isDone, useReports, userName } from '../lib/reportStore'
+import { coordText, useVisibleAddress } from '../lib/addressCache'
+import { isSampleReport } from '../lib/samplePhotos'
 import type { Report } from '../types'
+import { Sentences } from './Sentences'
+import '../styles/review.css'
 
 type Props = { onOpen: (id: string) => void; onClose?: () => void; embedded?: boolean }
 type Tab = 'all' | 'doing' | 'done'
@@ -11,6 +17,30 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'doing', label: '진행 중' },
   { id: 'done', label: '완료' },
 ]
+
+const fmtShort = (iso: string) => new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+
+// 목록 한 줄: 유형 · 주소(보이는 항목만 조회) · 접수일 · 상태가 모두 달라서 서로 구분된다.
+function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boolean; onOpen: (id: string) => void }) {
+  const [ref, addr] = useVisibleAddress<HTMLLIElement>(r.lat, r.lng)
+  const place = addr.short ?? (addr.status === 'loading' ? '주소를 찾고 있어요…' : (r.locationKind ?? coordText(r.lat, r.lng)))
+  return (
+    <RiseLi ref={ref} first={first} i={i}>
+      <button type="button" className="rp-row" onClick={() => onOpen(r.id)}>
+        <ReportThumb photoKey={r.photos[0]} alt={`${r.type} 제보 사진`} />
+        <span className="rp-row-text">
+          <strong>{r.type}</strong>
+          <span className="rv-addr">{place}</span>
+          <span className="rp-desc">{r.description}</span>
+          <span className="bm-meta">
+            {userName(r.userId)} · {fmtShort(r.createdAt)} 접수{isSampleReport(r) ? ' · 샘플 사진' : ''}
+          </span>
+        </span>
+        <span className={'rp-badge rp-' + r.status}>{STATUS_LABEL[r.status]}</span>
+      </button>
+    </RiseLi>
+  )
+}
 
 export default function ReportsPanel({ onOpen, onClose, embedded = false }: Props) {
   const reports = useReports((s) => s.reports)
@@ -23,21 +53,8 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
   // 검증하기: 다른 사람의 검증 대기 제보
   const todo = reports.filter((r) => r.userId !== userId && r.status === 'pending').slice().reverse()
 
-  const row = (r: Report) => (
-    <li key={r.id}>
-      <button type="button" className="rp-row" onClick={() => onOpen(r.id)}>
-        <ReportThumb photoKey={r.photos[0]} alt={`${r.type} 제보 사진`} />
-        <span className="rp-row-text">
-          <strong>{r.type}</strong>
-          <span className="rp-desc">{r.description}</span>
-          <span className="bm-meta">
-            {userName(r.userId)} · {new Date(r.createdAt).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' })}
-          </span>
-        </span>
-        <span className={'rp-badge rp-' + r.status}>{STATUS_LABEL[r.status]}</span>
-      </button>
-    </li>
-  )
+  const riseRows = useRiseOnce('reports-panel')
+  const row = (r: Report, i: number) => <ReportRow key={r.id} r={r} i={i} first={riseRows} onOpen={onOpen} />
 
   return (
     <div className={'rp' + (embedded ? ' rp--embedded' : '')} role={embedded ? 'region' : 'dialog'} aria-label="제보 현황">
@@ -51,9 +68,11 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
       )}
       <div className="rf-seg" role="tablist" aria-label="구분">
         <button type="button" role="tab" aria-selected={section === 'mine'} className={section === 'mine' ? 'on' : ''} onClick={() => setSection('mine')}>
+          {section === 'mine' && <SegBg group="seg-reports" />}
           내 제보 {mine.length}
         </button>
         <button type="button" role="tab" aria-selected={section === 'todo'} className={section === 'todo' ? 'on' : ''} onClick={() => setSection('todo')}>
+          {section === 'todo' && <SegBg group="seg-reports" />}
           검증 대기 {todo.length}
         </button>
       </div>
@@ -83,9 +102,6 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
           ) : (
             <ul className="rp-list">{shown.map(row)}</ul>
           )}
-          <p className="bm-meta">
-            {userName(userId)}의 제보예요. 검증이 끝난 뒤의 접수·조치 단계는 &apos;진행 중&apos;으로 보여요. 합쳐지거나 반려된 제보, 재확인까지 끝난 제보는 &apos;완료&apos;예요.
-          </p>
         </>
       ) : (
         <>
@@ -98,7 +114,7 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
             </div>
           ) : (
             <>
-              <p className="bm-meta">다른 사용자가 올린 제보예요. 눌러서 확인하거나 검증할 수 있어요.</p>
+              <Sentences as="p" className="bm-meta">다른 사용자가 올린 제보예요. 눌러서 확인하거나 검증할 수 있어요.</Sentences>
               <ul className="rp-list">{todo.map(row)}</ul>
             </>
           )}

@@ -413,7 +413,7 @@
   position: absolute;
   left: var(--s-4);
   right: var(--s-4);
-  bottom: calc(var(--safe-bottom) + var(--s-4));
+  bottom: var(--s-4);
   z-index: 37;
   display: flex;
   flex-wrap: wrap;

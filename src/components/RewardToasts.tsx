@@ -5,7 +5,8 @@ import { EMBLEM_BY_ID, computeRewards, diffRewards, type RewardChange, type User
 
 // 점수·칭호가 늘어난 순간 화면 아래에 짧게 알려 준다. 점수는 제보 기록에서 계산하므로, 기록이 바뀔 때마다 이전 계산과 비교한다.
 type Toast = { id: number; title: string; sub?: string; ms: number }
-const USER_IDS = DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id)
+// 로그인하면 계정 사용자가 DEMO_USERS에 더해지므로 매번 다시 구한다.
+const userIds = () => DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id)
 
 function describe(c: RewardChange, mine: boolean): Toast {
   const parts: string[] = []
@@ -29,13 +30,14 @@ export default function RewardToasts() {
   // 제보 기록이 바뀔 때마다(저장소 구독) 이전 계산과 비교한다.
   useEffect(() => {
     const check = (reports: Report[]) => {
-      const next = computeRewards(reports, USER_IDS)
+      const ids = userIds()
+      const next = computeRewards(reports, ids)
       // 시연 데이터를 한꺼번에 채울 때와 처음 불러올 때는 알리지 않는다.
       const bulk = reports.some((r) => r.demo && !prevIds.current.has(r.id))
       if (prev.current && !bulk) {
         const me = useReports.getState().userId
         const made: Toast[] = []
-        for (const id of USER_IDS) {
+        for (const id of ids) {
           const c = diffRewards(prev.current[id], next[id])
           if (c) made.push({ ...describe(c, id === me), id: ++seq.current })
         }

@@ -7,6 +7,10 @@ import { findAgencyName } from './agencyName'
 import { buildDemoReports } from './demoData'
 import { avoidFromBarriers, buildLargeDemo, makeDemoFile, parseDemoFile, shiftDates, type Candidate } from './demoLarge'
 import { usePlan } from './planStore'
+import { getSession, useAccount } from './account/api'
+import { SYNC_NAMES_KEY } from './account/keys'
+import { mergeReport, reconcileVotes } from './account/merge'
+import { initSync, resetSyncState } from './account/sync'
 
 // 시연용 제보 저장소. 서버가 없으므로 제보 기록은 localStorage에 둔다(사진은 IndexedDB, photoStore.ts).
 const KEY = 'wheelmap.reports'
@@ -20,6 +24,39 @@ export const DEMO_USERS: DemoUser[] = [
   { id: 'verifier', name: '검증자(동행 점검단)', role: 'verifier' },
   { id: 'officer', name: '담당 공무원(데모)', role: 'officer' },
 ]
+
+// 로그인한 계정은 시민 사용자로 DEMO_USERS 맨 앞에 끼워 넣는다(기존 화면이 id로 역할을 찾기 때문). 로그아웃하면 뺀다.
+let accountUserId: string | null = null
+function registerAccount(u: { id: string; name: string } | null) {
+  if (accountUserId) {
+    const i = DEMO_USERS.findIndex((x) => x.id === accountUserId)
+    if (i >= 0) DEMO_USERS.splice(i, 1)
+  }
+  accountUserId = u?.id ?? null
+  if (u) DEMO_USERS.unshift({ id: u.id, name: u.name, role: 'citizen' })
+}
+const session0 = getSession()
+if (session0) registerAccount(session0.user)
+
+// 다른 계정(리뷰어)의 id → 이름. 서버에서 받아 저장해 둔다.
+let peerNames: Record<string, string> = (() => {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(SYNC_NAMES_KEY) ?? '{}')
+    return typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, string>) : {}
+  } catch {
+    return {}
+  }
+})()
+function setPeerNames(names: Record<string, string>) {
+  if (JSON.stringify(names) === JSON.stringify(peerNames)) return
+  peerNames = { ...names }
+  try {
+    localStorage.setItem(SYNC_NAMES_KEY, JSON.stringify(peerNames))
+  } catch {
+    /* 이름을 못 저장해도 다음에 다시 받는다 */
+  }
+  useReports.setState((s) => ({ reports: [...s.reports] })) // 이름이 바뀐 화면을 다시 그린다
+}
 const SYSTEM_NAMES: Record<string, string> = { 'mock-api': '모의 접수 API(시연)', 'team-survey': '팀 현장조사' }
 
 // 대규모 시연 데이터의 가상 사용자 명부(id → 닉네임). 별도 저장 키에 두고, 초기화 때 함께 비운다.
@@ -46,9 +83,9 @@ function setCrowd(c: Crowd | null) {
     /* 저장 실패는 무시(새로고침하면 id로 보임) */
   }
 }
-export const userName = (id: string) => DEMO_USERS.find((u) => u.id === id)?.name ?? crowd?.users[id] ?? SYSTEM_NAMES[id] ?? id
+export const userName = (id: string) => DEMO_USERS.find((u) => u.id === id)?.name ?? peerNames[id] ?? crowd?.users[id] ?? SYSTEM_NAMES[id] ?? id
 // 순위에 올릴 사용자: 시민·검증자(행정 담당 계정 제외) + 가상 사용자 명부
-export const rankingUserIds = () => [...DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id), ...Object.keys(crowd?.users ?? {})]
+export const rankingUserIds = () => [...new Set([...DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id), ...Object.keys(peerNames), ...Object.keys(crowd?.users ?? {})])]
 
 export const STATUS_LABEL: Record<ReportStatus, string> = {
   submitted: '제보됨',
@@ -118,6 +155,7 @@ export type NewReport = {
   photos: string[]
   measurements?: { widthM?: number; curbCm?: number }
   locationKind?: string
+  sample?: boolean // 샘플 사진 제보(서버 공유 때도 그대로 오간다)
 }
 
 type Result = { ok: true } | { ok: false; message: string }
@@ -150,6 +188,7 @@ type State = {
   judge: (id: string, rating: Rating) => Result
   reject: (id: string, reason: string) => Result
   resetAll: () => Promise<string | null>
+  applyRemote: (list: Report[], pending: Set<string>) => { finals: Report[]; dirty: string[] }
 }
 
 const initial = loadReports()
@@ -189,6 +228,7 @@ export const useReports = create<State>((set, get) => {
         description: input.description,
         ...(input.locationKind ? { locationKind: input.locationKind } : {}),
         ...(input.measurements ? { measurements: input.measurements } : {}),
+        ...(input.sample ? { sample: true } : {}),
         ...(input.category === 'temporary' ? { expiresAt: new Date(now.getTime() + TEMP_VALID_HOURS * 3600 * 1000).toISOString() } : {}),
         status: 'submitted',
         verification: { votes: 0, voterIds: [] },
@@ -451,6 +491,36 @@ export const useReports = create<State>((set, get) => {
       return { ok: true, count: incoming.length, replaced, shiftedDays: Math.round(delta / 86400000) }
     },
 
+    // 서버(공유 제보)에서 받은 제보를 합친다. 동기화 모듈(account/sync.ts)이 부른다.
+    applyRemote: (list, pending) => {
+      const finals: Report[] = []
+      const dirty: string[] = []
+      if (list.length === 0) return { finals, dirty }
+      set((s) => {
+        const next = s.reports.slice()
+        const index = new Map(next.map((r, i) => [r.id, i]))
+        let changed = false
+        for (const remote of list) {
+          if (remote.demo || remote.demoSet) continue
+          const i = index.get(remote.id)
+          const local = i === undefined ? undefined : next[i]
+          if (local?.demo) continue
+          const merged = !local ? remote : pending.has(remote.id) ? mergeReport(remote, local) : mergeReport(local, remote)
+          const fin = canVote() ? reconcileVotes(merged, VOTES_REQUIRED) : merged
+          if (fin !== merged) dirty.push(fin.id)
+          finals.push(fin)
+          if (local && JSON.stringify(local) === JSON.stringify(fin)) continue
+          changed = true
+          if (i === undefined) {
+            index.set(fin.id, next.length)
+            next.push(fin)
+          } else next[i] = fin
+        }
+        return changed ? { reports: next } : s
+      })
+      return { finals, dirty }
+    },
+
     resetAll: async () => {
       let err: string | null = null
       try {
@@ -466,6 +536,7 @@ export const useReports = create<State>((set, get) => {
       } catch {
         err = (err ? err + ' ' : '') + '사진을 지우지 못했습니다.'
       }
+      resetSyncState() // 공유 제보 동기화 기록도 비운다(서버의 제보는 다음 받기 때 다시 내려온다)
       usePlan.getState().reset() // 개선계획·예산 입력도 함께 비운다
       offsetDays = 0
       crowd = null
@@ -473,6 +544,27 @@ export const useReports = create<State>((set, get) => {
       return err
     },
   }
+})
+
+// 로그인·로그아웃에 맞춰 현재 사용자를 계정으로 바꾼다(시연 도구의 「누구로 볼까요」는 로그인 뒤에도 쓸 수 있다).
+useAccount.subscribe((s, prev) => {
+  if (s.user?.id === prev.user?.id) return
+  const old = accountUserId
+  registerAccount(s.user)
+  if (s.user) useReports.setState({ userId: s.user.id })
+  else if (useReports.getState().userId === old) useReports.setState({ userId: DEMO_USERS[0].id })
+})
+
+// 공유 제보 동기화(로그인 상태에서만 동작)
+initSync({
+  getReports: () => useReports.getState().reports,
+  subscribe: (fn) => {
+    useReports.subscribe((s, p) => {
+      if (s.reports !== p.reports) fn()
+    })
+  },
+  applyRemote: (list, pending) => useReports.getState().applyRemote(list, pending),
+  setNames: setPeerNames,
 })
 
 // 변경될 때마다 저장. 실패하면 안내 문구를 남긴다.

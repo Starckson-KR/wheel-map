@@ -55,9 +55,8 @@ export default function ProgressPanel({ items, summary: sm, period, onPeriod, st
           </small>
         </div>
         <p className="bm-meta">
-          평균 처리 기간 {sm.avgDays === null ? '아직 자료가 없어요' : `${sm.avgDays.toFixed(1)}일`} · 개선계획 반영 {sm.planCount}곳(기간과 상관없이 늘 보여요)
+          평균 처리 기간 {sm.avgDays === null ? '아직 자료가 없어요' : `${sm.avgDays.toFixed(1)}일`} · 개선계획 반영 {sm.planCount}곳
         </p>
-        <p className="bm-meta">제보는 접수일을 기준으로 기간을 나눠요. 반려되거나 다른 제보에 합쳐진 건은 세지 않아요.</p>
       </section>
 
       <div className="pgp-chips" role="group" aria-label="단계 고르기">

@@ -1,0 +1,456 @@
+/* 초기 설정(온보딩) 화면. 색·간격·모서리는 tokens.css 값만 쓴다. 움직임은 transform·opacity 위주.
+   움직임 줄이기(기기 설정)면 밀기·흔들림·인사 교차를 끄고 짧은 페이드만 남긴다(시연 스위치 motion-force가 켜져 있으면 유지). */
+.ob-root {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-top: var(--safe-top);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  animation: ob-root-in 320ms var(--ease-out) backwards;
+}
+.ob-root.is-leaving {
+  opacity: 0;
+  transform: scale(1.035);
+  pointer-events: none;
+  transition: opacity 420ms var(--ease-out), transform 460ms var(--ease-out);
+}
+.ob-root * {
+  box-sizing: border-box;
+}
+.ob-root { word-break: keep-all; overflow-wrap: break-word; }
+@keyframes ob-root-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 위쪽: 뒤로 + 진행 점 */
+.ob-head {
+  flex: none;
+  display: grid;
+  grid-template-columns: var(--touch) 1fr var(--touch);
+  align-items: center;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--s-2) var(--s-2) 0;
+}
+.ob-back {
+  width: var(--touch);
+  height: var(--touch);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--text-strong);
+  cursor: pointer;
+  transition: transform var(--t-press) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+}
+.ob-back:active { transform: scale(0.92); background: var(--grey-100); }
+.ob-prog {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity var(--t-sheet) var(--ease-out);
+}
+.ob-pd {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--grey-300);
+  transition: background-color 240ms var(--ease-out);
+}
+/* 현재 점은 22px로 넓어진다. 넓어지는 움직임은 motion의 layout이 맡는다 */
+.ob-pd.is-done { background: var(--blue-500); opacity: 0.5; }
+.ob-pd.is-cur { width: 22px; background: var(--primary); }
+
+/* 화면 전환 무대 */
+.ob-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.ob-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg);
+}
+/* 가로 밀기는 Stage.tsx의 motion이 맡는다. 들어오는 화면 왼쪽에만 옅은 그림자 */
+.ob-layer { box-shadow: -10px 0 24px rgb(25 31 40 / 0.06); }
+@media (min-width: 520px) {
+  .ob-layer { box-shadow: none; }
+}
+
+.ob-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s-6) var(--gutter) var(--s-4);
+}
+.ob-title {
+  margin: 0 0 var(--s-2);
+  font-size: 1.625rem;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+  outline: none;
+  text-wrap: balance;
+}
+.ob-sub {
+  margin: 0 0 var(--s-6);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--text-sub);
+  text-wrap: pretty;
+}
+.ob-foot {
+  flex: none;
+  padding: var(--s-3) var(--gutter) calc(var(--s-4) + var(--safe-bottom));
+}
+.ob-vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 버튼 */
+.ob-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--s-5);
+  border: 0;
+  border-radius: var(--r-lg);
+  font: inherit;
+  font-size: var(--fs-sub);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out), opacity var(--t-fast) var(--ease-out);
+}
+.ob-btn:disabled { opacity: 0.4; cursor: default; }
+.ob-btn-primary { background: var(--primary); color: var(--on-primary); }
+.ob-btn-sub { background: var(--grey-100); color: var(--text-strong); min-height: var(--touch); font-size: var(--fs-body); font-weight: 600; border-radius: var(--r-md); }
+@media (hover: hover) {
+  .ob-btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+}
+.ob-link {
+  min-height: var(--touch);
+  margin-top: var(--s-2);
+  padding: 0 var(--s-2);
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ob-root :focus-visible:not([tabindex='-1']) { outline: none; box-shadow: var(--focus-ring); }
+
+/* 첫 화면: 인사 */
+.ob-hero { display: flex; flex-direction: column; padding-top: 6vh; }
+.ob-greet {
+  position: relative;
+  display: block;
+  height: 4.2rem;
+  margin: 0 0 var(--s-2);
+  font-size: 2.75rem;
+  line-height: 4.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-strong);
+  outline: none;
+}
+.ob-greet-w {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  opacity: 0;
+  animation: ob-greet 15s var(--ease-out) infinite both;
+}
+@keyframes ob-greet {
+  0% { opacity: 0; transform: translateY(10px); }
+  4%, 18% { opacity: 1; transform: translateY(0); }
+  22%, 100% { opacity: 0; transform: translateY(-10px); }
+}
+.ob-note {
+  margin: var(--s-4) 0 0;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--primary-weak);
+  color: var(--text);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  animation: ob-rise 320ms var(--ease-out) both;
+}
+@keyframes ob-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 선택 카드 */
+.ob-list { display: flex; flex-direction: column; gap: var(--s-3); }
+.ob-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--s-3) var(--s-4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  color: var(--text-strong);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--t-press) var(--ease-out), border-color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+}
+.ob-opt.is-on { border-color: var(--primary); background: var(--primary-weak); }
+.ob-opt-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ob-opt-main strong { font-size: var(--fs-sub); font-weight: 700; }
+.ob-opt-main small { font-size: var(--fs-small); color: var(--text-sub); line-height: 1.4; }
+.ob-radio {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--grey-300);
+  border-radius: var(--r-full);
+  display: grid;
+  place-items: center;
+  transition: border-color var(--t-fast) var(--ease-out);
+}
+.ob-radio::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: var(--r-full);
+  background: var(--primary);
+  transform: scale(0);
+  transition: transform 260ms var(--ease-drawer);
+}
+.ob-opt.is-on .ob-radio { border-color: var(--primary); }
+.ob-opt.is-on .ob-radio::after { transform: scale(1); }
+
+/* 이름 입력 */
+.ob-field { display: block; }
+.ob-input {
+  width: 100%;
+  min-height: 60px;
+  padding: 0 var(--s-4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-sub);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color var(--t-fast) var(--ease-out);
+}
+.ob-input:focus { border-color: var(--primary); box-shadow: none; }
+.ob-err, .ob-msg { color: var(--red-700); font-size: var(--fs-small); font-weight: 600; line-height: 1.5; }
+.ob-err { margin: var(--s-3) 0 0; }
+.ob-msg { min-height: 1.5em; margin: 0 0 var(--s-2); text-align: center; }
+.ob-hint { margin: 0 0 var(--s-2); text-align: center; color: var(--text-sub); font-size: var(--fs-caption); }
+
+/* 비밀번호 키패드 */
+.ob-padbody { display: flex; flex-direction: column; padding-bottom: calc(var(--s-4) + var(--safe-bottom)); }
+.ob-padbody .ob-sub { margin-bottom: var(--s-4); }
+.ob-pad { margin-top: auto; }
+.ob-pindots { display: flex; justify-content: center; gap: var(--s-4); margin: 0 0 var(--s-5); }
+.ob-pindot {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-full);
+  background: var(--grey-200);
+  transition: background-color var(--t-fast) var(--ease-out);
+}
+/* 크기(0.8 → 1)는 PinPad.tsx의 motion이 바꾼다 */
+.ob-pindot.is-on { background: var(--primary); }
+.ob-pindots.is-shake { animation: ob-shake 380ms var(--ease-out); }
+@keyframes ob-shake {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-12px); }
+  38% { transform: translateX(10px); }
+  58% { transform: translateX(-7px); }
+  78% { transform: translateX(4px); }
+}
+.ob-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-2);
+  max-width: 340px;
+  margin: 0 auto;
+}
+.ob-key {
+  display: grid;
+  place-items: center;
+  height: clamp(52px, 8.2vh, 68px);
+  min-width: var(--touch);
+  border: 0;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 1.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-press) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+}
+.ob-key:active:not(:disabled) { background: var(--grey-100); }
+.ob-key:disabled { opacity: 0.35; cursor: default; }
+
+/* 칩 */
+.ob-chips { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.ob-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 64px;
+  padding: 0 var(--s-4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: var(--fs-sub);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--t-press) var(--ease-out), border-color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+}
+.ob-chip.is-on { border-color: var(--primary); background: var(--primary-weak); }
+.ob-chip-check {
+  flex: none;
+  width: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+  opacity: 0;
+  transition: width 240ms var(--ease-drawer), opacity 200ms var(--ease-out);
+}
+.ob-chip.is-on .ob-chip-check { width: 18px; opacity: 1; }
+
+/* 보기 설정 */
+.ob-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-bottom: var(--s-5);
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-sub);
+  color: var(--text-strong);
+}
+.ob-preview strong { font-size: var(--fs-sub); }
+.ob-preview small { font-size: var(--fs-small); color: var(--text-sub); }
+.ob-badge {
+  align-self: flex-start;
+  padding: 2px var(--s-2);
+  border-radius: var(--r-full);
+  background: var(--pg-agency-soft);
+  color: var(--pg-agency-text);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+.ob-setrow { margin-bottom: var(--s-4); }
+.ob-setlabel { display: block; margin-bottom: var(--s-2); font-size: var(--fs-small); font-weight: 700; color: var(--text-sub); }
+.ob-seg { display: flex; gap: 4px; padding: 4px; border-radius: var(--r-md); background: var(--grey-100); }
+.ob-seg button {
+  flex: 1;
+  min-height: var(--touch);
+  padding: 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-sub);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  isolation: isolate;
+  transition: color var(--t-fast) var(--ease-out);
+}
+/* 선택된 칸의 배경은 <SegBg>(layoutId)가 그려서 칸 사이를 미끄러진다 */
+.ob-seg button.is-on { color: var(--text-strong); }
+
+/* 완료 */
+.ob-done { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 8vh; }
+.ob-ok {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin-bottom: var(--s-5);
+  border-radius: var(--r-full);
+  background: var(--primary-weak);
+  color: var(--primary);
+  animation: ob-pop 520ms var(--ease-drawer) both;
+}
+.ob-ok-path { stroke-dasharray: 26; stroke-dashoffset: 26; animation: ob-draw 420ms 200ms var(--ease-out) forwards; }
+@keyframes ob-pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
+@keyframes ob-draw { to { stroke-dashoffset: 0; } }
+.ob-done .ob-title { margin-bottom: var(--s-6); }
+.ob-feats { width: 100%; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s-3); text-align: left; }
+.ob-feat {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--bg-sub);
+  animation: ob-rise 420ms var(--ease-out) both;
+}
+.ob-feat-ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--primary-weak); color: var(--primary); }
+.ob-feat strong { display: block; font-size: var(--fs-body); color: var(--text-strong); }
+.ob-feat small { display: block; font-size: var(--fs-small); color: var(--text-sub); line-height: 1.45; }
+
+/* 내 정보 탭 계정 카드 */
+.ob-card { margin: var(--s-4) var(--gutter); padding: var(--s-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg); color: var(--text); font-family: var(--font); }
+.ob-card-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); }
+.ob-card-head strong { display: block; color: var(--text-strong); }
+.ob-card-head small { color: var(--text-sub); font-size: var(--fs-caption); }
+.ob-card-avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-weight: 800; }
+.ob-card-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.ob-card-actions .ob-btn { flex: 1 1 auto; width: auto; min-width: max-content; white-space: nowrap; }
+
+/* 움직임 줄이기: 밀기·흔들림·교차 인사를 끄고, 인사는 첫 문구만 고정 */
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-force) .ob-root { animation-duration: 1ms; }
+  html:not(.motion-force) .ob-greet-w { animation: none; opacity: 0; }
+  html:not(.motion-force) .ob-greet-w:first-child { opacity: 1; }
+  html:not(.motion-force) .ob-pindots.is-shake,
+  html:not(.motion-force) .ob-ok,
+  html:not(.motion-force) .ob-feat,
+  html:not(.motion-force) .ob-note { animation: ob-fade-in 160ms var(--ease-out) both; }
+  html:not(.motion-force) .ob-ok-path { animation: none; stroke-dashoffset: 0; }
+  html:not(.motion-force) .ob-root.is-leaving { transform: none; transition-duration: 160ms; }
+  html:not(.motion-force) .ob-btn:active:not(:disabled),
+  html:not(.motion-force) .ob-key:active:not(:disabled),
+  html:not(.motion-force) .ob-opt:active,
+  html:not(.motion-force) .ob-chip:active { transform: none; }
+}

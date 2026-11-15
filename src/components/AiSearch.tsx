@@ -8,6 +8,7 @@ import type { FallbackReason, Understood } from '../lib/aiSearch/client'
 import { targetFor } from '../lib/aiSearch/intents'
 import type { MovableIntent, Slots } from '../lib/aiSearch/intents'
 import { MAX_QUESTION_CHARS, cleanQuestion, hasPersonalInfo } from '../lib/aiSearch/validate'
+import { Sentences } from './Sentences'
 
 // 홈 검색창: 질문을 쓰면 알맞은 화면을 「안내」한다. 자동으로 이동하지 않고, 사용자가 버튼을 눌러야 이동한다.
 const EXAMPLES = ['경사로가 막혔어요', '가까운 저상버스', '내 접수번호 찾기', '개선된 곳 보기']
@@ -98,9 +99,9 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
         </button>
       </form>
       {personal && (
-        <p id={hintId} className="hp-ai-hint" role="note">
+        <Sentences as="p" id={hintId} className="hp-ai-hint" role="note">
           개인정보는 적지 말아 주세요. 전화번호나 이메일은 보내기 전에 가려져요.
-        </p>
+        </Sentences>
       )}
       <ul className="hp-ai-chips" aria-label="예시 질문">
         {EXAMPLES.map((t) => (
@@ -173,10 +174,10 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
                 <p className="hp-ai-slots">다른 말로 물어봐 주세요.</p>
               </>
             )}
-            <p className="hp-ai-note">AI 답변은 참고용이에요. 접수번호·처리기한·담당 기관은 해당 화면에서 확인해 주세요.</p>
+            <Sentences as="p" className="hp-ai-note">AI 답변은 참고용이에요. 접수번호·처리기한·담당 기관은 해당 화면에서 확인해 주세요.</Sentences>
           </div>
         )}
-        {st.kind === 'idle' && !aiOn && <p className="hp-ai-off">AI 검색이 꺼져 있어요. 키워드로만 찾아요.</p>}
+        {st.kind === 'idle' && !aiOn && <Sentences as="p" className="hp-ai-off">AI 검색이 꺼져 있어요. 키워드로만 찾아요.</Sentences>}
       </div>
     </section>
   )

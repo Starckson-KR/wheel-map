@@ -14,11 +14,16 @@ import './styles/home.css'
 import './styles/ui.css'
 import { initPrefs } from './lib/viewPrefs'
 import App from './App.tsx'
+import MotionRoot from './components/MotionRoot'
+import { installLineTidy } from './lib/lineTidy'
 
 initPrefs()
+installLineTidy(document.getElementById('root'))
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <MotionRoot>
+      <App />
+    </MotionRoot>
   </StrictMode>,
 )

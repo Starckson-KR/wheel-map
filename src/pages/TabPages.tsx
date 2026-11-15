@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, m, useIsPresent } from 'motion/react'
 import Icon from '../components/Icon'
+import { RiseLi, SegBg } from '../components/motionKit'
+import { useRiseOnce } from '../lib/useRiseOnce'
+import { FADE, FADE_OUT } from '../lib/motionTokens'
 import CountUp from '../components/CountUp'
 import { MockStrip } from '../components/DemoTools'
 import ReportsPanel from '../components/ReportsPanel'
@@ -14,8 +18,30 @@ import { computeRewards } from '../lib/rewards'
 import { nowMs, useReports, userName } from '../lib/reportStore'
 import type { ReportStatus } from '../types'
 import { loadBarriers } from '../lib/seed'
+import AccountCard from '../components/onboarding/AccountCard'
+import { Sentences } from '../components/Sentences'
 
 const BARRIERS = loadBarriers()
+
+// 혜택알림의 구역 내용. 탭을 바꾸면 이전 내용은 짧게 사라지고(교차 페이드) 나가는 동안은 화면 읽기·키보드에서 빠진다.
+function AlPanel({ tab, children }: { tab: string; children: React.ReactNode }) {
+  const present = useIsPresent()
+  return (
+    <m.div
+      id={present ? 'al-panel' : undefined}
+      role="tabpanel"
+      aria-labelledby={`al-tab-${tab}`}
+      className="al-panel"
+      inert={!present}
+      aria-hidden={!present || undefined}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: FADE }}
+      exit={{ opacity: 0, transition: FADE_OUT }}
+    >
+      {children}
+    </m.div>
+  )
+}
 
 function Page({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -67,7 +93,7 @@ export function ReportTab({ query }: { query: string }) {
       </section>
       <section className="pg-card" id="pg-agency" tabIndex={-1}>
         <h2>담당 기관 안내</h2>
-        <p className="bm-meta">문제의 종류와 위치에 따라 맡은 기관이 달라요. 신고를 남기면 내 민원 상세에서 담당 기관과 접수 방법을 볼 수 있어요.</p>
+        <Sentences as="p" className="bm-meta">신고를 남기면 내 민원 상세에서 담당 기관과 접수 방법을 볼 수 있어요.</Sentences>
         <ul className="pg-agencies">
           {agencies.map((a) => (
             <li key={a.id}>
@@ -84,6 +110,7 @@ export function ReportTab({ query }: { query: string }) {
 export function MeTab() {
   return (
     <Page title="내 정보">
+      <AccountCard />
       <section className="pg-card">
         <h2>내 기여</h2>
         <MyRewards embedded barriers={BARRIERS} onOpenReports={() => go(TO.report)} onOpenReport={(id) => go(TO.openReport(id))} />
@@ -91,6 +118,13 @@ export function MeTab() {
     </Page>
   )
 }
+
+type AlertsTabId = 'alerts' | 'benefits' | 'ranking'
+const ALERT_TABS: { id: AlertsTabId; label: string }[] = [
+  { id: 'alerts', label: '알림' },
+  { id: 'benefits', label: '혜택' },
+  { id: 'ranking', label: '랭킹·챌린지' },
+]
 
 type Alert = { key: string; at: string; kind: 'report' | 'points'; icon: string; text: string; points?: number; to: string }
 type AlertFilter = 'all' | 'report' | 'points'
@@ -149,13 +183,13 @@ export function AlertsTab({ query = '' }: { query?: string }) {
     return out.sort((a, b) => b.at.localeCompare(a.at))
   }, [reports, userId, rw])
   const shown = items.filter((x) => filter === 'all' || x.kind === filter).slice(0, 40)
-  // 홈 소식의 「나에게 맞는 혜택」에서 오면 혜택 구역으로 옮긴다
-  useEffect(() => {
-    if (new URLSearchParams(query).get('section') !== 'benefits') return
-    const el = document.getElementById('pg-benefits')
-    el?.scrollIntoView({ block: 'start' })
-    el?.focus({ preventScroll: true })
-  }, [query])
+  // 한 화면에 한 구역: 알림 · 혜택 · 랭킹·챌린지. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
+  const qs = new URLSearchParams(query)
+  const tab: AlertsTabId = ALERT_TABS.find((t) => t.id === qs.get('tab'))?.id ?? (qs.get('section') === 'benefits' ? 'benefits' : 'alerts')
+  const riseAlerts = useRiseOnce('alerts-list')
+  const pickTab = (id: AlertsTabId) => {
+    go(id === 'alerts' ? TO.alerts : `#/alerts?tab=${id}`)
+  }
 
   return (
     <Page title="혜택알림">
@@ -172,9 +206,25 @@ export function AlertsTab({ query = '' }: { query?: string }) {
         )}
         <button type="button" className="pg-wide" onClick={() => go(TO.me)}>내 기여 자세히 보기</button>
       </section>
-      <MyBenefits />
-      <ParticipationRanking />
-      <ParticipationChallenge />
+      <div className="rf-seg al-seg" role="tablist" aria-label="혜택알림 구역">
+        {ALERT_TABS.map((t) => (
+          <button key={t.id} type="button" role="tab" id={`al-tab-${t.id}`} aria-selected={tab === t.id} aria-controls="al-panel" className={tab === t.id ? 'on' : ''} onClick={() => pickTab(t.id)}>
+            {tab === t.id && <SegBg group="seg-alerts" />}
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ position: 'relative' }}>
+      <AnimatePresence mode="popLayout" initial={false}>
+      <AlPanel key={tab} tab={tab}>
+      {tab === 'benefits' && <MyBenefits />}
+      {tab === 'ranking' && (
+        <>
+          <ParticipationRanking />
+          <ParticipationChallenge />
+        </>
+      )}
+      {tab === 'alerts' && (
       <section className="pg-card" aria-labelledby="al-h">
         <h2 id="al-h">알림</h2>
         <div className="al-chips" role="group" aria-label="알림 종류">
@@ -186,13 +236,11 @@ export function AlertsTab({ query = '' }: { query?: string }) {
         </div>
         {shown.length === 0 ? (
           <div className="al-empty">
-            <p className="bm-meta">
-              {filter === 'points'
+            <Sentences as="p" className="bm-meta">{filter === 'points'
                 ? '아직 받은 참여 점수가 없어요. 제보가 검증되면 점수가 쌓여요.'
                 : filter === 'report'
                   ? '아직 민원 알림이 없어요. 문제를 신고하면 처리 상태가 바뀔 때마다 여기에 알려 드려요.'
-                  : '아직 받은 알림이 없어요. 문제를 신고하면 처리 상태와 참여 점수가 여기에 쌓여요.'}
-            </p>
+                  : '아직 받은 알림이 없어요. 문제를 신고하면 처리 상태와 참여 점수가 여기에 쌓여요.'}</Sentences>
             <div className="empty-act">
               <button type="button" className="rf-primary" onClick={() => go(filter === 'points' ? TO.map : TO.newReport)}>
                 {filter === 'points' ? '지도 보기' : '문제 신고하러 가기'}
@@ -201,8 +249,8 @@ export function AlertsTab({ query = '' }: { query?: string }) {
           </div>
         ) : (
           <ul className="pg-lines">
-            {shown.map((c) => (
-              <li key={c.key}>
+            {shown.map((c, i) => (
+              <RiseLi key={c.key} first={riseAlerts} i={i}>
                 <button type="button" className="pg-line al-item" onClick={() => go(c.to)}>
                   <span className={'al-ic al-ic-' + c.kind} aria-hidden="true"><Icon name={c.icon} size={18} /></span>
                   <span className="pg-line-t">
@@ -211,11 +259,15 @@ export function AlertsTab({ query = '' }: { query?: string }) {
                   </span>
                   <Icon name="chev" size={16} />
                 </button>
-              </li>
+              </RiseLi>
             ))}
           </ul>
         )}
       </section>
+      )}
+      </AlPanel>
+      </AnimatePresence>
+      </div>
     </Page>
   )
 }

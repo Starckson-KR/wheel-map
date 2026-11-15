@@ -8,6 +8,7 @@ import { dongKey, loadDongs } from '../lib/regions'
 import { nowMs, useReports } from '../lib/reportStore'
 import { usePriority } from '../lib/usePriority'
 import type { Barrier } from '../types'
+import { Sentences } from './Sentences'
 
 const PROGRAM_EXAMPLES = ['교통약자 이동편의 증진계획', '보도 정비사업', '장애인 편의시설 개선'] // 예시일 뿐 입력을 제한하지 않는다
 type Filter = 'all' | Stage
@@ -94,9 +95,9 @@ export default function AdminPlan({ barriers }: { barriers: Barrier[] }) {
     <div className="adm-sec">
       <section className="rf-card">
         <h3>개선계획·예산 연결</h3>
-        <p className="bm-meta">금액과 사업은 담당자가 입력해요. 앱이 금액을 정하지 않아요. 순위는 우선순위(안) 점수가 높은 순이고, 위치가 확정되지 않은 지점은 빠져 있어요. 입력한 내용은 이 브라우저에만 저장돼요.</p>
+        <Sentences as="p" className="bm-meta">금액과 사업은 담당자가 입력해요. 앱이 금액을 정하지 않아요. 순위는 우선순위(안) 점수가 높은 순이고, 위치가 확정되지 않은 지점은 빠져 있어요. 입력한 내용은 이 브라우저에만 저장돼요.</Sentences>
         {storageError && <p className="rf-warn">{storageError}</p>}
-        {err && <p className="rf-warn">{err}</p>}
+        {err && <Sentences as="p" className="rf-warn">{err}</Sentences>}
         {!data && !err && <Skeleton rows={3} label="이용 수요 자료를 불러오고 있어요" />}
         <div className="adm-kpis">
           {STAGES.map((s) => (
@@ -217,9 +218,9 @@ export default function AdminPlan({ barriers }: { barriers: Barrier[] }) {
             <option key={p} value={p} />
           ))}
         </datalist>
-        <span className="bm-meta">
+        <Sentences as="span" className="bm-meta">
           시민 화면에는 반영 단계와 연도만 보이고 금액·사업명은 보이지 않아요. 담당 기관은 CSV에만 들어가며, 접수된 민원이 있거나 소관이 하나로 정해지는 지점만 채워요.
-        </span>
+        </Sentences>
       </section>
     </div>
   )

@@ -3,6 +3,7 @@ import SheetHandle from './SheetHandle'
 import { DEFAULT_FILTER, STATUS_CHIPS, type KindKey, type MapFilter } from '../lib/mapFilter'
 import { IMPACT_INFO } from '../lib/display'
 import type { ReactNode } from 'react'
+import { Sentences } from './Sentences'
 
 type Props = {
   layers: LayerState
@@ -51,9 +52,7 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
         {layers.team && (
           <div className="lp-filter">
             <h3>시민 제보 핀 보기</h3>
-            <p className="bm-meta">
-              팀 조사 지점은 항상 보여요. 시민 제보 {citizen.total}건 중 {citizen.shown}건을 핀으로 보여 드려요.
-            </p>
+            <Sentences as="p" className="bm-meta">{`팀 조사 지점은 항상 보여요. 시민 제보 ${citizen.total}건 중 ${citizen.shown}건을 핀으로 보여 드려요.`}</Sentences>
             <div className="lp-chips" role="group" aria-label="시민 제보 상태">
               {STATUS_CHIPS.map((c) => (
                 <button
@@ -80,7 +79,7 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
           </div>
         )}
 
-        <p className="bm-meta">공공데이터는 참고용이에요. 지나갈 수 있는지를 판정한 건 아니에요.</p>
+        <Sentences as="p" className="bm-meta">공공데이터는 참고용이에요. 지나갈 수 있는지를 판정한 건 아니에요.</Sentences>
         {PUB_LAYERS.map((l) => {
           const on = layers[l.id]
           const st = loading[l.id]
@@ -115,7 +114,7 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
             </div>
           )
         })}
-        <p className="bm-meta">지도를 확대해야 보여요. 넓게 보면 안내만 나와요. 핀은 한 지점, 굵은 선은 구간, 반투명 면은 영역이에요.</p>
+        <Sentences as="p" className="bm-meta">지도를 확대해야 보여요. 넓게 보면 안내만 나와요. 핀은 한 지점, 굵은 선은 구간, 반투명 면은 영역이에요.</Sentences>
         {extra && <div className="lp-extra">{extra}</div>}
       </div>
     </>

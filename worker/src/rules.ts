@@ -104,6 +104,17 @@ export function hasMineReportCue(question: string): boolean {
 const REROUTE_FROM_MINE = new Set(['unknown', 'progress', 'alerts', 'report_new'])
 const REROUTE_FROM_SCORE = new Set(['unknown', 'progress', 'alerts', 'help'])
 
+// 「찾기·위치 묻기」와 「문제를 알리는」 표현(공백 무시). src/lib/aiSearch/keywords.ts와 같은 기준이다.
+// 앱에 위치를 찾아 주는 화면은 장애인화장실(지도 레이어)뿐이라, 화장실 찾기만 toilet_find로 보내고 다른 시설 찾기는 신고로 보내지 않는다.
+const FIND_RE = /찾|어디|어느|근처|가까|알려|보여|위치|갈수있|이용할수|있나|있는지|있을까|있는곳|있는데/
+const PROBLEM_RE = /신고|제보|민원|고장|잠겨|잠겼|잠김|막혀|막혔|막힘|막고|막아|없어|없다|없네|없음|없는데|없습|끊|깨져|깨진|깨졌|파손|구멍|패였|패인|덜컹|울퉁|좁아|좁은|좁다|위험|높아|가파|못(?!찾)|불편|더러|부서|흔들|짧아|부족|방치|쌓여|세워|불법/
+export function hasFindCue(question: string): boolean {
+  return FIND_RE.test(compact(question))
+}
+export function hasProblemCue(question: string): boolean {
+  return PROBLEM_RE.test(compact(question))
+}
+
 type Like = { intent: string; slots: Record<string, string>; confidence: number }
 
 // 모델 답 뒤에 적용하는 안전 보정. 의도만 unknown으로 낮추고, 다른 값을 새로 만들지 않는다.
@@ -114,6 +125,13 @@ export function applyRules<T extends Like>(question: string, r: T): T {
     const to = (intent: string): T => ({ ...r, intent, slots: {}, confidence: r.intent === 'unknown' ? Math.min(r.confidence, 0.7) : r.confidence })
     if (hasMineReportCue(question) && REROUTE_FROM_MINE.has(r.intent)) return to('my_reports')
     if (hasScoreCue(question) && REROUTE_FROM_SCORE.has(r.intent)) return to('my_score')
+    // 화장실: 문제를 알리면 신고, 문제 말 없이 묻거나 찾으면 장애인화장실 지도. 모델이 둘을 바꿔 답한 것을 바로잡는다.
+    const toilet = /화장실/.test(compact(question))
+    const problem = hasProblemCue(question)
+    if (toilet && problem && r.intent === 'toilet_find') return { ...r, intent: 'report_new', slots: { type: '장애인화장실 없음' } }
+    if (toilet && !problem && (r.intent === 'report_new' || (r.intent === 'unknown' && hasFindCue(question)))) return to('toilet_find')
+    // 문제 말 없이 위치만 묻는 시설(엘리베이터·주차장 등)은 신고가 아니다. 앱에 찾아 줄 화면이 없으니 unknown으로 둔다.
+    if (r.intent === 'report_new' && !toilet && hasFindCue(question) && !problem) return toUnknown()
   }
   if (r.intent === 'unknown') return r
   if (!UNSUPPORTED_EXEMPT.has(r.intent) && asksUnsupported(question)) return toUnknown()

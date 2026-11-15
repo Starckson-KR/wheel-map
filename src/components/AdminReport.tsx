@@ -8,6 +8,7 @@ import { agencyKey, buildKpis, buildSummary, groupStats, inPeriod, periodSites, 
 import { nowMs, useReports } from '../lib/reportStore'
 import { useRecurrence } from '../lib/useRecurrence'
 import type { Report } from '../types'
+import { Sentences } from './Sentences'
 
 const CHOICES: PeriodChoice[] = [1, 2, 3, 4, 'year']
 const dayText = (v: number | null) => (v === null ? '자료 없음' : `${v.toFixed(1)}일`)
@@ -137,7 +138,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
             인쇄·PDF 저장
           </button>
         </div>
-        <span className="bm-meta">달력 기준 분기예요(1분기 1~3월, 2분기 4~6월, 3분기 7~9월, 4분기 10~12월). 숫자는 이 기간에 접수된 건의 지금 상태를 센 거예요. 개선 현황 지도와 같은 계산이에요.</span>
+        <Sentences as="span" className="bm-meta">달력 기준 분기예요(1분기 1~3월, 2분기 4~6월, 3분기 7~9월, 4분기 10~12월). 숫자는 이 기간에 접수된 건의 지금 상태를 센 거예요. 개선 현황 지도와 같은 계산이에요.</Sentences>
       </section>
 
       <div className="adm-report-print">
@@ -161,7 +162,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
           <p className="rp-empty">
             이 기간에 접수된 제보가 없어요.
             <br />
-            다른 기간을 고르거나, 시연 도구에서 '시연 데이터 채우기'를 눌러 보세요.
+            다른 기간을 골라 보세요.
           </p>
         ) : (
           <>
@@ -192,12 +193,12 @@ export default function AdminReport({ caseName, onOpen }: Props) {
                   </div>
                 ))}
               </div>
-              <span className="bm-meta">▲▼는 {prevWord(p)}와 비교한 차이예요. 개선율과 재발률의 차이는 %p(퍼센트 포인트)로 적어요.</span>
+              <Sentences as="span" className="bm-meta">{`▲▼는 ${prevWord(p)}와 비교한 차이예요. 개선율과 재발률의 차이는 %p(퍼센트 포인트)로 적어요.`}</Sentences>
             </section>
 
             <section className="rf-card adm-report-sec" aria-labelledby="rep-dong-h">
               <h3 id="rep-dong-h">동별</h3>
-              {dongErr && <p className="rf-warn">{dongErr}</p>}
+              {dongErr && <Sentences as="p" className="rf-warn">{dongErr}</Sentences>}
               {!dongRows && !dongErr && <p role="status" className="bm-meta">행정동을 찾고 있어요…</p>}
               {dongRows && <GroupTable label="동" caption="동별 접수·해결·개선율·재발" rows={dongRows.map((g) => ({ name: g.key, stats: g.stats }))} />}
             </section>
@@ -210,7 +211,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
             <section className="rf-card adm-report-sec" aria-labelledby="rep-ag-h">
               <h3 id="rep-ag-h">기관별</h3>
               <GroupTable label="기관" caption="기관별 접수·처리율·평균 처리 기간·재발" rows={agencyRows.map((g) => ({ name: g.name, stats: g.stats }))} avg />
-              <span className="bm-meta">처리율은 해결 수 ÷ 민원 접수 수예요. 현재 처리 기관 기준이에요.</span>
+              <Sentences as="span" className="bm-meta">처리율은 해결 수 ÷ 민원 접수 수예요. 현재 처리 기관 기준이에요.</Sentences>
             </section>
 
             <section className="rf-card adm-report-sec" aria-labelledby="rep-site-h">
@@ -234,7 +235,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
                   ))}
                 </ol>
               )}
-              <span className="bm-meta adm-noprint">누르면 가장 최근에 접수된 건의 상세가 열려요. 재발은 조치 완료(또는 재확인 완료) 뒤 같은 곳·같은 유형으로 다시 접수된 건이에요.</span>
+              <Sentences as="span" className="bm-meta adm-noprint">누르면 가장 최근에 접수된 건의 상세가 열려요. 재발은 조치 완료(또는 재확인 완료) 뒤 같은 곳·같은 유형으로 다시 접수된 건이에요.</Sentences>
             </section>
           </>
         )}

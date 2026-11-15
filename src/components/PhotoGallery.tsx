@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PHOTOS_VISIBLE, photoUrl, photosFor } from '../lib/photos'
 
-// 지점 사진 썸네일 + 확대 보기. 사진은 개발 서버에서만 보이고, 배포본에는 안내 문구만 나온다.
+// 지점 사진 썸네일 + 확대 보기. 사진은 개발 서버에서만 보인다. 배포본에서는 아무것도 그리지 않는다(부른 쪽에서 사진 칸도 숨긴다).
 export default function PhotoGallery({ barrierId }: { barrierId: string }) {
   const photos = photosFor(barrierId)
   const [openIndex, setOpenIndex] = useState<number | null>(null)
@@ -20,7 +20,7 @@ export default function PhotoGallery({ barrierId }: { barrierId: string }) {
     return () => window.removeEventListener('keydown', onKey, true)
   }, [openIndex, photos.length])
 
-  if (photos.length === 0 || !PHOTOS_VISIBLE) return <>사진은 공개용으로 고른 뒤에 추가할 예정이에요.</>
+  if (photos.length === 0 || !PHOTOS_VISIBLE) return null
 
   const current = openIndex === null ? null : photos[openIndex]
   return (
@@ -32,7 +32,7 @@ export default function PhotoGallery({ barrierId }: { barrierId: string }) {
           </button>
         ))}
       </div>
-      <span className="bm-meta">{photos.length}장 · 내부 확인용이라 개발 서버에서만 보여요. 누르면 크게 볼 수 있어요.</span>
+      <span className="bm-meta">{photos.length}장 · 누르면 크게 볼 수 있어요.</span>
       {current && (
         <div className="bm-lightbox" role="dialog" aria-modal="true" aria-label="사진 확대" onClick={() => setOpenIndex(null)}>
           <figure onClick={(e) => e.stopPropagation()}>
@@ -41,7 +41,7 @@ export default function PhotoGallery({ barrierId }: { barrierId: string }) {
               {current.caption ?? '설명 없음'}
               <span className="bm-meta">
                 {' '}
-                ({(openIndex ?? 0) + 1}/{photos.length} · 출처: {current.source} · Esc로 닫고 ←→로 넘겨요)
+                ({(openIndex ?? 0) + 1}/{photos.length})
               </span>
             </figcaption>
             {photos.length > 1 && (

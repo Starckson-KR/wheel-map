@@ -13,10 +13,6 @@ type Props = {
   autoLoad?: boolean
 }
 
-const hhmm = (iso: string) => {
-  const d = new Date(iso)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
 
 function Row({ a, mark }: { a: Arrival; mark?: boolean }) {
   return (
@@ -86,15 +82,14 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
           {res.reason === 'no-snapshot' || res.reason === 'unavailable'
             ? LIVE_AVAILABLE
               ? res.message
-              : '실시간 저상버스 정보는 준비 중이에요(시연판). 이 정류장은 미리 받아 둔 예시 정보도 없어요.'
+              : '이 정류장의 버스 정보가 아직 없어요.'
             : res.message}
         </p>
       ) : res && res.ok ? (
         <>
           <p className={'bus-mode ' + (res.mode === 'live' ? 'bus-mode-live' : 'bus-mode-snap')}>
-            {res.mode === 'live' ? `실시간 · ${hhmm(res.collectedAt)} 기준` : `실시간이 아니에요 · 미리 받아 둔 예시 (${hhmm(res.collectedAt)} 기준)`}
+            {res.mode === 'live' ? '실시간' : '실시간이 아니에요 · 미리 받아 둔 예시'}
           </p>
-          {res.mode === 'snapshot' && !LIVE_AVAILABLE && <p className="bm-meta">실시간 저상버스 정보는 준비 중이에요(시연판). 서버를 붙이면 지금 오는 버스를 보여 드릴 수 있어요.</p>}
 
           {lineName && (
             <div className="bus-line-box">
@@ -121,7 +116,7 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
                     {mine.length > 0 && <ul className="bus-list">{mine.slice(0, 3).map((a, i) => <Row key={i} a={a} mark />)}</ul>}
                     {lineLow?.ok && (
                       <p className="bm-meta">
-                        {lineName}번 {lineLow.mode === 'live' ? '지금' : `(${hhmm(lineLow.data.collectedAt)} 기준)`} 운행 중{' '}
+                        {lineName}번 {lineLow.mode === 'live' ? '지금' : '(예시)'} 운행 중{' '}
                         {lineLow.data.total}대 중 저상버스 <b>{lineLow.data.low}대</b>
                         {lineLow.data.low === 0 && lineLow.data.total > 0 ? ' — 이 노선은 지금 휠체어로 타기 어려울 수 있어요' : ''}
                       </p>

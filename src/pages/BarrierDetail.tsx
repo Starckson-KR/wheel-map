@@ -9,11 +9,13 @@ import { useState } from 'react'
 import { LOCATION_KINDS, guessLocationKind } from '../lib/agencyGuide'
 import { REPORT_TYPES } from '../lib/reportTypes'
 import { usePlan } from '../lib/planStore'
+import { PHOTOS_VISIBLE, photosFor } from '../lib/photos'
+import { publicNeedsCheck, publicNote, publicRatingSource, publicSurvey } from '../lib/displayText'
 import { STATUS_LABEL, userName } from '../lib/reportStore'
 import type { Barrier, Rating, Report } from '../types'
+import { Sentences } from '../components/Sentences'
 
 const KIND_LABEL = { point: '점', line: '선', area: '영역', group: '여러 점' } as const
-const SOURCE_LABEL = { team_survey: '팀 현장조사', interview: '인터뷰 진술' } as const
 
 type Props = {
   barrier: Barrier
@@ -37,6 +39,12 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
   const rating = own ?? inherited
   const style = RATING_STYLE[rating ?? 'none']
   const impact = impactOf(b, parent)
+  // 리뷰어에게 보이는 문구: 팀 내부 메모(팀원 이름·조사 문서 장 번호 등)는 표시 단계에서 걸러 낸다.
+  const parentSource = publicRatingSource(parent?.ratingSource)
+  const noteRaw = publicNote(b.note)
+  const note = noteRaw && noteRaw.length <= 60 ? noteRaw : null // 긴 조사 메모는 시민 화면에서 숨긴다
+  const needsCheck = publicNeedsCheck(b.needsCheck)
+  const showPhotos = PHOTOS_VISIBLE && photosFor(b.id).length > 0
   // 7단계: 시범 정류장은 실제 BIS 정류소와 짝지어 둔 것이 있으면 저상버스 도착 정보를 보여 준다(없으면 이 구역은 나오지 않음)
   const stopEntry = PILOT_STOPS.items[b.id]
   const stopWarns: BoardingWarn[] =
@@ -58,10 +66,9 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
         <span className="bm-badge" style={{ background: style.color, color: style.ink }}>
           {style.label}
         </span>
-        {own && b.ratingSource && <span className="bm-meta">평가 출처: {b.ratingSource}</span>}
         {inherited && parent && (
           <span className="bm-meta">
-            상위 항목 {shortName(parent.id, parent.name)}의 평가({parent.ratingSource})를 따라 보여 줘요.
+            상위 항목 {shortName(parent.id, parent.name)}의 평가{parentSource ? `(${parentSource})` : ''}를 따라 보여 줘요.
           </span>
         )}
         {!rating && <span className="bm-meta">자료에 평가가 없어요.</span>}
@@ -93,9 +100,9 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
 
       {b.provisional && (
         <p className="bm-prov-box" role="note">
-          위치는 카카오 장소 검색 결과를 임시로 쓴 것이에요. 아직 확인 전이에요.
-          {b.provisional.uncertain && <> 검색 결과가 정확하지 않아 다른 장소일 수 있어요.</>}
-          {b.provisional.lineAsPoint && <> 선 구간이지만 임시로 점 하나로 표시했어요.</>}
+          <span className="sent">위치는 카카오 장소 검색 결과를 임시로 쓴 것이에요.</span> <span className="sent">아직 확인 전이에요.</span>
+          {b.provisional.uncertain && <> <span className="sent">검색 결과가 정확하지 않아 다른 장소일 수 있어요.</span></>}
+          {b.provisional.lineAsPoint && <> <span className="sent">선 구간이지만 임시로 점 하나로 표시했어요.</span></>}
         </p>
       )}
 
@@ -130,39 +137,43 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
         </dd>
         <dt>조사 정보</dt>
         <dd>
-          {SOURCE_LABEL[b.source]} · 조사자 {b.surveyor ?? '정보 없음'} · 조사일 {b.surveyedAt ?? '정보 없음'}
+          {publicSurvey(b.source, b.surveyedAt)}
         </dd>
-        {b.note && (
+        {note && (
           <>
             <dt>비고</dt>
-            <dd>{b.note}</dd>
+            <dd><Sentences as="span">{note}</Sentences></dd>
           </>
         )}
-        {b.needsCheck && b.needsCheck.length > 0 && (
+        {needsCheck.length > 0 && (
           <>
-            <dt>확인이 더 필요해요</dt>
+            <dt>더 확인할 내용</dt>
             <dd>
               <ul>
-                {b.needsCheck.map((t) => (
+                {needsCheck.map((t) => (
                   <li key={t}>{t}</li>
                 ))}
               </ul>
             </dd>
           </>
         )}
-        <dt>사진</dt>
-        <dd>
-          <PhotoGallery key={b.id} barrierId={b.id} />
-        </dd>
+        {showPhotos && (
+          <>
+            <dt>사진</dt>
+            <dd>
+              <PhotoGallery key={b.id} barrierId={b.id} />
+            </dd>
+          </>
+        )}
       </dl>
 
       {onStartFlow && (
         <div className="rf-card">
-          <strong>민원 진행 (시연)</strong>
+          <strong>민원 접수 안내</strong>
           {flowReport ? (
             <>
               <p>
-                이 지점은 민원이 진행 중이에요. 지금은 <b>{STATUS_LABEL[flowReport.status]}</b> 단계예요.
+                <span className="sent">이 지점은 민원이 진행 중이에요.</span> <span className="sent">지금은 <b>{STATUS_LABEL[flowReport.status]}</b> 단계예요.</span>
               </p>
               <button type="button" className="rf-primary" onClick={() => onOpenReport?.(flowReport.id)}>
                 진행 상황 보기
@@ -170,7 +181,7 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
             </>
           ) : (
             <>
-              <p className="bm-meta">팀이 조사한 지점을 검증이 끝난 것으로 보고, 접수 안내부터 시연해요.</p>
+              <p className="bm-meta">팀이 현장에서 조사한 지점이라 검증을 마친 것으로 보고, 바로 접수 안내를 보여 드려요.</p>
               <label className="rf-field">
                 어떤 문제인가요?
                 <select value={flowType} onChange={(e) => setFlowType(e.target.value)}>

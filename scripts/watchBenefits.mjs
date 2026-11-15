@@ -18,7 +18,10 @@ const GAP_MS = 1500
 
 // 지문 비교를 하지 않고 상태(응답 코드)만 감시하는 주소. 이유는 data/benefits/README.md 참고.
 // 키는 정확한 URL. 값은 이유(보고서에 표시).
-export const STATUS_ONLY = {}
+export const STATUS_ONLY = {
+  // 공공데이터포털 데이터셋 페이지: 미리보기 표·다른 지자체 데이터 목록이 자주 바뀌어 본문 지문이 흔들린다(11/14 거짓 알림)
+  'https://www.data.go.kr/data/15028207/standard.do': '데이터포털 미리보기·관련 목록이 자주 바뀜',
+}
 
 // 주요 콘텐츠 영역만 쓰고 싶은 주소: URL -> 정규식 문자열(첫 매치 그룹 1을 본문으로 사용)
 export const CONTENT_SELECTORS = {}

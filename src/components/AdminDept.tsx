@@ -10,9 +10,11 @@ import { avgProcessDays } from '../lib/progress'
 import { agencyIdOf } from '../lib/priority'
 import { RATING_STYLE } from '../lib/rating'
 import { nowMs, useReports } from '../lib/reportStore'
+import CaseTitle from './CaseTitle'
 import { usePriority } from '../lib/usePriority'
 import { useRecurrence } from '../lib/useRecurrence'
 import type { Barrier, Report } from '../types'
+import { Sentences } from './Sentences'
 
 const PLAN_PREVIEW = 8
 const won = (n: number) => n.toLocaleString('ko-KR')
@@ -96,7 +98,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
       <li key={r.id} className="adm-case">
         <button type="button" className={'adm-row' + (selected === r.id ? ' on' : '')} onClick={() => onOpen(r.id)}>
           <span className="adm-row-main">
-            <strong>{caseName(r)}</strong>
+            <CaseTitle r={r} caseName={caseName} />
             <span className="bm-meta">
               {r.type} · {r.seedId ? '팀 조사 지점' : '시민 제보'} · 접수 {r.complaint ? fmtDate(new Date(r.complaint.submittedAt).getTime()) : '—'}
               {r.complaint ? ` · 접수번호 ${r.complaint.receiptNo}` : ''}
@@ -200,7 +202,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
             )
           })
         )}
-        <span className="bm-meta">기한 경과, 기한 임박({DEADLINE_SOON_DAYS}일 이내), 신규, 처리 중 순서예요. 누르면 민원 상세가 열려요. 이관을 보내고 답을 기다리는 건은 빠져 있어요.</span>
+        <Sentences as="span" className="bm-meta">{`기한 경과, 기한 임박(${DEADLINE_SOON_DAYS}일 이내), 신규, 처리 중 순서예요. 누르면 민원 상세가 열려요. 이관을 보내고 답을 기다리는 건은 빠져 있어요.`}</Sentences>
       </section>
 
       <section className="rf-card adm-dept-sec" aria-labelledby="dept-in-h">
@@ -227,12 +229,12 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
             )}
           </ul>
         )}
-        {incoming.length > 0 && !officer && <span className="bm-meta">수락·반려는 담당 공무원만 할 수 있어요. 시연 도구에서 담당 공무원으로 바꾸면 쓸 수 있어요.</span>}
+        {incoming.length > 0 && !officer && <Sentences as="span" className="bm-meta">수락·반려는 담당 공무원만 할 수 있어요.</Sentences>}
       </section>
 
       <section className="rf-card adm-dept-sec" aria-labelledby="dept-plan-h">
         <h3 id="dept-plan-h">소관 지점의 개선계획 ({plan.length})</h3>
-        {err && <p className="rf-warn">{err}</p>}
+        {err && <Sentences as="p" className="rf-warn">{err}</Sentences>}
         {!data && !err && <Skeleton rows={3} label="이용 수요 자료를 불러오고 있어요" />}
         {data && plan.length === 0 && <p className="rp-empty">이 부서 소관으로 확실한 지점이 아직 없어요.</p>}
         {planShown.length > 0 && (
@@ -271,7 +273,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
             개선계획·예산에서 입력하기
           </button>
         </div>
-        <span className="bm-meta">소관이 확실한 지점만 보여요. 접수된 민원이 있거나 지점 종류로 소관이 하나로 정해지는 지점만 넣고, 불확실한 지점은 뺐어요. 순위는 우선순위(안) 점수 순이에요.</span>
+        <Sentences as="span" className="bm-meta">소관이 확실한 지점만 보여요. 접수된 민원이 있거나 지점 종류로 소관이 하나로 정해지는 지점만 넣고, 불확실한 지점은 뺐어요. 순위는 우선순위(안) 점수 순이에요.</Sentences>
       </section>
     </div>
   )

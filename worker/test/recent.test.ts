@@ -38,3 +38,21 @@ test('프롬프트에 새 사례가 들어 있다', () => {
   assert.ok(p.includes('내 칭호가 뭐예요'))
   assert.ok(p.includes('내가 올린 신고 결과'))
 })
+
+test('화장실: 찾는 말은 toilet_find, 문제를 알리는 말은 report_new로 바로잡는다', () => {
+  for (const q of ['휠체어 타고 갈 수 있는 화장실 알려줘', '근처 장애인화장실 어디 있어요', '화장실 위치 보여줘']) {
+    assert.equal(applyRules(q, R('report_new')).intent, 'toilet_find', q)
+    assert.equal(applyRules(q, R('toilet_find')).intent, 'toilet_find', q)
+  }
+  for (const q of ['장애인화장실이 없어요', '화장실 문이 고장났어요', '화장실 신고하고 싶어요']) {
+    const r = applyRules(q, R('toilet_find'))
+    assert.equal(r.intent, 'report_new', q)
+    assert.equal(r.slots.type, '장애인화장실 없음')
+    assert.equal(applyRules(q, R('report_new')).intent, 'report_new', q)
+  }
+})
+
+test('엘리베이터·주차장처럼 위치만 묻는 말은 신고가 아니다(unknown), 문제를 알리면 신고 유지', () => {
+  for (const q of ['엘리베이터 어디 있어요', '근처 장애인 주차장 알려줘', '점자블록 있는 길 어디예요']) assert.equal(applyRules(q, R('report_new')).intent, 'unknown', q)
+  for (const q of ['엘리베이터가 고장났어요', '점자블록이 끊겨 있어요 어디에 말해야 해요']) assert.equal(applyRules(q, R('report_new')).intent, 'report_new', q)
+})

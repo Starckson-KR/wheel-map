@@ -13,6 +13,7 @@ import { nowMs, useReports } from '../lib/reportStore'
 import { computeRewards } from '../lib/rewards'
 import { ROUTES, routeStats } from '../lib/routeStats'
 import type { Barrier } from '../types'
+import { Sentences } from './Sentences'
 
 function Bar({ label, value, max, note }: { label: string; value: number; max: number; note?: string }) {
   return (
@@ -134,7 +135,7 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
 
       <section className="rf-card">
         <h3>동별 ○△X 지점 수</h3>
-        {dongErr && <p className="rf-warn">{dongErr}</p>}
+        {dongErr && <Sentences as="p" className="rf-warn">{dongErr}</Sentences>}
         {!dongs && !dongErr && <p className="bm-meta">행정동을 찾고 있어요…</p>}
         {dongRows.map(([dong, c]) => (
           <div key={dong} className="adm-dong">
@@ -151,23 +152,23 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
             </span>
           </div>
         ))}
-        <span className="bm-meta">○ 괜찮음 · △ 주의 · X 어려움 · ? 평가 없음. 위치가 정해진 팀 조사 지점과 검증이 끝난 시민 제보를 세요. 행정동은 카카오 지도로 찾아서 이 브라우저에 저장해 둬요.</span>
+        <Sentences as="span" className="bm-meta">○ 괜찮음 · △ 주의 · X 어려움 · ? 평가 없음. 위치가 정해진 팀 조사 지점과 검증이 끝난 시민 제보를 세요. 행정동은 카카오 지도로 찾아서 이 브라우저에 저장해 둬요.</Sentences>
       </section>
 
       <section className="rf-card">
         <h3>동별 시민 기여 점수</h3>
         {dongPointRows.length === 0 ? (
-          <p className="bm-meta">아직 쌓인 기여 점수가 없어요. 제보가 검증되면 해당 동의 점수로 모여요.</p>
+          <Sentences as="p" className="bm-meta">아직 쌓인 기여 점수가 없어요. 제보가 검증되면 해당 동의 점수로 모여요.</Sentences>
         ) : (
           dongPointRows.map(([dong, x]) => <Bar key={dong} label={dong} value={x.points} max={maxDongPoints} note={`점 · ${x.people.size}명`} />)
         )}
-        <span className="bm-meta">개인 순위 없이 동 단위 합계만 보여 줘요. 검증 이후 지급된 점수만 더하며, 시연 사용자 기준이에요.</span>
+        <Sentences as="span" className="bm-meta">개인 순위 없이 동 단위 합계만 보여 줘요. 검증 이후 지급된 점수만 더하며, 시연 사용자 기준이에요.</Sentences>
       </section>
 
       <section className="rf-card">
         <h3>기관별 처리율·이관 횟수</h3>
         {agRows.length === 0 ? (
-          <p className="bm-meta">접수된 민원이 없어요. 시연 도구에서 '시연 데이터 채우기'를 눌러 보세요.</p>
+          <Sentences as="p" className="bm-meta">접수된 민원이 없어요.</Sentences>
         ) : (
           <div className="adm-scroll">
             <table className="adm-table">
@@ -219,11 +220,12 @@ export function AdminPriority({ barriers }: { barriers: Barrier[] }) {
       <section className="rf-card">
         <h3>개선 우선순위(안)</h3>
         <p className="bm-meta">
-          점수 = 제보 수 × {W.report} + (반경 {PRIORITY_DEMAND_RADIUS_M}m 안 정류장 수 × {W.bus} + 병원·복지시설 수 × {W.facility}) + 대안 경로 유무 × {W.alternative}.
-          가중치는 팀이 정하는 안이고 <code>src/lib/config.ts</code>에서 바꿔요. 제보 수는 반경 {PRIORITY_REPORT_RADIUS_M}m 안의 시민 제보예요(합쳐진 건은 포함하고 반려된 건은 빼요).
+          <span className="sent">점수 = 제보 수 × {W.report} + (반경 {PRIORITY_DEMAND_RADIUS_M}m 안 정류장 수 × {W.bus} + 병원·복지시설 수 × {W.facility}) + 대안 경로 유무 × {W.alternative}.</span>
+          <span className="sent">가중치는 팀이 정하는 안이고 <code>src/lib/config.ts</code>에서 바꿔요.</span>
+          <span className="sent">제보 수는 반경 {PRIORITY_REPORT_RADIUS_M}m 안의 시민 제보예요(합쳐진 건은 포함하고 반려된 건은 빼요).</span>
         </p>
-        <p className="bm-meta">길찾기에서 우회 경로를 찾지 못해 기록된 X 지점은 점수를 더해요(출발·도착 지점 자체는 빼요). 기록이 없거나 아직 검색하지 않은 지점은 0점이에요.</p>
-        {err && <p className="rf-warn">{err}</p>}
+        <Sentences as="p" className="bm-meta">길찾기에서 우회 경로를 찾지 못해 기록된 X 지점은 점수를 더해요(출발·도착 지점 자체는 빼요). 기록이 없거나 아직 검색하지 않은 지점은 0점이에요.</Sentences>
+        {err && <Sentences as="p" className="rf-warn">{err}</Sentences>}
         {!data && !err && <Skeleton rows={3} label="이용 수요 자료를 불러오고 있어요" />}
         <ol className="adm-prio">
           {rows.slice(0, 15).map((c, i) => (
@@ -254,7 +256,7 @@ export function AdminPriority({ barriers }: { barriers: Barrier[] }) {
             </li>
           ))}
         </ol>
-        <span className="bm-meta">이용 수요 출처: {data ? `${data.bus.source}(${data.bus.provider}), ${data.fac.source}(${data.fac.provider}), 수집일 ${data.fac.fetchedAt.slice(0, 10)}` : '불러오는 중'}. 공공데이터라서 판정은 아니에요.</span>
+        <span className="bm-meta"><span className="sent">이용 수요 출처: {data ? `${data.bus.source}(${data.bus.provider}), ${data.fac.source}(${data.fac.provider}), 수집일 ${data.fac.fetchedAt.slice(0, 10)}` : '불러오는 중'}.</span> <span className="sent">공공데이터라서 판정은 아니에요.</span></span>
       </section>
     </div>
   )

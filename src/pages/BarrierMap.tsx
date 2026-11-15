@@ -425,7 +425,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           rating: rk,
           impact: impactOf(b, null),
           name: shortName(b.id, b.name),
-          title: `${shortName(b.id, b.name)} · 위치 임시`,
           small: false,
           sel: b.id === selectedId,
           dim: !!routeIds,
@@ -711,12 +710,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       g.className = 'bm-pin-g'
       g.textContent = st.glyph
       el.appendChild(g)
-      if (it.prov) {
-        const t = document.createElement('span')
-        t.className = 'bm-pin-t'
-        t.textContent = '임시'
-        el.appendChild(t)
-      }
       if (mode !== 'dot' && mode !== 'lite' && it.impact) {
         const kk = document.createElement('span')
         kk.className = 'bm-pin-k'
@@ -1094,12 +1087,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const order: Record<string, number> = { X: 0, TRIANGLE: 1, none: 2, O: 3 }
     return rows.sort((a, b) => order[a.rating] - order[b.rating])
   }, [view, layers.team, reports, seedOverride])
-  // 위치 임시 지점은 기존 장애요소 숫자에 섞지 않고 따로 센다
-  const hereProv = useMemo(() => {
-    if (!view || !layers.team) return 0
-    const [s, w, n, e] = view.b
-    return PROVISIONAL.filter((b) => b.provisional!.lat >= s && b.provisional!.lat <= n && b.provisional!.lng >= w && b.provisional!.lng <= e).length
-  }, [view, layers.team])
   const hereCount = (c: Category) => here.filter((r) => r.cat === c).length
   // 핵심 3칸(어려운 곳·버스 불편·주의=지날 때 주의+주의 구역)에 이미 나온 분류는 펼침 목록에서 뺀다: 같은 숫자가 두 번 나오지 않게
   const restCats = CATEGORY_ORDER.filter((c) => c !== 'hard' && c !== 'boarding' && c !== 'caution' && c !== 'zone' && hereCount(c) > 0)
@@ -1281,11 +1268,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 {IMPACT_INFO[k].label}
               </li>
             ))}
-            {!progressMode && (
-              <li>
-                <i className="hm-leg-prov">임</i>위치 임시
-              </li>
-            )}
             {PUB_LAYERS.filter((l) => layers[l.id]).map((l) => (
               <li key={l.id}>
                 <i className="hm-leg-pub" style={{ background: l.color }}>
@@ -1372,7 +1354,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                   </li>
                 </ul>
               )}
-              {hereProv > 0 && <p className="hm-prov-note">위치 임시 {hereProv}곳 (확인 전, 위 숫자에는 넣지 않았어요)</p>}
               <div className="hm-s-cta">
                 <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setRewardsOpen(false); setPanelOpen(true) }}>
                   제보 현황
@@ -1416,7 +1397,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               )}
               {PROVISIONAL.length > 0 && (
                 <>
-                  <h3 style={{ marginTop: 20 }}>위치 임시 {PROVISIONAL.length}곳</h3>
+                  <h3 style={{ marginTop: 20 }}>그 밖의 지점 {PROVISIONAL.length}곳</h3>
                   <ul className="lr-list">
                     {PROVISIONAL.map((b) => (
                       <li key={b.id}>
@@ -1426,7 +1407,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                           </i>
                           <span className="lr-main">
                             <span className="lr-title">{listTitle(shortName(b.id, b.name))}</span>
-                            <span className="lr-sub">위치 임시 · 아직 확인 전이에요</span>
                           </span>
                           <span className="lr-chev" aria-hidden="true" />
                         </button>

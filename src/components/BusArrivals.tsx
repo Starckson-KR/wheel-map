@@ -88,7 +88,7 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
       ) : res && res.ok ? (
         <>
           <p className={'bus-mode ' + (res.mode === 'live' ? 'bus-mode-live' : 'bus-mode-snap')}>
-            {res.mode === 'live' ? '실시간' : '실시간이 아니에요 · 미리 받아 둔 예시'}
+            {res.mode === 'live' ? '실시간' : <span className="bus-tag bus-norm">예시</span>}
           </p>
 
           {lineName && (
@@ -151,7 +151,6 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
                   <Row key={i} a={a} />
                 ))}
               </ul>
-              <p className="bm-meta">저상은 광주 BIS의 저상버스 구분(LOW_BUS)이 1인 버스예요.</p>
             </details>
           ) : (
             <p className="bm-meta">지금 도착 예정인 버스가 없어요.</p>

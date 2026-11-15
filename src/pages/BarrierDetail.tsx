@@ -10,12 +10,9 @@ import { LOCATION_KINDS, guessLocationKind } from '../lib/agencyGuide'
 import { REPORT_TYPES } from '../lib/reportTypes'
 import { usePlan } from '../lib/planStore'
 import { PHOTOS_VISIBLE, photosFor } from '../lib/photos'
-import { publicNeedsCheck, publicNote, publicRatingSource, publicSurvey } from '../lib/displayText'
+import { publicRatingSource } from '../lib/displayText'
 import { STATUS_LABEL, userName } from '../lib/reportStore'
 import type { Barrier, Rating, Report } from '../types'
-import { Sentences } from '../components/Sentences'
-
-const KIND_LABEL = { point: '점', line: '선', area: '영역', group: '여러 점' } as const
 
 type Props = {
   barrier: Barrier
@@ -41,9 +38,6 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
   const impact = impactOf(b, parent)
   // 리뷰어에게 보이는 문구: 팀 내부 메모(팀원 이름·조사 문서 장 번호 등)는 표시 단계에서 걸러 낸다.
   const parentSource = publicRatingSource(parent?.ratingSource)
-  const noteRaw = publicNote(b.note)
-  const note = noteRaw && noteRaw.length <= 60 ? noteRaw : null // 긴 조사 메모는 시민 화면에서 숨긴다
-  const needsCheck = publicNeedsCheck(b.needsCheck)
   const showPhotos = PHOTOS_VISIBLE && photosFor(b.id).length > 0
   // 7단계: 시범 정류장은 실제 BIS 정류소와 짝지어 둔 것이 있으면 저상버스 도착 정보를 보여 준다(없으면 이 구역은 나오지 않음)
   const stopEntry = PILOT_STOPS.items[b.id]
@@ -71,7 +65,6 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
             상위 항목 {shortName(parent.id, parent.name)}의 평가{parentSource ? `(${parentSource})` : ''}를 따라 보여 줘요.
           </span>
         )}
-        {!rating && <span className="bm-meta">자료에 평가가 없어요.</span>}
       </p>
 
       <p className="bm-impact">
@@ -89,7 +82,7 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
       {stopEntry && (
         <section className="bus-sec" aria-label="저상버스 정보">
           <h3>저상버스 도착 정보</h3>
-          {stopEntry.status !== 'ok' && <p className="bm-meta">실제 정류소와 짝짓기가 애매해요: {stopEntry.note}.{stopEntry.matches.length > 1 ? ' 아래 방면을 눌러 맞는 쪽을 골라 주세요.' : ''}</p>}
+          {stopEntry.status !== 'ok' && stopEntry.matches.length > 1 && <p className="bm-meta">아래에서 방면을 골라 주세요.</p>}
           <BusArrivals
             key={b.id}
             choices={stopEntry.matches.map((m) => ({ stationId: m.stationId, name: m.name, next: m.next }))}
@@ -98,19 +91,10 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
         </section>
       )}
 
-      {b.provisional && (
-        <p className="bm-prov-box" role="note">
-          <span className="sent">위치는 카카오 장소 검색 결과를 임시로 쓴 것이에요.</span> <span className="sent">아직 확인 전이에요.</span>
-          {b.provisional.uncertain && <> <span className="sent">검색 결과가 정확하지 않아 다른 장소일 수 있어요.</span></>}
-          {b.provisional.lineAsPoint && <> <span className="sent">선 구간이지만 임시로 점 하나로 표시했어요.</span></>}
-        </p>
-      )}
-
       <dl>
         <dt>종류</dt>
         <dd>
-          {KIND_LABEL[b.kind]} · {b.type}
-          {b.provisional ? ' · 위치 임시' : b.locationStatus ? ' · 위치 미확정' : ''}
+          {b.type}
         </dd>
         {b.issue && (
           <>
@@ -118,40 +102,15 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
             <dd>{b.issue}</dd>
           </>
         )}
-        <dt>직접 잰 값</dt>
-        <dd>
-          {b.measurements.length > 0 ? (
-            <>
+        {b.measurements.length > 0 && (
+          <>
+            <dt>직접 잰 값</dt>
+            <dd>
               <ul>
                 {b.measurements.map((m) => (
                   <li key={m.label}>
                     {m.label}: {m.value}
                   </li>
-                ))}
-              </ul>
-              <span className="bm-meta">아이폰 AR로 잰 값이라 몇 cm 정도 오차가 있을 수 있어요.</span>
-            </>
-          ) : (
-            '자료에 잰 값이 없어요.'
-          )}
-        </dd>
-        <dt>조사 정보</dt>
-        <dd>
-          {publicSurvey(b.source, b.surveyedAt)}
-        </dd>
-        {note && (
-          <>
-            <dt>비고</dt>
-            <dd><Sentences as="span">{note}</Sentences></dd>
-          </>
-        )}
-        {needsCheck.length > 0 && (
-          <>
-            <dt>더 확인할 내용</dt>
-            <dd>
-              <ul>
-                {needsCheck.map((t) => (
-                  <li key={t}>{t}</li>
                 ))}
               </ul>
             </dd>
@@ -167,7 +126,7 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
         )}
       </dl>
 
-      {onStartFlow && (
+      {onStartFlow && (flowReport || b.geometry) && (
         <div className="rf-card">
           <strong>민원 접수 안내</strong>
           {flowReport ? (
@@ -181,7 +140,6 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
             </>
           ) : (
             <>
-              <p className="bm-meta">팀이 현장에서 조사한 지점이라 검증을 마친 것으로 보고, 바로 접수 안내를 보여 드려요.</p>
               <label className="rf-field">
                 어떤 문제인가요?
                 <select value={flowType} onChange={(e) => setFlowType(e.target.value)}>
@@ -200,11 +158,9 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
                   ))}
                 </select>
               </label>
-              {!b.reportType && <span className="bm-meta">자료만으로는 유형을 정하기 어려워서 직접 골라 주세요.</span>}
-              <button type="button" className="rf-primary" disabled={!flowType || !flowKind || !b.geometry} onClick={() => onStartFlow(flowType, flowKind)}>
+              <button type="button" className="rf-primary" disabled={!flowType || !flowKind} onClick={() => onStartFlow(flowType, flowKind)}>
                 이 지점 민원 시작하기
               </button>
-              {!b.geometry && <span className="bm-meta">위치가 정해지지 않은 지점은 시작할 수 없어요.</span>}
             </>
           )}
         </div>

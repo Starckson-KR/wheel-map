@@ -3,7 +3,7 @@ import ReportPhotos from './ReportPhotos'
 import SheetHandle from './SheetHandle'
 import ComplaintGuide from './ComplaintGuide'
 import ProcessSection from './ProcessSection'
-import { VERIFY_MODE, VERIFY_MODE_TEXT, VOTES_REQUIRED, canVerifierConfirm, canVote } from '../lib/config'
+import { VOTES_REQUIRED, canVerifierConfirm, canVote } from '../lib/config'
 import { RATING_STYLE } from '../lib/rating'
 import { fmtDate } from '../lib/caseMetrics'
 import { useRecurrence } from '../lib/useRecurrence'
@@ -171,8 +171,6 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
         </dd>
         <dt>검증</dt>
         <dd>
-          <span className="bm-meta">{VERIFY_MODE_TEXT[VERIFY_MODE]}</span>
-          <br />
           {canVote() && r.status !== 'merged' && (
             <>
               시민 {v.votes}/{VOTES_REQUIRED}명이 확인했어요

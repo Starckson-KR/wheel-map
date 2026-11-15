@@ -281,7 +281,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
             <li key={i} className={h.status}>
               <span className={'rp-badge rp-' + h.status}>{STATUS_LABEL[h.status]}</span>
               <span className="bm-meta"> {fmt(h.at)} · {userName(h.by)}</span>
-              {h.memo && <div>{h.memo}</div>}
+              {h.memo && h.memo !== STATUS_LABEL[h.status] && <div>{h.memo}</div>}
             </li>
           ))}
         </ol>

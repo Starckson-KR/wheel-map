@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { sheetHost } from '../lib/sheetHost'
 import { DEMO_USERS, useReports } from '../lib/reportStore'
 import type { Barrier } from '../types'
 import SheetHandle from './SheetHandle'
@@ -282,7 +283,7 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
             </div>
           </div>
         </>,
-          document.querySelector('.bm') ?? document.body,
+          sheetHost(),
         )}
     </>
   )

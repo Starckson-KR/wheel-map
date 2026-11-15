@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { sheetHost } from '../lib/sheetHost'
 import { getTextSize, getTheme, getView, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
 import SheetHandle from './SheetHandle'
 import { Sentences } from './Sentences'
@@ -107,7 +108,7 @@ export default function ViewSettings({ floating = false }: { floating?: boolean 
               </div>
             </div>
           </>,
-          document.querySelector('.bm') ?? document.body,
+          sheetHost(),
         )}
     </>
   )

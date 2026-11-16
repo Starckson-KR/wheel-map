@@ -109,8 +109,9 @@ h4 {
 }
 
 @media (hover: hover) and (pointer: fine) {
+  /* background-color만 바꾼다. background 줄임말은 닫기·이전 아이콘(background-image)을 지운다. */
   .bm button:hover:not(:disabled) {
-    background: var(--grey-200);
+    background-color: var(--grey-200);
   }
 }
 
@@ -741,3 +742,9 @@ html[data-text='large'] .bn-sum { font-size: var(--fs-small); }
 .bm .rp-tabs--chips button { min-height: 36px; padding: 0 var(--s-3); border-radius: var(--r-full); border-bottom: 0; margin-bottom: 0; font-size: var(--fs-small); }
 .bm .rp-tabs--chips button.on { background: var(--primary-weak); color: var(--primary); }
 .pg-agencies strong, .pg-agencies .bm-meta { word-break: keep-all; }
+
+/* 사진: 한 줄로 옆으로 넘겨 본다(3+1 배치 없음) */
+.bm-thumbs { display: flex; gap: var(--s-2); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+.bm-thumbs::-webkit-scrollbar { display: none; }
+.bm .bm-thumbs .bm-thumb { flex: none; width: 46%; scroll-snap-align: start; }
+.ba .bm-thumbs .bm-thumb { width: 46%; }

@@ -345,3 +345,8 @@
 @media (prefers-reduced-motion: reduce) {
   html:not(.motion-force) .ch-track i { transition: none; }
 }
+
+/* 챌린지 버튼: 다크에서도 면이 보이게 파란 연한 면 + 파란 글자 */
+.bm button.ch-go { background: var(--primary-weak); color: var(--primary); font-weight: 700; }
+.bm button.ch-go:hover:not(:disabled) { background: var(--primary-weak); }
+.ch-row { border: 0; }

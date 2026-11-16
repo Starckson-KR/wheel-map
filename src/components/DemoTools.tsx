@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
 import { DEMO_USERS, useReports } from '../lib/reportStore'
 import type { Barrier } from '../types'
+import Icon from './Icon'
 import SheetHandle from './SheetHandle'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { getMotionForce, setMotionForce } from '../lib/viewPrefs'
@@ -38,13 +39,14 @@ export function MockStrip() {
 }
 
 type Props = {
+  row?: boolean // 설정 시트의 행 오른쪽: 화살표 아이콘만
   page: 'map' | 'admin'
   onReset: () => void
   barriers: Barrier[]
 }
 
 // 발표용 장치(시연 사용자·접수 방식·시간 앞당기기·시연 데이터)를 한곳에 모았다. 일반 화면에는 버튼 하나만 보인다.
-export default function DemoTools({ page, onReset, barriers }: Props) {
+export default function DemoTools({ page, onReset, barriers, row = false }: Props) {
   const [open, setOpen] = useState(false)
   const [msg, setMsg] = useState('')
   const [motion, setMotion] = useState(getMotionForce)
@@ -116,8 +118,8 @@ export default function DemoTools({ page, onReset, barriers }: Props) {
 
   return (
     <>
-      <button type="button" className="hm-tool" onClick={() => setOpen(true)} aria-haspopup="dialog">
-        시연 도구
+      <button type="button" className={row ? 'hm-tool hm-tool-row' : 'hm-tool'} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={row ? '시연 도구 열기' : undefined}>
+        {row ? <Icon name="chev" size={18} /> : '시연 도구'}
       </button>
       {open &&
         createPortal(

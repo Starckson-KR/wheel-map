@@ -164,15 +164,15 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
         <ul className="pg-set">
           <li>
             <span>화면 설정<small>다크·라이트, 앱·PC 보기</small></span>
-            <ViewSettings />
+            <ViewSettings row />
           </li>
           <li>
             <span>시연 도구<small>발표용 설정이에요</small></span>
-            <DemoTools page="map" onReset={onReset} barriers={BARRIERS} />
+            <DemoTools row page="map" onReset={onReset} barriers={BARRIERS} />
           </li>
           <li>
             <span>행정 화면<small>담당 공무원용 화면이에요</small></span>
-            <button type="button" className="hm-tool" onClick={() => { onClose(); go(TO.admin) }}>열기</button>
+            <button type="button" className="hm-tool hm-tool-row" aria-label="행정 화면 열기" onClick={() => { onClose(); go(TO.admin) }}><Icon name="chev" size={18} /></button>
           </li>
         </ul>
       </div>
@@ -225,10 +225,8 @@ export default function HomePage() {
     el?.querySelector('button')?.focus({ preventScroll: true })
   }
   const guide = GUIDES.find((g) => g.id === gid) ?? GUIDES[0]
-  const gi = GUIDES.findIndex((g) => g.id === guide.id)
   const lines = more ? guide.lines : guide.lines.slice(0, FOLDED)
   const canMore = guide.lines.length > FOLDED
-  const slide = (d: number) => setGid(GUIDES[Math.min(GUIDES.length - 1, Math.max(0, gi + d))].id)
   // 고른 항목이 칩 줄 안에서 보이도록 맞춘다
   const shownGid = useRef(gid)
   useEffect(() => {
@@ -270,8 +268,6 @@ export default function HomePage() {
               <button type="button" aria-label="북구동행지도 홈" onClick={() => go(TO.home)}>북구동행지도</button>
             </h1>
             <div className="pg-icons">
-              <button type="button" className="pg-ic" aria-label="혜택알림" onClick={() => go(TO.alerts)}><Icon name="bell" size={22} /><span>알림</span></button>
-              <button type="button" className="pg-ic" aria-label="내 정보" onClick={() => go(TO.me)}><Icon name="user" size={22} /><span>내 정보</span></button>
               <button type="button" className="pg-ic" aria-label="설정" aria-haspopup="dialog" onClick={() => { setMenu(false); setSettings(true) }}><Icon name="gear" size={22} /><span>설정</span></button>
               <button type="button" className="pg-ic" aria-label="전체메뉴 열기" aria-haspopup="dialog" onClick={() => { setSettings(false); setMenu(true) }}><Icon name="menu" size={22} /><span>전체메뉴</span></button>
             </div>
@@ -345,10 +341,6 @@ export default function HomePage() {
           <section aria-labelledby="h-guide">
             <div className="hp-tabrow">
               <h2 id="h-guide" className="hp-tab"><span>상황별 이동 가이드 <Icon name="chev" size={14} /></span></h2>
-              <div className="hp-arrows">
-                <button type="button" aria-label="이전 항목" disabled={gi <= 0} onClick={() => slide(-1)}><Icon name="chevL" size={16} /></button>
-                <button type="button" aria-label="다음 항목" disabled={gi >= GUIDES.length - 1} onClick={() => slide(1)}><Icon name="chev" size={16} /></button>
-              </div>
             </div>
             <div className="hp-board">
               <ul className="hp-chips" ref={chipsRef}>

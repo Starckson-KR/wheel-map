@@ -19,3 +19,6 @@ test('남는 것이 없으면 null', () => {
   assert.equal(publicIssue('출입구 확인 안 됨'), null)
   assert.equal(publicIssue(undefined), null)
 })
+test('"부록:" 표기만 뗀다', () => {
+  assert.equal(publicIssue('노면 불량(크랙·점자블록). 부록: 크랙 다수, 점자블록 끊김'), '노면 불량(크랙·점자블록). 크랙 다수, 점자블록 끊김')
+})

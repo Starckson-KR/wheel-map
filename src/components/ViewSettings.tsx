@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
 import { getTextSize, getTheme, getView, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
+import Icon from './Icon'
 import SheetHandle from './SheetHandle'
-import { Sentences } from './Sentences'
 
 const VIEWS: { id: ViewMode; label: string }[] = [
   { id: 'auto', label: '자동' },
@@ -22,15 +22,15 @@ const TEXTS: { id: TextSize; label: string }[] = [
 ]
 
 // 화면 설정(보기 방식·화면 색). 처음부터 팝업으로 띄우지 않고, 버튼을 눌렀을 때만 열린다.
-export default function ViewSettings({ floating = false }: { floating?: boolean }) {
+export default function ViewSettings({ floating = false, row = false }: { floating?: boolean; row?: boolean }) {
   const [open, setOpen] = useState(false)
   const [view, setV] = useState(getView)
   const [theme, setT] = useState(getTheme)
   const [text, setTx] = useState(getTextSize)
   return (
     <>
-      <button type="button" className={floating ? 'hm-tool vs-float' : 'hm-tool'} onClick={() => setOpen(true)} aria-haspopup="dialog">
-        화면
+      <button type="button" className={floating ? 'hm-tool vs-float' : row ? 'hm-tool hm-tool-row' : 'hm-tool'} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={row ? '화면 설정 열기' : undefined}>
+        {row ? <Icon name="chev" size={18} /> : '화면'}
       </button>
       {open &&
         createPortal(
@@ -46,7 +46,7 @@ export default function ViewSettings({ floating = false }: { floating?: boolean 
                   닫기
                 </button>
               </div>
-              <div className="ms-sec">
+              <div className="ms-sec ms-view">
                 <h3>보기 방식</h3>
                 <div className="rf-seg" role="group" aria-label="보기 방식">
                   {VIEWS.map((v) => (
@@ -64,7 +64,6 @@ export default function ViewSettings({ floating = false }: { floating?: boolean 
                     </button>
                   ))}
                 </div>
-                <Sentences as="p" className="bm-meta">자동은 창 너비에 맞춰요. 모바일은 PC에서도 폰 크기로 보여 줘요.</Sentences>
               </div>
               <div className="ms-sec">
                 <h3>화면 색</h3>

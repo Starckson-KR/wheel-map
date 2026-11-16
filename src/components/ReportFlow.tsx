@@ -12,6 +12,7 @@ import type { Barrier } from '../types'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { prefersCalm } from '../lib/viewPrefs'
 import { Sentences } from './Sentences'
+import ReportTypeIcon from './ReportTypeIcon'
 import '../styles/review.css'
 
 export type Loc = { lat: number; lng: number }
@@ -66,6 +67,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const [curbCm, setCurbCm] = useState('')
   const [locationKind, setLocationKind] = useState('')
   const [locSource, setLocSource] = useState<'gps' | 'map' | null>(null)
+  const pickStart = useRef<{ source: 'gps' | 'map' | null; location: Loc | null } | null>(null) // 지도에서 고르기 시작할 때의 상태
   const [gpsBusy, setGpsBusy] = useState(false)
   const [gpsMsg, setGpsMsg] = useState('')
   const [photoMsg, setPhotoMsg] = useState('')
@@ -79,6 +81,13 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
     photosRef.current = photos
   }, [photos])
 
+  // 지도에서 고르기를 취소하고 돌아왔는데 위치가 그대로면 눌림 표시도 이전으로 돌린다
+  useEffect(() => {
+    const st = pickStart.current
+    if (hidden || !st) return
+    pickStart.current = null
+    if (location === st.location) setLocSource(st.source)
+  }, [hidden, location])
   useEffect(() => () => photosRef.current.forEach((p) => URL.revokeObjectURL(p.url)), [])
 
   // 단계가 바뀌면 맨 위부터 보여 준다
@@ -260,7 +269,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   }
 
   const cancel = async () => {
-    if (!done && (type || photos.length || description) && !(await confirmSheet({ title: '제보를 그만 쓸까요?', body: '작성 중인 내용이 사라져요.', confirmLabel: '닫기', cancelLabel: '계속 쓰기', danger: true }))) return
+    if (!done && (type || photos.length || description) && !(await confirmSheet({ title: '신고를 그만 쓸까요?', body: '작성 중인 내용이 사라져요.', confirmLabel: '그만 쓰기', cancelLabel: '계속 쓰기', danger: true }))) return
     onClose()
   }
 
@@ -281,7 +290,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
         </button>
       </div>
       {!done && (
-        <div className="rf-progress" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} aria-valuetext={`4단계 중 ${step}단계`} aria-label="제보 진행 단계">
+        <div className="rf-progress" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} aria-valuetext={`4단계 중 ${step}단계`} aria-label="신고 진행 단계">
           <i style={{ transform: `scaleX(${step / 4})` }} />
         </div>
       )}
@@ -290,10 +299,10 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
         <div className="rf-body">
           <div className="rf-done rv-done" role="status">
             <span className="rf-done-mark" aria-hidden="true" />
-            <h2 className="rf-q">{done.merged ? '기존 건에 합쳐서 등록했어요' : '제보를 등록했어요'}</h2>
-            <span className="rv-no">제보 번호 {reportNo(done.id)}</span>
+            <h2 className="rf-q">{done.merged ? '기존 건에 합쳐서 등록했어요' : '신고를 등록했어요'}</h2>
+            <span className="rv-no">신고 번호 {reportNo(done.id)}</span>
             <Sentences as="p">{done.merged
-                ? '기존 건의 제보 목록에 추가됐어요.'
+                ? '기존 건의 신고 목록에 추가됐어요.'
                 : '지금은 "검증 대기" 상태예요. 다른 시민이 확인하면 지도에 나타나요.'}</Sentences>
             {!done.merged && (
               <>
@@ -309,7 +318,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     <span className="n" aria-hidden="true">2</span>
                     <span>
                       <strong>기관 접수</strong>
-                      <span className="t">검증된 제보는 담당 기관에 접수하는 방법을 안내해요.</span>
+                      <span className="t">검증된 신고는 담당 기관에 접수하는 방법을 안내해요.</span>
                     </span>
                   </li>
                   <li>
@@ -321,11 +330,11 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   </li>
                 </ol>
                 <Sentences as="p" className="rv-tip">
-                  다른 리뷰어가 내 제보를 확인해 줄 수 있어요.
+                  다른 리뷰어가 내 신고를 확인해 줄 수 있어요.
                 </Sentences>
               </>
             )}
-            {done.photoFailed && <Sentences as="p" className="rf-warn">일부 사진은 이 브라우저에 저장하지 못했어요. 제보 기록은 저장됐어요.</Sentences>}
+            {done.photoFailed && <Sentences as="p" className="rf-warn">일부 사진은 이 브라우저에 저장하지 못했어요. 신고 기록은 저장됐어요.</Sentences>}
           </div>
           <div className="rf-actions">
             <button type="button" onClick={() => onOpenReport(done.id)}>
@@ -361,7 +370,6 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 <fieldset key={cat} className="rf-group">
                   <legend>
                     {CATEGORY_LABEL[cat]}
-                    {cat === 'temporary' && <span className="bm-meta"> · 등록 후 {TEMP_VALID_HOURS}시간 동안 유효해요</span>}
                   </legend>
                   <div className="rf-types">
                     {REPORT_TYPES.filter((t) => t.category === cat).map((t) => (
@@ -373,7 +381,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                         onClick={() => setType(t.type)}
                       >
                         <span className="rf-icon" aria-hidden="true">
-                          {t.icon}
+                          <ReportTypeIcon type={t.type} size={22} />
                         </span>
                         <span className="rf-type-text">
                           <strong>{t.type}</strong>
@@ -396,7 +404,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
           {step === 2 && info && (
             <>
               <section className="rf-sec">
-                <div className="rf-seg" role="group" aria-label="위치 정하는 방법">
+                <div className="rf-locbtns" role="group" aria-label="위치 정하는 방법">
                   <button type="button" className={locSource === 'gps' ? 'on' : ''} onClick={locate} disabled={gpsBusy} aria-pressed={locSource === 'gps'}>
                     {gpsBusy ? '확인하고 있어요…' : '현재 위치'}
                   </button>
@@ -405,6 +413,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     className={locSource === 'map' ? 'on' : ''}
                     aria-pressed={locSource === 'map'}
                     onClick={() => {
+                      pickStart.current = { source: locSource, location }
                       setLocSource('map')
                       onPickStart()
                     }}
@@ -507,7 +516,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 )}
                 {photos.length < PHOTO_MAX_COUNT && (
                   <div className="rv-sample">
-                    <Sentences as="p">올릴 사진이 없나요? 체험용 그림으로 끝까지 해 볼 수 있어요. 제보에 &quot;샘플 사진&quot;이라고 표시돼요.</Sentences>
+                    <Sentences as="p">올릴 사진이 없나요? 체험용 그림으로 끝까지 해 볼 수 있어요. 신고에 &quot;샘플 사진&quot;이라고 표시돼요.</Sentences>
                     <div className="rv-sample-btns">
                       {SAMPLE_SCENES.map((s) => (
                         <button key={s.id} type="button" disabled={sampleBusy} onClick={() => addSample(s.id)}>
@@ -624,7 +633,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
             <>
               {duplicates.length > 0 && (
                 <section className="rf-card rf-dup" aria-label="중복 확인">
-                  <strong>이미 제보된 곳일 수 있어요</strong>
+                  <strong>이미 신고된 곳일 수 있어요</strong>
                   <Sentences as="p">{`같은 유형(${info.type})이 반경 15m 안에 있어요. 같은 곳이라면 기존 건에 합쳐 주세요.`}</Sentences>
                   {duplicates.map((d) => (
                     <div key={d.id} className="rf-dup-item">
@@ -632,7 +641,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                         <strong>{d.label}</strong> · {d.type}
                         <br />
                         <span className="bm-meta">
-                          {dist(d.distanceM)} 떨어져 있어요{d.at ? ` · ${new Date(d.at).toLocaleDateString('ko-KR')} 제보` : ''}
+                          {dist(d.distanceM)} 떨어져 있어요{d.at ? ` · ${new Date(d.at).toLocaleDateString('ko-KR')} 신고` : ''}
                         </span>
                       </span>
                       <button type="button" className="rf-primary rf-nowrap" disabled={busy} onClick={() => submit(d.id)}>

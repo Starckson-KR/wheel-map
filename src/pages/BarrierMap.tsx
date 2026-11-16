@@ -87,7 +87,6 @@ function HomeListRow({ r, onPick }: { r: HomeRow; onPick: (r: HomeRow) => void }
         <i className="lr-glyph" style={{ background: st.color, color: st.ink }}>
           {st.glyph}
         </i>
-        {r.impact !== 'zone' && <i className="lr-kind" aria-hidden="true">{IMPACT_INFO[r.impact].glyph}</i>}
         <span className="lr-main">
           <span className="lr-title">{listTitle(title)}</span>
           <span className="lr-sub">{sub}</span>
@@ -202,6 +201,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [flowOpen, setFlowOpen] = useState(start.go === 'report')
   const [picking, setPicking] = useState(false)
   const [draftPos, setDraftPos] = useState<Loc | null>(null)
+  const pickBackup = useRef<Loc | null>(null) // 위치 고르기를 시작할 때의 위치(취소하면 되돌린다)
   const [panelOpen, setPanelOpen] = useState(start.go === 'reports')
   const [rewardsOpen, setRewardsOpen] = useState(start.go === 'rewards')
   const [progressOpen, setProgressOpen] = useState(start.go === 'progress') // 개선 현황 목록 패널
@@ -1669,6 +1669,15 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         {picking && (
           <div className="rf-pick" role="status">
             <Sentences as="span">지도를 눌러 위치를 정해 주세요. 마커를 끌어 옮길 수도 있어요.</Sentences>
+            <button
+              type="button"
+              onClick={() => {
+                setDraftPos(pickBackup.current)
+                setPicking(false)
+              }}
+            >
+              취소
+            </button>
             <button type="button" className="rf-primary" disabled={!draftPos} onClick={() => setPicking(false)}>
               이 위치로 정하기
             </button>
@@ -1679,7 +1688,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           <ReportFlow
             location={draftPos}
             onLocation={setDraftPos}
-            onPickStart={() => setPicking(true)}
+            onPickStart={() => {
+              pickBackup.current = draftPos
+              setPicking(true)
+            }}
             hidden={picking}
             seeds={BARRIERS}
             onClose={closeFlow}

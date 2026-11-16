@@ -289,7 +289,6 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
         <>
           <div className="ob-body">
             <Title>계정이 있으세요?</Title>
-            <Sentences as="p" className="ob-sub">피드백 기간에만 쓰는 체험 계정이에요.</Sentences>
             <div className="ob-list">
               <PressButton type="button" className="ob-opt" onClick={() => { setMode('login'); setNotice(null); goTo('name') }}>
                 <span className="ob-opt-main">

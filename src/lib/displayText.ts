@@ -49,7 +49,7 @@ export function publicNeedsCheck(items?: string[]): string[] {
 /** 문제 요약: 앞머리 "미흡(서술):", 끝의 출처 괄호 "(… 진술)", "○○ 확인 안 됨" 항목을 화면에서만 뗀다. 남는 것이 없으면 null. */
 export function publicIssue(issue?: string): string | null {
   if (!issue) return null
-  const text = issue.replace(/^[가-힣]+\(서술\):\s*/, '').replace(/\s*\([^()]*진술\)/g, '')
+  const text = issue.replace(/^[가-힣]+\(서술\):\s*/, '').replace(/\s*\([^()]*진술\)/g, '').replace(/(^|\s)부록\s*:\s*/g, '$1')
   const parts: string[] = []
   let depth = 0
   let cur = ''

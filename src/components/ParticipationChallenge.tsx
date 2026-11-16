@@ -35,7 +35,6 @@ function Row({ c, children }: { c: Challenge; children?: React.ReactNode }) {
       <div className="ch-track" role="progressbar" aria-label={t.title} aria-valuemin={0} aria-valuemax={c.goal} aria-valuenow={shown} aria-valuetext={`${c.goal}번 중 ${shown}번${c.done ? ', 완료' : ''}`}>
         <i style={{ width: `${(shown / c.goal) * 100}%` }} />
       </div>
-      <p className="bm-meta">{t.desc}</p>
       {children}
     </li>
   )

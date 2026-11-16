@@ -181,7 +181,7 @@ export default function AdminPage() {
     <div className="bm adm">
       <header className="adm-top">
         <div className="adm-brand">
-          <button type="button" onClick={() => (location.hash = '#/map')}>
+          <button type="button" className="adm-tomap" onClick={() => (location.hash = '#/map')}>
             지도로
           </button>
           <h1>북구동행지도 · 행정</h1>
@@ -251,6 +251,7 @@ export default function AdminPage() {
                   <div className="empty-act">
                     <button
                       type="button"
+                      className="adm-fill"
                       onClick={() => {
                         const n = fillDemo(BARRIERS)
                         toast(n > 0 ? `시연 데이터 ${n}건을 채웠어요.` : '시연 데이터가 이미 있어요.')

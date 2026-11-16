@@ -401,10 +401,9 @@
   gap: var(--s-1);
   min-height: 60px;
   padding: 2px 6px 2px var(--s-5);
-  border: 2px solid transparent;
+  border: 0;
   border-radius: var(--r-full);
-  background: linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(90deg, var(--hp-g1), var(--hp-g2)) border-box;
-  box-shadow: var(--shadow-1);
+  background: var(--grey-100);
 }
 .hp-ask:focus-within { box-shadow: var(--focus-ring); }
 .bm .hp-ask .hp-ask-in:focus, .bm .hp-ask .hp-ask-in:focus-visible { box-shadow: none; outline: none; border: 0; background: none; }
@@ -817,3 +816,13 @@
 :root[data-theme='dark'] .bm button.hp-n-blue { background: var(--bg-sub); color: var(--text-strong); }
 .hp-news-empty { margin: 0; color: var(--text-sub); font-size: var(--fs-small); }
 .hp-news:empty { display: none; }
+
+/* 그림자 줄이기: 칩·타일·안내 줄은 면 색만 */
+.bm button.hp-ai-chip, .bm button.hp-chip, .bm button.hp-tile, .hp-notice { box-shadow: none; }
+
+/* 설정 시트 행: 오른쪽은 화살표 아이콘만(행 전체가 눌린다) */
+/* position: static — 버튼의 ::after(inset 0)가 li 기준으로 펼쳐져 행 전체가 눌린다. */
+.bm .pg-set button.hm-tool-row { position: static; flex: none; width: 32px; min-width: 32px; padding: 0; display: grid; place-items: center; background: none; color: var(--text-sub); overflow: hidden; }
+.pg-set > li { position: relative; }
+/* 누를 때 scale이 걸리면 버튼이 ::after의 기준이 되어 행 전체 영역이 줄어든다(클릭이 li로 빠짐). */
+.bm .pg-set button.hm-tool-row:active { transform: none; }

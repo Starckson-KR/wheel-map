@@ -780,3 +780,9 @@
 }
 
 .rf .rf-actions > button.rf-primary:only-child { width: 100%; }
+
+/* 위치 정하는 방법: 따로 떨어진 버튼 두 개 */
+.rf-locbtns { display: flex; gap: var(--s-2); }
+.bm .rf-locbtns button { flex: 1; min-height: 48px; border-radius: var(--r-md); background: var(--primary-weak); color: var(--primary); font-weight: 700; }
+.bm .rf-locbtns button:hover:not(:disabled) { background: var(--primary-weak); }
+.bm .rf-locbtns button.on { background: var(--primary); color: var(--on-primary); }

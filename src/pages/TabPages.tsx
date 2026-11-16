@@ -20,6 +20,7 @@ import type { ReportStatus } from '../types'
 import { loadBarriers } from '../lib/seed'
 import AccountCard from '../components/onboarding/AccountCard'
 import { Sentences } from '../components/Sentences'
+import { Wordmark } from '../components/Wordmark'
 
 const BARRIERS = loadBarriers()
 
@@ -51,8 +52,8 @@ function Page({ title, children }: { title: string; children: React.ReactNode })
           <MockStrip />
           <header className="pg-top">
             <h1 className="pg-brand">
-              <button type="button" aria-label="북구동행지도 홈으로" onClick={() => go(TO.home)}>
-                북구동행지도
+              <button type="button" aria-label="이의있음 홈으로" onClick={() => go(TO.home)}>
+                <Wordmark decorative />
               </button>
             </h1>
           </header>

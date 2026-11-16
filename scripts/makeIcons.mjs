@@ -1,4 +1,4 @@
-// 홈 화면 아이콘 만들기. 사용법: node scripts/makeIcons.mjs <시안번호 1|2|3> [시안 폴더]
+// 홈 화면 아이콘 만들기. 사용법: node scripts/makeIcons.mjs <시안번호 1|2|3|4> [시안 폴더]
 // 시안 SVG(icon-N.svg)를 headless Chrome으로 그려 public/icons/ 의 PNG와 public/favicon.svg를 갈아 끼운다.
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -8,8 +8,8 @@ import os from 'node:os'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const num = process.argv[2]
-if (!['1', '2', '3'].includes(num)) {
-  console.error('사용법: node scripts/makeIcons.mjs <1|2|3> [시안 폴더]')
+if (!['1', '2', '3', '4'].includes(num)) {
+  console.error('사용법: node scripts/makeIcons.mjs <1|2|3|4> [시안 폴더]')
   process.exit(1)
 }
 const designDir = resolve(process.argv[3] ?? join(root, 'scripts', 'icons'))

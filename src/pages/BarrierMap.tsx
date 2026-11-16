@@ -46,6 +46,7 @@ import {
   type PubLayerId,
 } from '../lib/publicLayers'
 import { Sentences } from '../components/Sentences'
+import { Wordmark } from '../components/Wordmark'
 
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
@@ -1383,7 +1384,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   return (
     <div className="bm">
       <div className="bm-main">
-        <div ref={container} className="map" role="application" aria-label="북구동행지도" />
+        <div ref={container} className="map" role="application" aria-label="이의있음!" />
         {state.status === 'loading' && <p className="map-notice">지도를 불러오고 있어요…</p>}
         {state.status === 'error' && (
           <p className="map-notice map-notice-error" role="alert">
@@ -1396,8 +1397,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           <div className="hm-card">
             <div className="hm-bar hm-bar--desk">
               <h1 className="hm-brand">
-                <button type="button" className="hm-brand-btn" aria-label="북구동행지도 홈으로" onClick={() => { location.hash = '#/' }}>
-                  북구동행지도
+                <button type="button" className="hm-brand-btn" aria-label="이의있음 홈으로" onClick={() => { location.hash = '#/' }}>
+                  <Wordmark decorative />
                 </button>
               </h1>
             </div>

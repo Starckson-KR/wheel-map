@@ -71,6 +71,6 @@ export function buildComplaintText(args: { r: Report; address: string | null; ag
   lines.push('')
   lines.push('요청 사항: 현장을 확인해 주시고, 휠체어가 통행할 수 있도록 개선 또는 정비해 주시기 바랍니다. 조치 후 처리 결과를 회신해 주시면 감사하겠습니다.')
   lines.push('')
-  lines.push('※ 이 문안은 북구동행지도(발표용 프로토타입)에서 자동 작성되었습니다. 국민신문고·안전신문고를 대체하지 않으며, 실제 접수는 해당 채널에서 이루어집니다.')
+  lines.push('※ 이 문안은 이의있음!(발표용 프로토타입)에서 자동 작성되었습니다. 국민신문고·안전신문고를 대체하지 않으며, 실제 접수는 해당 채널에서 이루어집니다.')
   return lines.join('\n')
 }

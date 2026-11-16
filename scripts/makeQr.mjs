@@ -27,7 +27,7 @@ for (let y = 0; y < n; y++) {
   }
 }
 const size = n + margin * 2
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges" role="img" aria-label="북구동행지도 주소 QR 코드"><rect width="${size}" height="${size}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges" role="img" aria-label="이의있음! 주소 QR 코드"><rect width="${size}" height="${size}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`
 
 const icon = 'data:image/svg+xml;base64,' + Buffer.from(readFileSync(join(root, 'public', 'favicon.svg'))).toString('base64')
 
@@ -39,7 +39,7 @@ const html = `<!doctype html>
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f2f4f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#17171c" media="(prefers-color-scheme: dark)">
-<title>북구동행지도</title>
+<title>이의있음!</title>
 <style>
 :root{--bg:#f2f4f6;--card:#fff;--text:#191f28;--sub:#6b7684;--chip:#e8f3ff;--chip-text:#1f6de3;--shadow:0 8px 32px rgba(25,31,40,.08)}
 @media (prefers-color-scheme:dark){:root{--bg:#17171c;--card:#202027;--text:#f9fafb;--sub:#a0a8b3;--chip:#1c2a40;--chip-text:#8dbcff;--shadow:0 8px 32px rgba(0,0,0,.4)}}
@@ -59,7 +59,7 @@ h1{margin:0;font-size:clamp(24px,4.6vh,34px);font-weight:700;letter-spacing:-.02
 </head>
 <body>
 <main>
-<div class="brand"><img src="${icon}" alt=""><h1>북구동행지도</h1></div>
+<div class="brand"><img src="${icon}" alt=""><h1>이의있음!</h1></div>
 <div class="qr">${svg}</div>
 <p class="guide">휴대폰 카메라로 찍어 들어와 주세요.</p>
 <p class="url">starckson-kr.github.io/wheel-map</p>

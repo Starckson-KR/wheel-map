@@ -20,6 +20,7 @@ import { homeCount, loadPrefs } from '../lib/benefits'
 import { loadPubDataset } from '../lib/publicLayers'
 import { pickCandidates } from '../lib/demoLarge'
 import { Sentences } from '../components/Sentences'
+import { Wordmark } from '../components/Wordmark'
 
 const TILES = [
   { icon: 'report', label: '문제 신고하기', to: TO.newReport },
@@ -265,7 +266,7 @@ export default function HomePage() {
           <MockStrip />
           <header className="pg-top">
             <h1 className="pg-brand">
-              <button type="button" aria-label="북구동행지도 홈" onClick={() => go(TO.home)}>북구동행지도</button>
+              <button type="button" aria-label="이의있음 홈" onClick={() => go(TO.home)}><Wordmark decorative /></button>
             </h1>
             <div className="pg-icons">
               <button type="button" className="pg-ic" aria-label="설정" aria-haspopup="dialog" onClick={() => { setMenu(false); setSettings(true) }}><Icon name="gear" size={22} /><span>설정</span></button>

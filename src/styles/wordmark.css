@@ -1,0 +1,21 @@
+/* 워드마크 "이의있음!" — 글자는 currentColor, "!"만 브랜드 파랑 */
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+  --wordmark-bang: #3182f6;
+  --wordmark-bang-h: 0.96em; /* "!" 높이: Pretendard 기준 맨 위가 글자 윗선(0.81em)보다 약 0.06em 위 */
+  --wordmark-bang-drop: 0.09em; /* Pretendard 기준 글자 맨 아래가 기준선 아래 0.09em */
+}
+:root[data-theme='dark'] .wordmark {
+  --wordmark-bang: #4593fc;
+}
+.wordmark-bang {
+  flex: none;
+  height: var(--wordmark-bang-h);
+  width: auto;
+  margin-left: 0.06em;
+  position: relative;
+  top: var(--wordmark-bang-drop);
+  fill: var(--wordmark-bang);
+}

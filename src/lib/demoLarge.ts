@@ -693,7 +693,7 @@ export function parseDemoFile(text: string): ParsedDemo {
   } catch {
     return { ok: false, message: 'JSON 파일이 아니에요.' }
   }
-  if (!isObj(v) || v.format !== FILE_FORMAT) return { ok: false, message: '북구동행지도 시연 데이터 파일이 아니에요.' }
+  if (!isObj(v) || v.format !== FILE_FORMAT) return { ok: false, message: '이의있음! 시연 데이터 파일이 아니에요.' }
   if (v.version !== FILE_VERSION) return { ok: false, message: `지원하지 않는 버전이에요(${String(v.version)}).` }
   if (v.synthetic !== true) return { ok: false, message: '가상 데이터 표시(synthetic)가 없는 파일이에요.' }
   if (!isIso(v.generatedAt)) return { ok: false, message: '만든 날짜(generatedAt)가 올바르지 않아요.' }

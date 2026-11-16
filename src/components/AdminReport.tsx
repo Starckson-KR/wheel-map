@@ -144,7 +144,7 @@ export default function AdminReport({ caseName, onOpen }: Props) {
 
       <div className="adm-report-print">
         <header className="adm-report-head">
-          <h3>북구동행지도 민원 보고서 · {p.label}</h3>
+          <h3>이의있음! 민원 보고서 · {p.label}</h3>
           <span className="bm-meta">
             {fmtDate(p.from)} ~ {fmtDate(p.to - 1)} · 이전 기간({prevP.label}) 대비
           </span>

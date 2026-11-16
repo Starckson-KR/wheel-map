@@ -184,7 +184,7 @@ export default function AdminPage() {
           <button type="button" className="adm-tomap" onClick={() => (location.hash = '#/map')}>
             지도로
           </button>
-          <h1>북구동행지도 · 행정</h1>
+          <h1>이의있음! · 행정</h1>
         </div>
         <div className="adm-top-tools">
           <MockStrip />

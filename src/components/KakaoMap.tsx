@@ -39,7 +39,7 @@ export default function KakaoMap() {
 
   return (
     <div className="map-wrap">
-      <div ref={container} className="map" role="application" aria-label="북구동행지도" />
+      <div ref={container} className="map" role="application" aria-label="이의있음!" />
       {state.status === 'loading' && <p className="map-notice">지도를 불러오는 중입니다…</p>}
       {state.status === 'error' && (
         <p className="map-notice map-notice-error" role="alert">

@@ -11,6 +11,7 @@ import DevBadge from './components/DevBadge'
 import RewardToasts from './components/RewardToasts'
 import UiLayer from './components/UiLayer'
 import OnboardingGate from './components/onboarding/OnboardingGate'
+import UsageGuide from './components/UsageGuide'
 import { parseHash } from './lib/nav'
 import { FADE, PAGE_SHIFT, SPRING, TAB_ORDER } from './lib/motionTokens'
 
@@ -84,6 +85,7 @@ export default function App() {
       </div>
       {page === 'verify' && <ViewSettings floating />}
       <RewardToasts />
+      <UsageGuide />
       <UiLayer />
       <DevBadge />
     </OnboardingGate>

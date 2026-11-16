@@ -2,13 +2,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  afterAuth, authMessage, cleanName, dotIndex, isSkipHash, mobilityToWheelchair, nameOk, parsePreview, parseProfile, startScreen, toBenefitPrefs,
+  SCREENS, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, mobilityToWheelchair, nameOk, parsePreview, parseProfile, startScreen, toBenefitPrefs,
 } from '../src/components/onboarding/flow.ts'
+import { GUIDE_SLIDES, clampSlide, homeAfterClose } from '../src/lib/usageGuide.ts'
+import { RESET_KEYS, RESET_VERSION, RESET_VERSION_KEY, resetOnce } from '../src/lib/resetOnce.ts'
 import { effectiveLang, parseLang } from '../src/lib/i18n/index.ts'
 
-test('시작 화면: 로그인 안 됨 → 언어, 로그인만 → 이동 방식, 둘 다 → 앱', () => {
-  assert.equal(startScreen({ loggedIn: false, onboarded: false }), 'lang')
-  assert.equal(startScreen({ loggedIn: false, onboarded: true }), 'lang')
+test('시작 화면: 로그인 안 됨 → 첫 화면, 로그인만 → 이동 방식, 둘 다 → 앱', () => {
+  assert.equal(startScreen({ loggedIn: false, onboarded: false }), 'welcome')
+  assert.equal(startScreen({ loggedIn: false, onboarded: true }), 'welcome')
   assert.equal(startScreen({ loggedIn: true, onboarded: false }), 'mobility')
   assert.equal(startScreen({ loggedIn: true, onboarded: true }), null)
 })
@@ -67,4 +69,51 @@ test('언어: 영어는 번역이 없어 한국어로 안내', () => {
   assert.equal(parseLang('fr'), null)
   assert.equal(effectiveLang('en'), 'ko')
   assert.equal(effectiveLang(null), 'ko')
+})
+
+test('첫 화면은 단계 목록 맨 앞이고 진행 점이 없다', () => {
+  assert.equal(SCREENS[0], 'welcome')
+  assert.equal(dotIndex('welcome'), -1)
+  assert.deepEqual(parsePreview('#/onboarding-preview?step=welcome'), { on: true, step: 'welcome' })
+})
+
+test('사용법 슬라이드: 4장, 번호는 범위 안', () => {
+  assert.equal(GUIDE_SLIDES.length, 4)
+  assert.equal(clampSlide(-1), 0)
+  assert.equal(clampSlide(9), 3)
+})
+
+test('슬라이드를 닫으면 홈, 주소가 명시된 링크는 그대로', () => {
+  assert.equal(homeAfterClose(''), '#/')
+  assert.equal(homeAfterClose('#/map'), '#/')
+  assert.equal(homeAfterClose('#/map?go=report'), null)
+  assert.equal(homeAfterClose('#/map?report=abc'), null)
+  assert.equal(homeAfterClose('#/alerts?section=benefits'), null)
+  assert.equal(homeAfterClose('#/admin'), null)
+  assert.equal(homeAfterClose('#/verify?x=1'), null)
+})
+
+test('한 번만 초기화: 처음엔 지정한 키만 지우고 버전 저장, 두 번째는 그대로', () => {
+  const m = new Map<string, string>()
+  const store = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) }
+  for (const k of RESET_KEYS) m.set(k, 'x')
+  const keep = ['wheelmap.reports', 'wheelmap.addrCache', 'wheelmap.sync.pending', 'wheelmap.motionForce', 'wheelmap.dongCache']
+  for (const k of keep) m.set(k, 'data')
+  assert.ok(['wheelmap.session', 'wheelmap.onboarded', 'wheelmap.theme', 'wheelmap.guideSeen', 'wheelmap.demoUser'].every((k) => RESET_KEYS.includes(k)))
+  assert.equal(resetOnce(store), true)
+  for (const k of RESET_KEYS) assert.equal(m.has(k), false, k)
+  for (const k of keep) assert.equal(m.get(k), 'data', k)
+  assert.equal(m.get(RESET_VERSION_KEY), RESET_VERSION)
+  // 두 번째 실행: 다시 생긴 로그인 상태를 건드리지 않는다
+  m.set('wheelmap.session', 'again')
+  assert.equal(resetOnce(store), false)
+  assert.equal(m.get('wheelmap.session'), 'again')
+  // 다른 버전 값이면 다시 한 번
+  assert.equal(resetOnce(store, 'next'), true)
+  assert.equal(m.has('wheelmap.session'), false)
+})
+
+test('저장소가 막혀도 던지지 않는다', () => {
+  const bad = { getItem: () => { throw new Error('x') }, setItem: () => { throw new Error('x') }, removeItem: () => { throw new Error('x') } }
+  assert.equal(resetOnce(bad), false)
 })

@@ -8,6 +8,7 @@ import Icon from '../Icon'
 import { PressButton, SegBg } from '../motionKit'
 import { SPRING } from '../../lib/motionTokens'
 import PinPad from './PinPad'
+import WelcomeScreen from './WelcomeScreen'
 import Stage from './Stage'
 import { accountConnected, logIn, signUp, useGateAccount } from './accountAdapter'
 import {
@@ -16,6 +17,7 @@ import {
 } from './flow'
 import { CATEGORIES, savePrefs, type BenefitCategory } from '../../lib/benefits'
 import { getLang, setLang, type Lang } from '../../lib/i18n'
+import { ONBOARDED_EVENT } from '../../lib/usageGuide'
 import {
   getMotionForce, getTextSize, getTheme, PREFS_CHANGE_EVENT, prefersCalm, setMotionForce, setTextSize, setTheme, type TextSize, type ThemeMode,
 } from '../../lib/viewPrefs'
@@ -147,6 +149,8 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
   const finish = useCallback(() => {
     if (!preview.on) writeKey(ONBOARDED_KEY, '1')
     else location.hash = '#/'
+    // 초기 설정을 마친 직후: 사용법 슬라이드가 이 신호를 받아 한 번 뜬다
+    if (!preview.on) window.dispatchEvent(new Event(ONBOARDED_EVENT))
     setLeaving(true)
     window.clearTimeout(leaveTimer.current)
     leaveTimer.current = window.setTimeout(
@@ -256,6 +260,8 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
         {label}
       </PressButton>
     )
+
+    if (s === 'welcome') return <WelcomeScreen onStart={() => goTo('lang')} />
 
     if (s === 'lang') {
       return (

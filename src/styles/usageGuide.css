@@ -1,0 +1,126 @@
+/* 사용법 슬라이드(팝업). 색·간격·모서리는 tokens.css 값만 쓴다. 다크 모드는 토큰이 따라온다. */
+.ug-root {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-top: var(--safe-top);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  outline: none;
+  animation: ug-in 260ms var(--ease-out) backwards;
+}
+.ug-root * { box-sizing: border-box; }
+@keyframes ug-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.ug-head {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--s-2) var(--s-3) 0;
+}
+.ug-skip {
+  min-height: var(--touch);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-full);
+  background: none;
+  color: var(--text-sub);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+.ug-track {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.ug-track::-webkit-scrollbar { display: none; }
+.ug-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 0 var(--gutter);
+  text-align: center;
+}
+.ug-art {
+  display: grid;
+  place-items: center;
+  width: 176px;
+  height: 176px;
+  border-radius: 50%;
+  background: var(--primary-weak);
+  color: var(--primary);
+}
+.ug-text {
+  margin: 0;
+  max-width: 12em;
+  font-size: 1.5rem;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+  text-wrap: balance;
+}
+.ug-foot {
+  flex: none;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--s-3) var(--gutter) calc(var(--s-4) + var(--safe-bottom));
+}
+.ug-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: var(--s-4); }
+.ug-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--grey-300);
+  transition: width 240ms var(--ease-out), background-color 240ms var(--ease-out);
+}
+.ug-dot.is-cur { width: 22px; background: var(--primary); }
+.ug-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: var(--fs-sub);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out), transform var(--t-press) var(--ease-out);
+}
+.ug-next:active { transform: scale(0.98); }
+@media (hover: hover) { .ug-next:hover { background: var(--primary-hover); } }
+.ug-root :focus-visible:not([tabindex='-1']) { outline: none; box-shadow: var(--focus-ring); }
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-force) .ug-root { animation: none; }
+  html:not(.motion-force) .ug-track { scroll-behavior: auto; }
+  html:not(.motion-force) .ug-dot, html:not(.motion-force) .ug-next { transition: none; }
+  html:not(.motion-force) .ug-next:active { transform: none; }
+}

@@ -1,3 +1,4 @@
+import './lib/resetOnce' // 반드시 맨 첫 import: 배포 후 브라우저마다 한 번 로그인·초기 설정 상태를 지운다
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/tokens.css'

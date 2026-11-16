@@ -465,3 +465,46 @@
 .ob-opt.is-on .ob-radio { border: 0; }
 .ob-radio::after { width: 7px; height: 13px; margin-top: -3px; border: solid var(--primary); border-width: 0 3px 3px 0; border-radius: 0; background: none; transform: rotate(45deg) scale(0); }
 .ob-opt.is-on .ob-radio::after { transform: rotate(45deg) scale(1); }
+
+/* 첫 화면: 아이콘 + 이름 + 시작하기! */
+.ob-welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-6); overflow: hidden; text-align: center; }
+.ob-welcome-icon { width: min(52vw, 200px); height: auto; aspect-ratio: 1; border-radius: 22%; }
+.ob-welcome-name { margin: 0; font-size: 2.25rem; line-height: 1.2; font-weight: 800; letter-spacing: -0.03em; color: var(--text-strong); }
+
+/* 첫 화면 연출. 뒤 빛 덩어리는 미리 흐린 radial-gradient를 transform으로만 움직인다(filter 없음).
+   움직임 줄이기면 정지 화면, 시연 스위치(html.motion-force)가 켜져 있으면 그대로 움직인다. */
+.ob-welcome-bg { position: absolute; inset: 0; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 80px); mask-image: linear-gradient(to bottom, transparent, #000 80px); pointer-events: none; z-index: 0; --orb-blue: 49 130 246; --orb-red: 242 68 29; --orb-a: 0.2; --orb-c: 0.1; }
+:root[data-theme='dark'] .ob-welcome-bg { --orb-a: 0.3; --orb-c: 0.12; }
+.ob-orb { position: absolute; border-radius: 50%; will-change: transform; }
+.ob-orb-a { width: 420px; height: 420px; left: -140px; top: -90px; background: radial-gradient(circle closest-side, rgb(var(--orb-blue) / var(--orb-a)), rgb(var(--orb-blue) / 0)); animation: ob-orb-a 22s ease-in-out infinite; }
+.ob-orb-b { width: 460px; height: 460px; right: -200px; top: 38%; background: radial-gradient(circle closest-side, rgb(var(--orb-blue) / calc(var(--orb-a) * 0.8)), rgb(var(--orb-blue) / 0)); animation: ob-orb-b 18s ease-in-out infinite; }
+.ob-orb-c { width: 380px; height: 380px; left: -60px; bottom: -150px; background: radial-gradient(circle closest-side, rgb(var(--orb-red) / var(--orb-c)), rgb(var(--orb-red) / 0)); animation: ob-orb-c 25s ease-in-out infinite; }
+@keyframes ob-orb-a { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 33% { transform: translate3d(90px, 110px, 0) scale(1.12); } 66% { transform: translate3d(30px, 190px, 0) scale(0.94); } }
+@keyframes ob-orb-b { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 33% { transform: translate3d(-110px, -80px, 0) scale(1.08); } 66% { transform: translate3d(-40px, 70px, 0) scale(0.92); } }
+@keyframes ob-orb-c { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 33% { transform: translate3d(120px, -70px, 0) scale(1.1); } 66% { transform: translate3d(190px, 20px, 0) scale(0.95); } }
+
+.ob-welcome, .ob-welcome-foot { position: relative; z-index: 1; }
+.ob-welcome-icon { animation: ob-w-pop 620ms var(--ease-out) 60ms backwards; }
+.ob-welcome-name { animation: ob-w-up 380ms var(--ease-out) 320ms backwards; }
+.ob-welcome-foot { animation: ob-w-up 380ms var(--ease-out) 480ms backwards; }
+.ob-welcome-name .wordmark-bang circle { transform-box: fill-box; transform-origin: center; animation: ob-w-drop 460ms var(--ease-out) 420ms backwards; }
+@keyframes ob-w-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ob-w-pop { from { opacity: 0; transform: translateY(18px) scale(0.86); } to { opacity: 1; transform: none; } }
+@keyframes ob-w-drop { 0% { opacity: 0; transform: translateY(-46px) scale(0.6); } 55% { opacity: 1; transform: translateY(5px) scale(1.08, 0.92); } 100% { opacity: 1; transform: none; } }
+@supports (animation-timing-function: linear(0, 1)) {
+  .ob-welcome-icon { animation-timing-function: linear(0, 0.18 6%, 0.62 14%, 0.97 24%, 1.08 32%, 1.06 40%, 1.015 52%, 0.997 66%, 1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-force) .ob-orb { animation: none; }
+  html:not(.motion-force) .ob-welcome-icon,
+  html:not(.motion-force) .ob-welcome-name,
+  html:not(.motion-force) .ob-welcome-foot { animation: ob-w-fade 200ms ease backwards; }
+  html:not(.motion-force) .ob-welcome-name .wordmark-bang circle { animation: none; }
+  @keyframes ob-w-fade { from { opacity: 0; } to { opacity: 1; } }
+}
+@media (min-width: 520px) {
+  .ob-welcome-bg { inset: 0 auto 0 50%; width: 100vw; transform: translateX(-50%); }
+  .ob-orb-a { left: calc(50% - 480px); }
+  .ob-orb-b { right: calc(50% - 560px); }
+  .ob-orb-c { left: calc(50% - 360px); }
+}

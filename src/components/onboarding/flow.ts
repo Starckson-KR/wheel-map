@@ -1,18 +1,18 @@
 // 초기 설정 흐름의 순수 로직(화면 없음): 어느 화면부터 시작할지, 진행 점, 저장 형식.
 import type { BenefitCategory, BenefitPrefs, WheelchairUse } from '../../lib/benefits'
 
-export type Screen = 'lang' | 'choose' | 'name' | 'pin' | 'confirm' | 'mobility' | 'interests' | 'view' | 'done'
+export type Screen = 'welcome' | 'lang' | 'choose' | 'name' | 'pin' | 'confirm' | 'mobility' | 'interests' | 'view' | 'done'
 export type Mobility = 'manual' | 'power' | 'companion' | 'none' | 'skip'
 export type Profile = { mobility: Mobility; interests: BenefitCategory[] }
 
 export const ONBOARDED_KEY = 'wheelmap.onboarded'
 export const PROFILE_KEY = 'wheelmap.profile'
-export const SCREENS: Screen[] = ['lang', 'choose', 'name', 'pin', 'confirm', 'mobility', 'interests', 'view', 'done']
+export const SCREENS: Screen[] = ['welcome', 'lang', 'choose', 'name', 'pin', 'confirm', 'mobility', 'interests', 'view', 'done']
 export const DEFAULT_PROFILE: Profile = { mobility: 'skip', interests: [] }
 
 /** 앱을 열 때 어느 화면부터 보일지. null이면 초기 설정 없이 바로 앱. */
 export function startScreen(s: { loggedIn: boolean; onboarded: boolean }): Screen | null {
-  if (!s.loggedIn) return 'lang'
+  if (!s.loggedIn) return 'welcome'
   return s.onboarded ? null : 'mobility'
 }
 

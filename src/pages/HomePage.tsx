@@ -12,6 +12,7 @@ import { TO, go } from '../lib/nav'
 import { computeRanking } from '../lib/ranking'
 import { nowMs, rankingUserIds, useReports } from '../lib/reportStore'
 import { prefersCalm } from '../lib/viewPrefs'
+import { openGuide } from '../lib/usageGuide'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { CountText } from '../components/CountUp'
 import AiSearch from '../components/AiSearch'
@@ -189,7 +190,6 @@ export default function HomePage() {
   const riseTiles = useRiseOnce('home-tiles')
   const riseNews = useRiseOnce('home-news')
   const [settings, setSettings] = useState(false)
-  const [notice, setNotice] = useState(false)
   const [more, setMore] = useState(false)
   const [filling, setFilling] = useState(false)
   const [fillMsg, setFillMsg] = useState('')
@@ -217,14 +217,8 @@ export default function HomePage() {
     }
   }
   const chipsRef = useRef<HTMLUListElement>(null)
-  const noticeRef = useRef<HTMLDivElement>(null)
-  // AI 검색의 「이용 안내」 결과: 홈의 이용 안내 확인하기를 펼치고 그 자리로 옮긴다
-  const openHelp = () => {
-    setNotice(true)
-    const el = noticeRef.current
-    el?.scrollIntoView({ block: 'center', behavior: prefersCalm() ? 'auto' : 'smooth' })
-    el?.querySelector('button')?.focus({ preventScroll: true })
-  }
+  // AI 검색의 「이용 안내」 결과도 사용법 슬라이드를 연다
+  const openHelp = openGuide
   const guide = GUIDES.find((g) => g.id === gid) ?? GUIDES[0]
   const lines = more ? guide.lines : guide.lines.slice(0, FOLDED)
   const canMore = guide.lines.length > FOLDED
@@ -287,21 +281,12 @@ export default function HomePage() {
             </section>
           )}
 
-          <div className="hp-notice" ref={noticeRef}>
-            <button type="button" aria-expanded={notice} onClick={() => setNotice((v) => !v)}>
+          <div className="hp-notice">
+            <button type="button" aria-haspopup="dialog" onClick={openGuide}>
               <Icon name="help" size={18} />
               <span>이용 안내 · 이렇게 해 보세요</span>
-              <span className={'hp-nchev' + (notice ? ' on' : '')}><Icon name="chev" size={16} /></span>
+              <span className="hp-nchev"><Icon name="chev" size={16} /></span>
             </button>
-            {notice && (
-              <div role="note">
-                <ol className="hp-steps">
-                  <li><b>1</b><span><strong>찾기</strong>동행지도에서 지나기 어려운 곳과 내 길의 ○△X를 봐요.</span></li>
-                  <li><b>2</b><span><strong>신고하기</strong>불편한 곳을 만나면 문제 신고하기로 사진과 위치를 남겨요.</span></li>
-                  <li><b>3</b><span><strong>개선 확인</strong>개선 현황과 혜택알림에서 처리 과정과 내 점수를 확인해요.</span></li>
-                </ol>
-              </div>
-            )}
           </div>
 
           <AiSearch onHelp={openHelp} />

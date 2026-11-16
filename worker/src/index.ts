@@ -11,7 +11,8 @@ import {
   sanitizeQuestion,
 } from './intents.ts'
 import { applyRules, isNonsense } from './rules.ts'
-import { handleAccount, isAccountPath } from './account.ts'
+import { authenticate, handleAccount, isAccountPath, isDev } from './account.ts'
+import { handleAdmin, isAdminPath } from './admin.ts'
 import type { ApiBody } from './intents.ts'
 import type { Env } from './types'
 
@@ -45,6 +46,16 @@ function logError(kind: string) {
   console.log(`wheelmap-ai error: ${kind}`)
 }
 
+async function isDevRequest(request: Request, env: Env, now: number): Promise<boolean> {
+  if (!env.DB || !request.headers.get('authorization')) return false
+  try {
+    const a = await authenticate(env.DB, request, now)
+    return !!a && isDev(a.user)
+  } catch {
+    return false
+  }
+}
+
 export async function handle(request: Request, env: Env, deps: Deps = {}): Promise<Response> {
   const allowed = parseOrigins(env.ALLOWED_ORIGINS ?? 'https://starckson-kr.github.io,http://localhost:5173')
   const origin = request.headers.get('origin')
@@ -63,6 +74,7 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
     })
   }
   const path = new URL(request.url).pathname
+  if (isAdminPath(path)) return handleAdmin(request, env, origin as string, { now: deps.now })
   if (isAccountPath(path)) return handleAccount(request, env, origin as string, { now: deps.now })
   if (request.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)
   if (path !== '/' && path !== '/intent') return json({ ok: false, error: 'not_found' }, 404, origin)
@@ -72,8 +84,12 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
 
   const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
   const limiter = deps.limiter ?? getLimiter(env)
-  const lim = limiter.check(ip, (deps.now ?? Date.now)())
-  if (!lim.ok) return json(fallbackBody(lim.reason), 429, origin)
+  // 로그인 토큰이 같이 온 경우에만 개발자(role='dev')인지 확인해 사용 한도를 건너뛴다. 토큰이 없거나 틀리면 지금과 똑같이 센다.
+  const dev = await isDevRequest(request, env, (deps.now ?? Date.now)())
+  if (!dev) {
+    const lim = limiter.check(ip, (deps.now ?? Date.now)())
+    if (!lim.ok) return json(fallbackBody(lim.reason), 429, origin)
+  }
 
   let text: string
   try {
@@ -135,7 +151,7 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
     const left = MODEL_TIMEOUT_MS - (Date.now() - startedAt)
     if (left >= MIN_RETRY_MS) {
       retried = true
-      limiter.charge((deps.now ?? Date.now)())
+      if (!dev) limiter.charge((deps.now ?? Date.now)())
       try {
         result = parseModelOutput(await ask(true, left), cleaned)
       } catch (e) {

@@ -17,7 +17,7 @@ export type Understood = {
   question: string // 마스킹한 질문
 }
 
-type Options = { url: string; enabled: boolean; fetchImpl?: typeof fetch; timeoutMs?: number; now?: () => number }
+type Options = { url: string; enabled: boolean; token?: string; fetchImpl?: typeof fetch; timeoutMs?: number; now?: () => number }
 
 type Cached = { at: number; value: Understood }
 const cache = new Map<string, Cached>()
@@ -43,7 +43,7 @@ async function callWorker(question: string, o: Options): Promise<Understood> {
   try {
     const res = await f(o.url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: o.token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${o.token}` } : { 'Content-Type': 'application/json' }, // 로그인한 경우에만 토큰을 붙인다(개발자 계정의 사용 한도 면제용)
       body: JSON.stringify({ question }),
       signal: ctl.signal,
     })

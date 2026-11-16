@@ -827,3 +827,20 @@
 /* 누를 때 scale이 걸리면 버튼이 ::after의 기준이 되어 행 전체 영역이 줄어든다(클릭이 li로 빠짐). */
 .bm .pg-set button.hm-tool-row:active { transform: none; }
 .hp-board { box-shadow: none; }
+
+/* 개발자 관리 시트(role이 dev인 계정만) */
+.dv-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); margin: 0; }
+.dv-stats > div { display: flex; flex-direction: column; gap: 2px; padding: var(--s-3) var(--s-2); border-radius: var(--r-md); background: var(--grey-100); text-align: center; }
+.dv-stats dt { color: var(--text-sub); font-size: var(--fs-caption); font-weight: 600; white-space: nowrap; }
+.dv-stats dd { margin: 0; color: var(--text-strong); font-size: var(--fs-sub); font-weight: 800; font-variant-numeric: tabular-nums; }
+.dv-list { margin: 0; padding: 0; list-style: none; }
+.dv-list > li { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
+.dv-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; word-break: keep-all; overflow-wrap: anywhere; }
+.dv-main strong { color: var(--text-strong); font-weight: 700; }
+.dv-main small { color: var(--text-sub); font-size: var(--fs-caption); }
+.dv-text { color: var(--text); font-size: var(--fs-small); }
+.dv-tag { margin-left: var(--s-2); padding: 1px 6px; border-radius: var(--r-sm); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-caption); font-weight: 700; white-space: nowrap; }
+.dv-me { flex: none; color: var(--text-sub); font-size: var(--fs-small); font-weight: 600; }
+.bm .dv-del { flex: none; min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-sm); background: none; color: var(--danger); font-weight: 700; white-space: nowrap; }
+.bm .dv-more { min-height: var(--touch); margin-top: var(--s-2); border-radius: var(--r-md); background: var(--grey-100); color: var(--text-strong); font-weight: 700; }
+.dv-empty { margin: var(--s-4) 0; color: var(--text-sub); text-align: center; }

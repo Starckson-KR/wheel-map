@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import Icon from './Icon'
 import { TO, go } from '../lib/nav'
 import { AI_INTENT_URL } from '../lib/config'
+import { getSession } from '../lib/account/api'
 import { AI_PREF_EVENT, getAiEnabled } from '../lib/aiSearch/aiPref'
 import { understand } from '../lib/aiSearch/client'
 import type { FallbackReason, Understood } from '../lib/aiSearch/client'
@@ -49,7 +50,7 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
     if (clean !== text.trim()) setQ(clean) // 가려진 글을 그대로 보여 준다
     const id = ++seq.current
     setSt({ kind: 'loading' })
-    const r = await understand(text, { url: AI_INTENT_URL, enabled: getAiEnabled() })
+    const r = await understand(text, { url: AI_INTENT_URL, enabled: getAiEnabled(), token: getSession()?.token })
     if (id === seq.current) setSt({ kind: 'done', r })
   }
 

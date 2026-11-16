@@ -6,6 +6,7 @@ import { useRiseOnce } from '../lib/useRiseOnce'
 import { FADE, FADE_OUT, SPRING } from '../lib/motionTokens'
 import DemoTools, { MockStrip } from '../components/DemoTools'
 import ViewSettings from '../components/ViewSettings'
+import DevAdmin from '../components/DevAdmin'
 import SheetHandle from '../components/SheetHandle'
 import { loadBarriers } from '../lib/seed'
 import { TO, go } from '../lib/nav'
@@ -176,6 +177,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
             <span>행정 화면<small>담당 공무원용 화면이에요</small></span>
             <button type="button" className="hm-tool hm-tool-row" aria-label="행정 화면 열기" onClick={() => { onClose(); go(TO.admin) }}><Icon name="chev" size={18} /></button>
           </li>
+          <DevAdmin />
         </ul>
       </div>
     </>

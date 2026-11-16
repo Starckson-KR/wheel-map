@@ -17,13 +17,13 @@ export type Deps = { now?: () => number }
 
 export const isAccountPath = (p: string) => p.startsWith('/auth/') || p === '/prefs' || p === '/reports' || p.startsWith('/reports/') || p.startsWith('/photos/')
 
-function reply(body: unknown, status: number, origin: string, extra: Record<string, string> = {}): Response {
+export function reply(body: unknown, status: number, origin: string, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'access-control-allow-origin': origin, vary: 'Origin', ...extra },
   })
 }
-const fail = (status: number, code: string, message: string, origin: string) => reply({ ok: false, code, message }, status, origin)
+export const fail = (status: number, code: string, message: string, origin: string) => reply({ ok: false, code, message }, status, origin)
 
 async function readBody(request: Request, max: number): Promise<{ ok: true; bytes: Uint8Array } | { ok: false; res: 'too_large' | 'bad' }> {
   const declared = Number(request.headers.get('content-length') ?? '0')
@@ -71,20 +71,24 @@ async function newSession(db: D1Db, userId: string, now: number): Promise<string
   await db.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now).run()
   return token
 }
-type AuthedUser = { id: string; name: string }
-async function authenticate(db: D1Db, request: Request, now: number): Promise<{ user: AuthedUser; tokenHash: string } | null> {
+export type AuthedUser = { id: string; name: string; role: string }
+export const isDev = (u: { role?: string } | null | undefined) => u?.role === 'dev'
+export async function authenticate(db: D1Db, request: Request, now: number): Promise<{ user: AuthedUser; tokenHash: string } | null> {
   const h = request.headers.get('authorization') ?? ''
   const m = /^Bearer ([0-9a-f]{64})$/.exec(h)
   if (!m) return null
   const tokenHash = await sha256Hex(m[1])
   const row = await db
-    .prepare('SELECT u.id AS id, u.name AS name FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?')
+    .prepare('SELECT u.id AS id, u.name AS name, u.role AS role FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?')
     .bind(tokenHash, now)
     .first<AuthedUser>()
   return row ? { user: row, tokenHash } : null
 }
 
-async function takeQuota(db: D1Db, userId: string, now: number, limit: number): Promise<boolean> {
+// 개발자(role='dev') 계정은 하루 쓰기 횟수 제한을 받지 않는다.
+async function takeQuota(db: D1Db, user: AuthedUser, now: number, limit: number): Promise<boolean> {
+  if (isDev(user)) return true
+  const userId = user.id
   const day = new Date(now).toISOString().slice(0, 10)
   const r = await db
     .prepare('INSERT INTO write_quota(user_id, day, n) VALUES(?,?,1) ON CONFLICT(user_id, day) DO UPDATE SET n = n + 1 RETURNING n')
@@ -101,7 +105,7 @@ async function handleAuth(request: Request, env: Env, db: D1Db, path: string, or
     if (request.method !== 'GET') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
     const a = await authenticate(db, request, now)
     if (!a) return fail(401, 'unauthorized', '다시 로그인해 주세요.', origin)
-    return reply({ ok: true, user: a.user }, 200, origin)
+    return reply({ ok: true, user: { id: a.user.id, name: a.user.name, role: a.user.role } }, 200, origin)
   }
   if (path === '/auth/logout') {
     if (request.method !== 'POST') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
@@ -144,7 +148,7 @@ async function handleAuth(request: Request, env: Env, db: D1Db, path: string, or
   // 로그인
   const [tPair, tName] = [await getThrottle(db, kPair), await getThrottle(db, kName)]
   if (isLocked(tPair, now) || isLocked(tName, now)) return fail(429, 'locked', LOCKED_MSG, origin)
-  const user = await db.prepare('SELECT id, name, pin_hash AS pinHash, salt FROM users WHERE name_key = ?').bind(nk).first<{ id: string; name: string; pinHash: string; salt: string }>()
+  const user = await db.prepare('SELECT id, name, role, pin_hash AS pinHash, salt FROM users WHERE name_key = ?').bind(nk).first<{ id: string; name: string; role: string; pinHash: string; salt: string }>()
   // 이름이 없어도 같은 시간만큼 해시 계산을 해서, 응답 시간으로 이름 존재 여부를 알 수 없게 한다.
   const computed = await hashPin(pin, user?.salt ?? '0'.repeat(32))
   if (!user || !safeEqual(computed, user.pinHash)) {
@@ -156,7 +160,7 @@ async function handleAuth(request: Request, env: Env, db: D1Db, path: string, or
   await db.prepare('DELETE FROM throttle WHERE key = ?').bind(kPair).run()
   const token = await newSession(db, user.id, now)
   void env
-  return reply({ ok: true, token, user: { id: user.id, name: user.name } }, 200, origin)
+  return reply({ ok: true, token, user: { id: user.id, name: user.name, role: user.role } }, 200, origin)
 }
 
 // ---- 개인 설정(본인만) ----
@@ -170,7 +174,7 @@ async function handlePrefs(request: Request, env: Env, db: D1Db, user: AuthedUse
   if (!body.ok) return fail(body.res === 'too_large' ? 413 : 400, body.res === 'too_large' ? 'too_large' : 'bad_input', '설정 형식이 올바르지 않아요.', origin)
   const incoming = cleanPrefs((body.value as { data?: unknown } | null)?.data)
   if (!incoming) return fail(400, 'bad_input', '설정 형식이 올바르지 않아요.', origin)
-  if (!(await takeQuota(db, user.id, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
+  if (!(await takeQuota(db, user, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
   const row = await db.prepare('SELECT data FROM prefs WHERE user_id = ?').bind(user.id).first<{ data: string }>()
   const cur: Record<string, string> = row ? JSON.parse(row.data) : {}
   for (const [k, v] of Object.entries(incoming)) {
@@ -233,7 +237,7 @@ async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedU
   const incoming = body.value as Record<string, unknown>
   const row = await db.prepare('SELECT data FROM reports WHERE id = ?').bind(id).first<{ data: string }>()
   if (!row && incoming.userId !== user.id) return fail(400, 'bad_input', '내 계정으로 만든 제보만 새로 올릴 수 있어요.', origin)
-  if (!(await takeQuota(db, user.id, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
+  if (!(await takeQuota(db, user, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
   const merged = mergeReport(row ? JSON.parse(row.data) : null, incoming)
   const text = JSON.stringify(merged)
   if (new TextEncoder().encode(text).length > MAX_REPORT_BYTES) return fail(413, 'too_large', '제보가 너무 커요(64KB 이하).', origin)
@@ -275,7 +279,7 @@ async function handlePhotos(request: Request, env: Env, db: D1Db, user: AuthedUs
   if (body.bytes.length === 0) return fail(400, 'bad_input', '사진이 비어 있어요.', origin)
   const owner = await db.prepare('SELECT owner_id AS ownerId FROM photos WHERE id = ?').bind(id).first<{ ownerId: string }>()
   if (owner && owner.ownerId !== user.id) return fail(403, 'forbidden', '다른 사람이 올린 사진은 바꿀 수 없어요.', origin)
-  if (!(await takeQuota(db, user.id, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
+  if (!(await takeQuota(db, user, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
   await db
     .prepare('INSERT INTO photos(id, owner_id, mime, data, created_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET mime=excluded.mime, data=excluded.data')
     .bind(id, user.id, mime, toBase64(body.bytes), now)

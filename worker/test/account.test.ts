@@ -79,7 +79,7 @@ test('가입·로그인·me·로그아웃, PIN 평문은 저장되지 않는다'
   const { db, call, signup } = setup()
   const { token, id } = await signup('홍길동', '0000')
   const me = await call('GET', '/auth/me', { token })
-  assert.deepEqual(me.body, { ok: true, user: { id, name: '홍길동' } })
+  assert.deepEqual(me.body, { ok: true, user: { id, name: '홍길동', role: 'user' } })
   const row = db.raw.prepare('SELECT pin_hash, salt FROM users').get() as J
   assert.notEqual(row.pin_hash, '0000')
   assert.match(row.pin_hash, /^[0-9a-f]{64}$/)

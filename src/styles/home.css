@@ -826,3 +826,4 @@
 .pg-set > li { position: relative; }
 /* 누를 때 scale이 걸리면 버튼이 ::after의 기준이 되어 행 전체 영역이 줄어든다(클릭이 li로 빠짐). */
 .bm .pg-set button.hm-tool-row:active { transform: none; }
+.hp-board { box-shadow: none; }

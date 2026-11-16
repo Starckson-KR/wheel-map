@@ -77,6 +77,11 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const [done, setDone] = useState<{ id: string; merged: boolean; photoFailed: boolean } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const photosRef = useRef(photos)
+  const descRef = useRef(description) // 검사할 때 오래된 값을 보지 않도록 최신 설명을 따로 들고 있는다
+  useEffect(() => {
+    descRef.current = description
+  }, [description])
+  const pendingSample = useRef<Promise<void> | null>(null) // 만드는 중인 샘플 사진
   useEffect(() => {
     photosRef.current = photos
   }, [photos])
@@ -133,7 +138,15 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   }
 
   // 사진이 없는 사람을 위한 체험용 그림. 같은 경로(긴 변 줄이기가 필요 없는 JPEG)로 사진 목록에 넣는다.
-  const addSample = async (sceneId: SampleSceneId) => {
+  const addSample = (sceneId: SampleSceneId) => {
+    const p = addSampleInner(sceneId)
+    pendingSample.current = p
+    void p.finally(() => {
+      if (pendingSample.current === p) pendingSample.current = null
+    })
+    return p
+  }
+  const addSampleInner = async (sceneId: SampleSceneId) => {
     if (photos.length >= PHOTO_MAX_COUNT || sampleBusy) return
     setSampleBusy(true)
     try {
@@ -143,7 +156,10 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
       setErr('photos', '')
       setPhotoMsg('')
       const scene = SAMPLE_SCENES.find((s) => s.id === sceneId)
-      if (scene && !description.trim()) setDescription(scene.description)
+      if (scene && !descRef.current.trim()) {
+        descRef.current = scene.description
+        setDescription(scene.description)
+      }
       toast('샘플 사진을 추가했어요')
     } catch (err) {
       setPhotoMsg(err instanceof Error ? err.message : '샘플 사진을 만들지 못했어요.')
@@ -216,8 +232,8 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
   const validateDetail = () => {
     const errs: Record<string, string> = {}
-    if (photos.length < 1) errs.photos = '사진을 1장 이상 올려 주세요.'
-    if (!description.trim()) errs.description = '설명을 적어 주세요.'
+    if (photosRef.current.length < 1 && photos.length < 1) errs.photos = '사진을 1장 이상 올려 주세요.'
+    if (!descRef.current.trim()) errs.description = '설명을 적어 주세요.'
     const w = fieldErr.widthM(widthM)
     const c = fieldErr.curbCm(curbCm)
     if (w) errs.widthM = w
@@ -619,7 +635,12 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 <button
                   type="button"
                   className="rf-primary"
-                  onClick={() => {
+                  onClick={async () => {
+                    // 샘플 사진을 만드는 중이면 끝나고 화면에 반영된 뒤에 검사한다
+                    if (pendingSample.current) {
+                      await pendingSample.current.catch(() => undefined)
+                      await new Promise((r) => setTimeout(r, 80))
+                    }
                     if (validateDetail()) go(4)
                   }}
                 >

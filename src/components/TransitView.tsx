@@ -38,6 +38,7 @@ type Props = {
   pairId: string | null
   obstacles: Obstacle[]
   onOverlay: (o: RouteOverlay | null) => void
+  fitSeed?: number // 시트를 접거나 열 때 지도를 다시 맞추려는 값
   onOpenHit: (h: Hit) => void
 }
 
@@ -127,7 +128,7 @@ async function analyzeItin(it: TItinerary, obstacles: Obstacle[], bis: BisStop[]
 
 const ratingLabel = (r: Obstacle['rating'] | undefined) => (r === 'O' ? '○ 괜찮음' : r === 'TRIANGLE' ? '△ 주의' : r === 'X' ? 'X 어려움' : '평가 없음')
 
-export default function TransitView({ from, to, pairId, obstacles, onOverlay, onOpenHit }: Props) {
+export default function TransitView({ from, to, pairId, obstacles, onOverlay, onOpenHit, fitSeed = 0 }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState('')
   const [items, setItems] = useState<AItin[]>([])
@@ -214,11 +215,11 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
       unresolvedIds: cur.legs.flatMap((l) => l.unresolved),
       markers,
       focus: null,
-      fitKey: fitKey.current * 1000 + fitN,
+      fitKey: fitKey.current * 1000 + fitN + fitSeed * 100000,
     })
     // onOverlay는 부모의 setState라 의존성에서 뺀다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cur, from, to, fitN])
+  }, [cur, from, to, fitN, fitSeed])
 
   useEffect(() => () => onOverlay(null), []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -315,7 +316,7 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
                     const b = isLast ? '도착' : l.leg.to.name
                     return (
                       <Fragment key={i}>
-                        <TlStep color={WALK_COLOR} title={<>걷기 약 {fmtMin(l.time)} · {fmtDist(l.distance)}{l.detoured && ' (돌아가는 길)'}</>} sub={`${a}에서 ${b}까지`} />
+                        <TlStep color={WALK_COLOR} title={<>걷기 약 {fmtMin(l.time)} · {fmtDist(l.distance)}{l.detoured && ' (돌아가는 길)'}</>} sub={a === b ? `${a} 근처` : `${a}에서 ${b}까지`} />
                         {[...l.hits]
                           .sort((x, y) => x.atM - y.atM)
                           .map((h) => (

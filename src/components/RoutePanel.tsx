@@ -240,6 +240,11 @@ export default function RoutePanel(props: Props) {
     }
   }
 
+  // 접거나 다시 열면 남은 지도 영역에 맞춰 경로를 다시 맞춘다
+  useEffect(() => {
+    setFitN((n) => n + 1)
+  }, [collapsed])
+
   const pick = (v: boolean) => {
     setChosen(v)
     setFitN((n) => n + 1)
@@ -460,11 +465,9 @@ export default function RoutePanel(props: Props) {
     </button>
   )
 
-  if (collapsed) {
-    return (
-      <>
-        {locBtn}
-        <div className="rt-mini" role="status">
+  // 접어도 시트는 숨겨서 남겨 둔다(지도의 경로 선은 시트가 정한다). 끝내기를 눌러야 지워진다.
+  const mini = collapsed && (
+        <div className="rt-mini" role="status" data-sheet>
         <span>길찾기 {result ? `· ${result.start.name} → ${result.end.name}` : ''}</span>
         <button type="button" className="rf-primary" onClick={() => setCollapsed(false)}>
           다시 열기
@@ -473,14 +476,13 @@ export default function RoutePanel(props: Props) {
           끝내기
         </button>
         </div>
-      </>
-    )
-  }
+  )
 
   return (
     <>
     {locBtn}
-    <div className={'rp rt' + (picking ? ' rt-hidden' : '')} data-sheet role="dialog" aria-label="길찾기" hidden={!!picking}>
+    {mini}
+    <div className={'rp rt' + (picking ? ' rt-hidden' : '')} data-sheet role="dialog" aria-label="길찾기" hidden={!!picking || collapsed}>
       <SheetHandle exit={!result} onDown={() => (result ? setCollapsed(true) : onClose())} />
       <div className="rf-head">
         <h2>길찾기</h2>
@@ -545,7 +547,7 @@ export default function RoutePanel(props: Props) {
         ))}
       </div>
 
-      {mode === 'bus' && <TransitView from={from} to={to} pairId={pairId} obstacles={obstaclesNow} onOverlay={setTransitOv} onOpenHit={openHit} />}
+      {mode === 'bus' && <TransitView fitSeed={fitN} from={from} to={to} pairId={pairId} obstacles={obstaclesNow} onOverlay={setTransitOv} onOpenHit={openHit} />}
 
       {mode === 'walk' && status === 'loading' && (
         <p className="rf-notice" role="status">
@@ -611,7 +613,7 @@ export default function RoutePanel(props: Props) {
           {chosen && (
             <>
               <Tl>
-                <TlStep color={WALK_COLOR} title={<>걷기 약 {fmtMin(activeCard.route.time)} · {fmtWalk(activeCard.route.distance)}</>} sub={`${result.start.name}에서 ${result.end.name}까지`} />
+                <TlStep color={WALK_COLOR} title={<>걷기 약 {fmtMin(activeCard.route.time)} · {fmtWalk(activeCard.route.distance)}</>} sub={result.start.name === result.end.name ? `${result.start.name} 근처` : `${result.start.name}에서 ${result.end.name}까지`} />
                 {[...passHits]
                   .sort((x, y) => x.atM - y.atM)
                   .map((h) => (

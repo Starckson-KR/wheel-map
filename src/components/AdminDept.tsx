@@ -14,6 +14,7 @@ import CaseTitle from './CaseTitle'
 import { usePriority } from '../lib/usePriority'
 import { useRecurrence } from '../lib/useRecurrence'
 import type { Barrier, Report } from '../types'
+import { isMockReport } from '../lib/realFirst'
 import { Sentences } from './Sentences'
 
 const PLAN_PREVIEW = 8
@@ -85,7 +86,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
     else tasks.push({ r, group: tabOf(r) === 'doing' ? '처리 중' : '신규', note: `기한 ${left}일 남음` })
   }
   const dueOf = (t: Task) => deadlineOf(t.r, now)?.dueMs ?? 0
-  tasks.sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || dueOf(a) - dueOf(b))
+  tasks.sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || Number(isMockReport(a.r)) - Number(isMockReport(b.r)) || dueOf(a) - dueOf(b))
 
   // 소관이 확실한 지점만(접수된 민원이 있거나 지점 종류로 소관이 하나로 정해질 때). 개선계획 CSV의 "담당 기관"과 같은 기준이다.
   const plan = cands.filter((c) => agencyIdOf(c.pt, reports) === deptId)

@@ -7,6 +7,7 @@ import { FADE, FADE_OUT, SPRING } from '../lib/motionTokens'
 import DemoTools, { MockStrip } from '../components/DemoTools'
 import ViewSettings from '../components/ViewSettings'
 import DevAdmin from '../components/DevAdmin'
+import { readDevReturn } from '../lib/devReturn'
 import SheetHandle from '../components/SheetHandle'
 import { loadBarriers } from '../lib/seed'
 import { TO, go } from '../lib/nav'
@@ -135,6 +136,9 @@ function MenuSheet({ onClose }: { onClose: () => void }) {
   )
 }
 
+declare const __BUILD_HASH__: string
+declare const __BUILD_TIME__: string
+
 const BARRIERS = loadBarriers()
 
 // 설정 시트: 화면 설정과 시연 도구(기존 컴포넌트 재사용), 행정 화면 입구
@@ -179,6 +183,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           </li>
           <DevAdmin />
         </ul>
+        <p className="ms-build">버전 {__BUILD_HASH__} · {__BUILD_TIME__}</p>
       </div>
     </>
   )
@@ -191,7 +196,7 @@ export default function HomePage() {
   const [menu, setMenu] = useState(false)
   const riseTiles = useRiseOnce('home-tiles')
   const riseNews = useRiseOnce('home-news')
-  const [settings, setSettings] = useState(false)
+  const [settings, setSettings] = useState(() => readDevReturn() !== null) // 개발자 관리에서 신고를 보고 뒤로 왔으면 설정 시트를 다시 연다
   const [more, setMore] = useState(false)
   const [filling, setFilling] = useState(false)
   const [fillMsg, setFillMsg] = useState('')

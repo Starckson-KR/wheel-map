@@ -677,17 +677,17 @@ html[data-text='large'] {
    긴 글자 칩·버튼은 2열로 두고, 홀수 개면 마지막 칸이 줄 전체를 차지한다(칸이 혼자 남지 않는다).
    JS로 만드는 격자는 src/lib/gridCols.ts(colsStyle)를 쓴다. */
 html :is(.pgp-chips, .lp-extra .hm-tools),
-html :is(.hm-counts, .lp-chips, .hp-ai-chips, .adm-top-tools, .al-chips, .bus-dirs) {
+html :is(.hm-counts, .lp-chips, .hp-ai-chips, .al-chips, .bus-dirs) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-html :is(.hm-counts, .pgp-chips, .lp-extra .hm-tools, .lp-chips, .hp-ai-chips, .adm-top-tools, .al-chips, .bus-dirs) > * {
+html :is(.hm-counts, .pgp-chips, .lp-extra .hm-tools, .lp-chips, .hp-ai-chips, .al-chips, .bus-dirs) > * {
   justify-content: center;
   text-align: center;
   white-space: normal;
   word-break: keep-all;
 }
-html :is(.hm-counts, .lp-chips, .hp-ai-chips, .adm-top-tools, .al-chips, .bus-dirs) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+html :is(.hm-counts, .lp-chips, .hp-ai-chips, .al-chips, .bus-dirs) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(1):last-child) { grid-template-columns: minmax(0, 1fr); }
 html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(3):last-child),
 html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(5):last-child),

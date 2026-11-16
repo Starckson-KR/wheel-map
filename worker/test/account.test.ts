@@ -171,7 +171,7 @@ test('제보 공유: 올리기·받기·since·다른 사람 투표 병합', asy
   const b = await signup('나나나', '2222')
   const put = await call('PUT', '/reports/r-1', { token: a.token, json: report('r-1', a.id) })
   assert.equal(put.status, 200)
-  const list = await call('GET', '/reports?since=0', { token: b.token })
+  const list = await call('GET', '/reports?since=0&names=1', { token: b.token })
   assert.equal(list.body.reports.length, 1)
   assert.equal(list.body.users[a.id], '가가가')
   const cursor = list.body.serverTime
@@ -190,6 +190,42 @@ test('제보 공유: 올리기·받기·since·다른 사람 투표 병합', asy
   assert.equal(changed.body.reports.length, 1)
   // 남의 계정으로 새 제보를 만들 수는 없다
   assert.equal((await call('PUT', '/reports/r-2', { token: b.token, json: report('r-2', a.id) })).status, 400)
+})
+
+test('실시간 확인: 이름표는 요청할 때만, 내 설정 변경 시각(prefsAt)과 prefs ?since는 바뀐 게 없으면 내용 없이 답한다', async () => {
+  const { call, signup } = setup()
+  const a = await signup('가가가')
+  const plain = await call('GET', '/reports?since=0', { token: a.token })
+  assert.equal(plain.body.users, undefined) // D1 읽기 아끼기: 이름표 없음
+  assert.equal(plain.body.prefsAt, 0)
+  clock += 1000
+  const put = await call('PUT', '/prefs', { token: a.token, json: { data: { 'wheelmap.textSize': 'large' } } })
+  const after = await call('GET', '/reports?since=0', { token: a.token })
+  assert.equal(after.body.prefsAt, put.body.updatedAt)
+  const same = await call('GET', `/prefs?since=${put.body.updatedAt}`, { token: a.token })
+  assert.equal(same.body.unchanged, true)
+  assert.equal(same.body.data, undefined)
+  const older = await call('GET', `/prefs?since=${put.body.updatedAt - 1}`, { token: a.token })
+  assert.deepEqual(older.body.data, { 'wheelmap.textSize': 'large' })
+})
+
+test('두 기기가 같은 제보를 동시에 고친다: 기록·투표는 합집합, 다른 필드는 나중에 도착한 쪽이 이긴다', async () => {
+  const { call, signup } = setup()
+  const a = await signup('가가가')
+  const b = await signup('나나나', '2222')
+  await call('PUT', '/reports/r-1', { token: a.token, json: report('r-1', a.id) })
+  const base = (await call('GET', '/reports?since=0', { token: a.token })).body.reports[0]
+  const at = (s: number) => new Date(Date.parse('2026-11-15T02:00:00.000Z') + s * 1000).toISOString()
+  // 기기1(가가가)은 설명을 고치고 기록을 하나 더하고, 기기2(나나나)는 같은 원본에서 투표하고 설명을 다르게 고친다
+  const dev1 = { ...base, description: '기기1', history: [...base.history, { status: 'pending', at: at(1), by: a.id, memo: '기기1 메모' }] }
+  const dev2 = { ...base, description: '기기2', verification: { votes: 1, voterIds: [b.id] }, history: [...base.history, { status: 'pending', at: at(2), by: b.id, memo: '기기2 메모' }] }
+  clock += 1000
+  assert.equal((await call('PUT', '/reports/r-1', { token: a.token, json: dev1 })).status, 200)
+  clock += 1000
+  const last = await call('PUT', '/reports/r-1', { token: b.token, json: dev2 })
+  assert.equal(last.body.report.description, '기기2') // 마지막으로 쓴 쪽 승리
+  assert.deepEqual(last.body.report.verification.voterIds, [b.id])
+  assert.deepEqual(last.body.report.history.map((h: J) => h.memo).filter(Boolean), ['검증 대기', '기기1 메모', '기기2 메모']) // 기록은 둘 다 남는다
 })
 
 test('제보 검증: 시연 데이터 거부, 주소 id 불일치, 64KB 초과 413', async () => {

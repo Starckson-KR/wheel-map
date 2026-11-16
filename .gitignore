@@ -6,6 +6,8 @@ dist/
 *.log
 .DS_Store
 .vite/
+.wrangler/
+.playwright-mcp/
 
 # 현장 사진 원본은 내부 확인용 — 저장소·배포에 올리지 않는다(공개 전 선별·가림 처리)
 data/photos/*

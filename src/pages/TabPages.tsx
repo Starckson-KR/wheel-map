@@ -21,6 +21,7 @@ import { loadBarriers } from '../lib/seed'
 import AccountCard from '../components/onboarding/AccountCard'
 import { Sentences } from '../components/Sentences'
 import { Wordmark } from '../components/Wordmark'
+import { isMockReport } from '../lib/realFirst'
 
 const BARRIERS = loadBarriers()
 
@@ -133,7 +134,7 @@ const ALERT_TABS: { id: AlertsTabId; label: string }[] = [
   { id: 'ranking', label: '랭킹·챌린지' },
 ]
 
-type Alert = { key: string; at: string; kind: 'report' | 'points'; icon: string; text: string; points?: number; to: string }
+type Alert = { key: string; at: string; kind: 'report' | 'points'; icon: string; text: string; points?: number; to: string; mock?: boolean }
 type AlertFilter = 'all' | 'report' | 'points'
 const FILTERS: { id: AlertFilter; label: string }[] = [
   { id: 'all', label: '전체' },
@@ -180,14 +181,15 @@ export function AlertsTab({ query = '' }: { query?: string }) {
         const def = STATUS_TEXT[h.status]
         // 처음 제보한 기록과, 상태가 그대로인 메모(이관 등)는 알림으로 보여 주지 않는다
         if (!def || h.status === 'submitted' || (i > 0 && r.history[i - 1].status === h.status)) return
-        out.push({ key: `s-${r.id}-${i}`, at: h.at, kind: 'report', icon: def.icon, text: def.text(r.type), to: TO.openReport(r.id) })
+        out.push({ key: `s-${r.id}-${i}`, at: h.at, kind: 'report', icon: def.icon, text: def.text(r.type), to: TO.openReport(r.id), ...(isMockReport(r) ? { mock: true } : {}) })
       })
     }
+    const mockOf = new Map(reports.map((r) => [r.id, isMockReport(r)]))
     for (const e of rw.events) {
       if (e.points <= 0) continue
-      out.push({ key: `p-${e.id}`, at: e.at, kind: 'points', icon: 'star', text: e.label, points: e.points, to: TO.me })
+      out.push({ key: `p-${e.id}`, at: e.at, kind: 'points', icon: 'star', text: e.label, points: e.points, to: TO.me, ...(mockOf.get(e.reportId) ? { mock: true } : {}) })
     }
-    return out.sort((a, b) => b.at.localeCompare(a.at))
+    return out.sort((a, b) => Number(!!a.mock) - Number(!!b.mock) || b.at.localeCompare(a.at)) // 실제 제보 알림이 체험 제보 알림보다 먼저
   }, [reports, userId, rw])
   const shown = items.filter((x) => filter === 'all' || x.kind === filter).slice(0, 40)
   // 한 화면에 한 구역: 알림 · 혜택 · 랭킹·챌린지. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.

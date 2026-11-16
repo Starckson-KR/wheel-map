@@ -395,17 +395,37 @@
   line-height: 1.4;
   white-space: nowrap;
 }
+/* 검색창 테두리: 파랑 바탕에 가장자리를 따라 붉은 주황 빛(앱 아이콘과 같은 느낌). 주황은 이 검색창에만 쓴다. */
+@property --ask-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 .hp-ask {
+  --ask-blue: #3182f6;
+  --ask-orange: #f2441d;
+  --ask-fill: var(--bg);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: var(--s-1);
   min-height: 60px;
-  padding: 2px 6px 2px var(--s-5);
-  border: 0;
+  padding: 0 4px 0 calc(var(--s-5) - 2px);
+  border: 2px solid transparent;
   border-radius: var(--r-full);
-  background: var(--grey-100);
+  background:
+    linear-gradient(var(--ask-fill), var(--ask-fill)) padding-box,
+    conic-gradient(from var(--ask-a), var(--ask-blue) 0deg 120deg, var(--ask-orange) 190deg 245deg, var(--ask-blue) 315deg 360deg) border-box;
+  box-shadow: 0 0 14px -4px rgb(242 68 29 / 0.28);
 }
-.hp-ask:focus-within { box-shadow: var(--focus-ring); }
+:root[data-theme='dark'] .hp-ask { --ask-blue: #4593fc; --ask-fill: var(--bg-sub); box-shadow: 0 0 16px -4px rgb(242 68 29 / 0.4); }
+.hp-ask:focus-within {
+  background:
+    linear-gradient(var(--ask-fill), var(--ask-fill)) padding-box,
+    conic-gradient(from var(--ask-a), var(--ask-blue) 0deg 100deg, var(--ask-orange) 185deg 250deg, var(--ask-blue) 325deg 360deg) border-box;
+  box-shadow: var(--focus-ring), 0 0 18px -2px rgb(242 68 29 / 0.4);
+  animation: ask-turn 9s linear 1;
+}
+@keyframes ask-turn { to { --ask-a: 360deg; } }
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-force) .hp-ask:focus-within { animation: none; }
+}
 .bm .hp-ask .hp-ask-in:focus, .bm .hp-ask .hp-ask-in:focus-visible { box-shadow: none; outline: none; border: 0; background: none; }
 .bm .hp-ask .hp-ask-in {
   flex: 1;
@@ -838,6 +858,11 @@
 .dv-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; word-break: keep-all; overflow-wrap: anywhere; }
 .dv-main strong { color: var(--text-strong); font-weight: 700; }
 .dv-main small { color: var(--text-sub); font-size: var(--fs-caption); }
+.bm .dv-open { flex: 1; min-width: 0; min-height: var(--touch); padding: var(--s-1) 0; display: flex; align-items: center; text-align: left; background: none; border-radius: var(--r-sm); color: inherit; font-weight: inherit; letter-spacing: normal; }
+.bm .dv-open:active:not(:disabled) { transform: none; background-color: var(--grey-100); }
+.bm .dv-open:disabled { opacity: 1; cursor: progress; }
+@media (hover: hover) and (pointer: fine) { .bm .dv-open:hover:not(:disabled) { background-color: var(--grey-100); } }
+.dv-open .dv-main { align-items: flex-start; }
 .dv-text { color: var(--text); font-size: var(--fs-small); }
 .dv-tag { margin-left: var(--s-2); padding: 1px 6px; border-radius: var(--r-sm); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-caption); font-weight: 700; white-space: nowrap; }
 .dv-me { flex: none; color: var(--text-sub); font-size: var(--fs-small); font-weight: 600; }
@@ -851,3 +876,5 @@
 .dv-pin-num { display: block; margin: var(--s-3) 0; padding: var(--s-5) 0; border-radius: var(--r-md); background: var(--grey-100); color: var(--text-strong); font-size: 2.5rem; font-weight: 800; letter-spacing: 0.4em; text-align: center; text-indent: 0.4em; font-variant-numeric: tabular-nums; }
 .dv-pin-note { margin: 0 0 var(--s-2); color: var(--text-sub); font-size: var(--fs-small); word-break: keep-all; }
 .dv-empty { margin: var(--s-4) 0; color: var(--text-sub); text-align: center; }
+
+.ms-build { margin: 12px 0 0; text-align: center; font-size: 11px; color: var(--text-sub); font-variant-numeric: tabular-nums; }

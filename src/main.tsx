@@ -17,9 +17,11 @@ import { initPrefs } from './lib/viewPrefs'
 import App from './App.tsx'
 import MotionRoot from './components/MotionRoot'
 import { installLineTidy } from './lib/lineTidy'
+import { startUpdateCheck } from './lib/updateCheck'
 
 initPrefs()
 installLineTidy(document.getElementById('root'))
+startUpdateCheck()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

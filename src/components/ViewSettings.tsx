@@ -22,8 +22,12 @@ const TEXTS: { id: TextSize; label: string }[] = [
 ]
 
 // 화면 설정(보기 방식·화면 색). 처음부터 팝업으로 띄우지 않고, 버튼을 눌렀을 때만 열린다.
-export default function ViewSettings({ floating = false, row = false }: { floating?: boolean; row?: boolean }) {
-  const [open, setOpen] = useState(false)
+// open·onOpenChange를 주면 바깥에서 열고 닫는다(행정 도구 메뉴). triggerClass는 버튼에 덧붙일 클래스.
+type VsProps = { floating?: boolean; row?: boolean; open?: boolean; onOpenChange?: (o: boolean) => void; triggerClass?: string }
+export default function ViewSettings({ floating = false, row = false, open: openProp, onOpenChange, triggerClass }: VsProps) {
+  const [openSelf, setOpenSelf] = useState(false)
+  const open = openProp ?? openSelf
+  const setOpen = onOpenChange ?? setOpenSelf
   const [view, setV] = useState(getView)
   const [theme, setT] = useState(getTheme)
   const [text, setTx] = useState(getTextSize)
@@ -39,7 +43,7 @@ export default function ViewSettings({ floating = false, row = false }: { floati
   }, [])
   return (
     <>
-      <button type="button" className={floating ? 'hm-tool vs-float' : row ? 'hm-tool hm-tool-row' : 'hm-tool'} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={row ? '화면 설정 열기' : undefined}>
+      <button type="button" className={(floating ? 'hm-tool vs-float' : row ? 'hm-tool hm-tool-row' : 'hm-tool') + (triggerClass ? ' ' + triggerClass : '')} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={row ? '화면 설정 열기' : undefined}>
         {row ? <Icon name="chev" size={18} /> : '화면'}
       </button>
       {open &&

@@ -43,11 +43,16 @@ type Props = {
   page: 'map' | 'admin'
   onReset: () => void
   barriers: Barrier[]
+  open?: boolean // 바깥에서 열고 닫을 때(행정 도구 메뉴)
+  onOpenChange?: (o: boolean) => void
+  triggerClass?: string
 }
 
 // 발표용 장치(시연 사용자·접수 방식·시간 앞당기기·시연 데이터)를 한곳에 모았다. 일반 화면에는 버튼 하나만 보인다.
-export default function DemoTools({ page, onReset, barriers, row = false }: Props) {
-  const [open, setOpen] = useState(false)
+export default function DemoTools({ page, onReset, barriers, row = false, open: openProp, onOpenChange, triggerClass }: Props) {
+  const [openSelf, setOpenSelf] = useState(false)
+  const open = openProp ?? openSelf
+  const setOpen = onOpenChange ?? setOpenSelf
   const [msg, setMsg] = useState('')
   const [motion, setMotion] = useState(getMotionForce)
   const [ai, setAi] = useState(getAiEnabled)
@@ -118,7 +123,7 @@ export default function DemoTools({ page, onReset, barriers, row = false }: Prop
 
   return (
     <>
-      <button type="button" className={row ? 'hm-tool hm-tool-row' : 'hm-tool'} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={row ? '시연 도구 열기' : undefined}>
+      <button type="button" className={(row ? 'hm-tool hm-tool-row' : 'hm-tool') + (triggerClass ? ' ' + triggerClass : '')} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={row ? '시연 도구 열기' : undefined}>
         {row ? <Icon name="chev" size={18} /> : '시연 도구'}
       </button>
       {open &&

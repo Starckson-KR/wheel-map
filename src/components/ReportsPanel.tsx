@@ -6,6 +6,7 @@ import { useRiseOnce } from '../lib/useRiseOnce'
 import { STATUS_LABEL, isDone, useReports, userName } from '../lib/reportStore'
 import { coordText, useVisibleAddress } from '../lib/addressCache'
 import { isSampleReport } from '../lib/samplePhotos'
+import { realFirstReports } from '../lib/realFirst'
 import type { Report } from '../types'
 import { Sentences } from './Sentences'
 import '../styles/review.css'
@@ -49,9 +50,9 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
   const [tab, setTab] = useState<Tab>('all')
 
   const mine = reports.filter((r) => r.userId === userId)
-  const shown = mine.filter((r) => tab === 'all' || (tab === 'done') === isDone(r.status)).slice().reverse()
+  const shown = realFirstReports(mine.filter((r) => tab === 'all' || (tab === 'done') === isDone(r.status)).slice().reverse())
   // 검증하기: 다른 사람의 검증 대기 제보
-  const todo = reports.filter((r) => r.userId !== userId && r.status === 'pending').slice().reverse()
+  const todo = realFirstReports(reports.filter((r) => r.userId !== userId && r.status === 'pending').slice().reverse())
 
   const riseRows = useRiseOnce('reports-panel')
   const row = (r: Report, i: number) => <ReportRow key={r.id} r={r} i={i} first={riseRows} onOpen={onOpen} />

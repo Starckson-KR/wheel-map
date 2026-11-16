@@ -18,3 +18,14 @@ export const SYNCED_PREF_KEYS = [
   'wheelmap.lang',
   'wheelmap.onboarded',
 ] as const
+
+// 터치 기기(휴대폰·태블릿)에서는 보기 방식(PC/모바일)을 서버와 맞추지 않는다. PC에서 바꾼 값이 휴대폰 배치를 바꾸거나 그 반대가 되지 않게 기기별로 둔다.
+export const DEVICE_LOCAL_PREF_KEYS: readonly string[] = ['wheelmap.view']
+export function isTouchDevice(): boolean {
+  try {
+    return window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  } catch {
+    return false
+  }
+}
+export const syncedKeysFor = (touch: boolean): string[] => (touch ? SYNCED_PREF_KEYS.filter((k) => !DEVICE_LOCAL_PREF_KEYS.includes(k)) : [...SYNCED_PREF_KEYS])

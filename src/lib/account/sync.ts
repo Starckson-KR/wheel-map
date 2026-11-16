@@ -5,11 +5,18 @@ import { hashText } from './merge'
 import { isPhotoDone, markPhotoSkipped, markPhotoUploaded, resetPhotoLedger } from './photoLedger'
 import { shrinkForUpload } from './photoUpload'
 import { loadLocalPhoto } from '../photoStore'
-import { initPrefsSync } from './prefsSync'
+import { initPrefsSync, notifyPrefsAt } from './prefsSync'
+import { IDLE_AFTER_MS, nextDelay } from './pollPlan'
 
 // 공유 제보 동기화. 로그인 상태에서만 동작한다.
-//  - 받기: 앱 시작·화면이 다시 보일 때·30초마다(화면이 보일 때만) GET /reports?since= 로 변경분을 받아 제보 목록에 합친다.
-//  - 보내기: 내가 만든·바꾼 제보(시연 데이터 제외)를 1.5초 모아서 PUT. 못 보내면 대기열(pending)에 두었다가 다음 기회에 다시 보낸다.
+//  - 받기: 화면이 보일 때만 4초마다(1분 넘게 만지지 않으면 15초) GET /reports?since= 로 바뀐 것만 받아 제보 목록에 합친다.
+//    앱 시작·화면이 다시 보일 때·창을 다시 누를 때·인터넷이 돌아올 때·내가 올린 직후에는 기다리지 않고 바로 한 번 더 확인한다.
+//    실패하면 8초→16초→…→최대 60초로 늘려 가며 다시 시도하고, 성공하면 바로 4초로 돌아온다. 탭이 숨겨지면 멈춘다.
+//    같은 응답에 내 설정 변경 시각(prefsAt)이 실려 와 설정 동기화(prefsSync.ts)가 다른 기기의 설정 변경도 알아챈다.
+//  - 보내기: 내가 만든·바꾼 제보(시연 데이터 제외)를 0.4초 모아서 PUT. 화면에는 먼저 반영돼 있고(낙관적), 못 보내면 대기열(pending)에 두었다가 다음 기회에 다시 보낸다.
+//    서버가 형식 문제로 거절하면(4xx) 마지막으로 서버와 맞춘 모습으로 되돌린다(서버에 올라간 적 없는 제보는 이 기기에 그대로 둔다).
+//  - 충돌: 같은 제보를 두 기기가 동시에 고치면 기록(history)·확인 투표자는 합집합, 나머지 필드는 서버에 나중에 도착한 쪽이 이긴다(account/merge.ts, worker/src/merge.ts).
+//    아직 못 올린 내 변경이 있는 제보는 서버에서 받은 값보다 내 쪽 필드를 우선해 합쳐 다시 올린다.
 // reportStore와는 SyncHost로만 이어져(순환 import 없음), 이 파일은 reportStore를 import하지 않는다.
 
 export type SyncHost = {
@@ -18,10 +25,15 @@ export type SyncHost = {
   /** 서버에서 받은 제보를 합친다. pending에 든 id는 내 쪽 값을 우선. finals=합친 뒤 제보, dirty=합치며 새로 생긴 변경(다시 올려야 함) */
   applyRemote(list: Report[], pending: Set<string>): { finals: Report[]; dirty: string[] }
   setNames(names: Record<string, string>): void
+  /** 이 id의 이름을 이미 아는가(모르는 사람이 나오면 이름표를 새로 받는다) */
+  hasName(id: string): boolean
+  /** 서버가 거절한 제보를 마지막으로 서버와 맞춘 모습으로 되돌린다(병합 없이 교체) */
+  restore(r: Report): void
 }
 
-const PULL_MS = 30000
-const DEBOUNCE_MS = 1500
+const DEBOUNCE_MS = 400
+const NAMES_REFRESH_MS = 5 * 60 * 1000
+const QUOTA_HOLD_MS = 5 * 60 * 1000
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -47,8 +59,15 @@ let applying = false
 let pulling = false
 let flushing = false
 let pulledOnce = false
-let interval: ReturnType<typeof setInterval> | undefined
+let timer: ReturnType<typeof setTimeout> | undefined
 let debounce: ReturnType<typeof setTimeout> | undefined
+let running = false
+let fails = 0
+let lastActive = Date.now()
+let needNames = true
+let namesAt = 0
+let holdUntil = 0 // 하루 저장 횟수를 다 썼을 때(429) 이 시각까지 올리기를 쉰다
+const serverCopy = new Map<string, Report>() // 마지막으로 서버와 맞춘 제보(거절당했을 때 되돌릴 모습, 메모리에만)
 
 function loadState() {
   const p = readJson<unknown>(SYNC_PENDING_KEY, [])
@@ -67,6 +86,7 @@ export function resetSyncState() {
   hashes = {}
   cursor = 0
   pulledOnce = false
+  serverCopy.clear()
   resetPhotoLedger()
   try {
     for (const k of [SYNC_PENDING_KEY, SYNC_HASHES_KEY, SYNC_CURSOR_KEY]) localStorage.removeItem(k)
@@ -91,6 +111,13 @@ function scan() {
   if (changed) savePending()
 }
 
+// 제보에 나오는 사람(올린 사람·확인한 사람·기록 작성자)의 이름을 모두 아는가
+function knownAll(r: Report): boolean {
+  if (!host) return true
+  const ids = [r.userId, ...(r.verification?.voterIds ?? []), ...(r.history ?? []).map((h) => h.by)]
+  return ids.every((id) => typeof id !== 'string' || host?.hasName(id))
+}
+
 function applyList(list: Report[]) {
   if (!host || list.length === 0) return
   applying = true
@@ -100,7 +127,13 @@ function applyList(list: Report[]) {
   } finally {
     applying = false
   }
-  for (const f of res.finals) if (!pending.has(f.id) && !res.dirty.includes(f.id)) hashes[f.id] = hashOf(f)
+  for (const f of res.finals) {
+    if (!pending.has(f.id) && !res.dirty.includes(f.id)) {
+      hashes[f.id] = hashOf(f)
+      serverCopy.set(f.id, f)
+    }
+    if (!needNames && !knownAll(f)) needNames = true
+  }
   for (const id of res.dirty) pending.add(id)
   saveHashes()
   savePending()
@@ -111,11 +144,17 @@ async function pull(): Promise<boolean> {
   pulling = true
   try {
     for (let page = 0; page < 20; page++) {
-      const r = await apiCall(`/reports?since=${cursor}`)
-      const b = r.body as { ok?: boolean; serverTime?: number; cursor?: number; more?: boolean; reports?: Report[]; users?: Record<string, string> } | null
+      // 이름표는 처음·모르는 사람이 나왔을 때·5분마다만 받는다(매번 받으면 서버 읽기 한도를 낭비한다)
+      const names = needNames || Date.now() - namesAt > NAMES_REFRESH_MS
+      const r = await apiCall(`/reports?since=${cursor}${names ? '&names=1' : ''}`)
+      const b = r.body as { ok?: boolean; serverTime?: number; cursor?: number; more?: boolean; reports?: Report[]; users?: Record<string, string>; prefsAt?: number } | null
       if (r.status !== 200 || !b?.ok || typeof b.serverTime !== 'number') return false
       applyList(Array.isArray(b.reports) ? b.reports : [])
-      if (b.users) host.setNames(b.users)
+      if (b.users) {
+        host.setNames(b.users)
+        needNames = false
+        namesAt = Date.now()
+      }
       if (b.more && typeof b.cursor === 'number') {
         cursor = b.cursor
         continue
@@ -127,6 +166,7 @@ async function pull(): Promise<boolean> {
         /* 무시 */
       }
       pulledOnce = true
+      notifyPrefsAt(b.prefsAt)
       return true
     }
     return false
@@ -158,9 +198,11 @@ async function uploadPhotos(r: Report) {
   }
 }
 
-async function flush() {
-  if (!getSession() || !host || flushing || !pulledOnce || (typeof navigator !== 'undefined' && navigator.onLine === false)) return
+// 대기열의 제보를 올린다. 하나라도 올렸으면 true.
+async function flush(): Promise<boolean> {
+  if (!getSession() || !host || flushing || !pulledOnce || Date.now() < holdUntil || (typeof navigator !== 'undefined' && navigator.onLine === false)) return false
   flushing = true
+  let sentAny = false
   try {
     scan()
     for (const id of [...pending]) {
@@ -175,15 +217,29 @@ async function flush() {
       const res = await apiCall(`/reports/${encodeURIComponent(id)}`, { method: 'PUT', json: r })
       const b = res.body as { ok?: boolean; report?: Report } | null
       if (res.status === 200 && b?.ok && b.report) {
+        sentAny = true
         pending.delete(id)
         const cur = host.getReports().find((x) => x.id === id)
         if (!cur || hashOf(cur) !== sent) pending.add(id) // 보내는 사이 또 바뀌었다 → 내 쪽 값을 우선해 다시 보낸다
         applyList([b.report])
-      } else if (res.status === 0 || res.status >= 500 || res.status === 429 || res.status === 401) {
-        break // 오프라인·서버 문제·하루 상한·로그아웃: 대기열에 둔 채 다음 기회에
+      } else if (res.status === 429) {
+        holdUntil = Date.now() + QUOTA_HOLD_MS // 하루 저장 횟수를 다 썼다: 계속 두드리지 않고 쉰다
+        break
+      } else if (res.status === 0 || res.status >= 500 || res.status === 401) {
+        break // 오프라인·서버 문제·로그아웃: 대기열에 둔 채 다음 기회에
       } else {
         pending.delete(id) // 서버가 거절한 제보(형식·크기 등)는 되풀이하지 않는다
-        hashes[id] = sent
+        const back = serverCopy.get(id)
+        if (back) {
+          // 낙관적으로 화면에 먼저 반영했던 변경을 되돌린다
+          applying = true
+          try {
+            host.restore(back)
+          } finally {
+            applying = false
+          }
+          hashes[id] = hashOf(back)
+        } else hashes[id] = sent // 서버에 올라간 적 없는 제보는 이 기기에 그대로 두고 다시 보내지 않는다
         saveHashes()
       }
       savePending()
@@ -191,31 +247,61 @@ async function flush() {
   } finally {
     flushing = false
   }
+  return sentAny
 }
 
-async function tick() {
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) return
-  await pull()
-  await flush()
+// 한 번 확인: 받고 → 올린다. 받기에 성공했는가를 돌려준다(실패하면 주기를 늘린다).
+async function tick(): Promise<boolean> {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return true
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return false
+  const ok = await pull()
+  if (ok) await flush()
+  return ok
+}
+
+function arm(delay?: number) {
+  clearTimeout(timer)
+  timer = undefined
+  if (!running || (typeof document !== 'undefined' && document.visibilityState === 'hidden')) return // 숨겨진 탭은 멈춘다. 다시 보이면 바로 시작한다.
+  timer = setTimeout(() => void loop(), delay ?? nextDelay(fails, Date.now() - lastActive, Math.random()))
+}
+
+async function loop() {
+  if (!running) return
+  const ok = await tick()
+  fails = ok ? 0 : fails + 1
+  arm()
+}
+
+// 기다리지 않고 지금 한 번 확인(앱 시작·화면 복귀·창 포커스·온라인 복귀·올린 직후)
+function pokeNow(delay = 0) {
+  if (!running || !getSession()) return
+  fails = 0
+  arm(delay)
 }
 
 function schedule() {
   if (!getSession()) return
   clearTimeout(debounce)
-  debounce = setTimeout(() => void (pulledOnce ? flush() : tick()), DEBOUNCE_MS)
+  debounce = setTimeout(async () => {
+    if (!pulledOnce) return void pokeNow()
+    if (await flush()) pokeNow(300) // 올린 직후 다른 사람의 변경도 바로 확인
+  }, DEBOUNCE_MS)
 }
 
 function start() {
   stop()
   loadState()
-  void tick()
-  interval = setInterval(() => void tick(), PULL_MS)
+  running = true
+  needNames = true
+  fails = 0
+  pokeNow()
 }
 function stop() {
-  clearInterval(interval)
+  running = false
+  clearTimeout(timer)
   clearTimeout(debounce)
-  interval = undefined
+  timer = undefined
   pulledOnce = false
 }
 
@@ -233,9 +319,17 @@ export function initSync(h: SyncHost) {
     else stop()
   })
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && getSession()) void tick()
+    if (document.visibilityState === 'visible') pokeNow()
+    else clearTimeout(timer)
   })
-  window.addEventListener('online', () => void tick())
+  window.addEventListener('focus', () => pokeNow())
+  window.addEventListener('online', () => pokeNow())
+  const touch = () => {
+    const wasIdle = Date.now() - lastActive >= IDLE_AFTER_MS
+    lastActive = Date.now()
+    if (wasIdle) pokeNow() // 한참 쉬다 다시 만지면 바로 확인
+  }
+  for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, touch, { passive: true })
   if (getSession()) start()
   initPrefsSync()
 }

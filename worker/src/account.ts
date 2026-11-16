@@ -167,6 +167,9 @@ async function handleAuth(request: Request, env: Env, db: D1Db, path: string, or
 async function handlePrefs(request: Request, env: Env, db: D1Db, user: AuthedUser, origin: string, now: number): Promise<Response> {
   if (request.method === 'GET') {
     const row = await db.prepare('SELECT data, updated_at AS updatedAt FROM prefs WHERE user_id = ?').bind(user.id).first<{ data: string; updatedAt: number }>()
+    // ?since=<updatedAt>: 그 뒤로 바뀐 게 없으면 내용 없이 unchanged만 돌려준다(실시간 확인용)
+    const sinceRaw = new URL(request.url).searchParams.get('since')
+    if (sinceRaw !== null && row && Number(sinceRaw) >= row.updatedAt) return reply({ ok: true, unchanged: true, updatedAt: row.updatedAt }, 200, origin)
     return reply({ ok: true, data: row ? JSON.parse(row.data) : null, updatedAt: row?.updatedAt ?? 0 }, 200, origin)
   }
   if (request.method !== 'PUT') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
@@ -213,15 +216,20 @@ async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedU
     const { results } = await db.prepare('SELECT data, updated_at AS updatedAt FROM reports WHERE updated_at > ? ORDER BY updated_at ASC LIMIT ?').bind(s, PAGE + 1).all<{ data: string; updatedAt: number }>()
     const more = results.length > PAGE
     const page = more ? results.slice(0, PAGE) : results
-    const users = (await db.prepare('SELECT id, name FROM users').all<{ id: string; name: string }>()).results
+    // 이름표(users)는 요청할 때(names=1)만 보낸다. 3~5초마다 받는 확인에서 users 전체를 읽으면 D1 읽기 한도를 낭비한다.
+    const wantNames = new URL(request.url).searchParams.get('names') === '1'
+    const users = wantNames ? (await db.prepare('SELECT id, name FROM users').all<{ id: string; name: string }>()).results : []
+    // 내 설정이 바뀐 시각: 같은 요청에 실어 보내, 다른 기기에서 바꾼 설정을 따로 묻지 않고도 알아챈다.
+    const pr = await db.prepare('SELECT updated_at AS updatedAt FROM prefs WHERE user_id = ?').bind(user.id).first<{ updatedAt: number }>()
     return reply(
       {
         ok: true,
         serverTime: now,
+        prefsAt: pr?.updatedAt ?? 0,
         cursor: page.length > 0 ? page[page.length - 1].updatedAt : s,
         more,
         reports: page.map((r) => JSON.parse(r.data)),
-        users: Object.fromEntries(users.map((u) => [u.id, u.name])),
+        ...(wantNames ? { users: Object.fromEntries(users.map((u) => [u.id, u.name])) } : {}),
       },
       200,
       origin,

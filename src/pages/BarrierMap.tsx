@@ -47,6 +47,7 @@ import {
 } from '../lib/publicLayers'
 import { Sentences } from '../components/Sentences'
 import { Wordmark } from '../components/Wordmark'
+import { isMockReport, realFirst } from '../lib/realFirst'
 
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
@@ -1176,6 +1177,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   // 지금 지도에 보이는 곳의 장애요소 요약(아래 시트)
   const here = useMemo(() => {
     const rows: HomeRow[] = []
+    const mockIds = new Set(reports.filter(isMockReport).map((r) => r.id))
     if (!view || !layers.team) return rows
     const [s, w, n, e] = view.b
     const inView = (lat: number, lng: number) => lat >= s && lat <= n && lng >= w && lng <= e
@@ -1190,7 +1192,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       rows.push({ key: r.id, kind: 'report', id: r.id, pos: { lat: r.lat, lng: r.lng, type: r.type, at: r.history[0]?.at ?? '' }, title: `시민 제보 · ${r.type}`, sub: r.verification.rating ? STATUS_LABEL[r.status] : '판정을 기다리고 있어요', rating: r.verification.rating ?? 'none', impact: impactOfReport(r.type, r.locationKind), cat: categoryOf(impactOfReport(r.type, r.locationKind), r.verification.rating ?? 'none') })
     }
     const order: Record<string, number> = { X: 0, TRIANGLE: 1, none: 2, O: 3 }
-    return rows.sort((a, b) => order[a.rating] - order[b.rating])
+    return realFirst(rows.sort((a, b) => order[a.rating] - order[b.rating]), (row) => row.kind === 'report' && mockIds.has(row.id)) // 실제 제보가 모의·체험 제보보다 먼저
   }, [view, layers.team, reports, seedOverride])
   const hereCount = (c: Category) => here.filter((r) => r.cat === c).length
   // 핵심 3칸(어려운 곳·버스 불편·주의=지날 때 주의+주의 구역)에 이미 나온 분류는 펼침 목록에서 뺀다: 같은 숫자가 두 번 나오지 않게

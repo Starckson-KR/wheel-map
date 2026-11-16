@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
 import { logOut, useAccount } from '../lib/account/api'
 import { clearAllLocks, deleteReport, deleteUser, loadReports, loadSummary, loadUsers, resetPin, unlockUser } from '../lib/account/admin'
 import type { AdminReport, AdminSummary, AdminUser } from '../lib/account/admin'
 import { confirmSheet, toast } from '../lib/uiStore'
+import { useReports } from '../lib/reportStore'
+import { TO, go } from '../lib/nav'
+import { clearDevReturn, markDevReturn, readDevReturn } from '../lib/devReturn'
 import Icon from './Icon'
 import SheetHandle from './SheetHandle'
 
@@ -16,10 +19,28 @@ const shortDate = (v: string | number) => {
 }
 
 // 개발자 관리: 현황 숫자, 계정·신고 목록, 지우기. 설정 시트의 행에서만 열리고, role이 'dev'인 계정에게만 행이 보인다(서버도 한 번 더 확인한다).
-function AdminSheet({ onClose }: { onClose: () => void }) {
+// 이 기기의 제보 목록에 그 신고가 있으면 바로, 없으면(서버에만 있으면) 동기화로 들어올 때까지 잠시 기다린다.
+function waitForReport(id: string, ms: number, alive: () => boolean): Promise<boolean> {
+  const has = () => useReports.getState().reports.some((r) => r.id === id)
+  if (has()) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    let t = 0
+    const off = useReports.subscribe(() => {
+      if (has()) done(true)
+    })
+    const done = (v: boolean) => {
+      window.clearTimeout(t)
+      off()
+      resolve(v && alive())
+    }
+    t = window.setTimeout(() => done(false), ms)
+  })
+}
+
+function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: Tab }) {
   const myId = useAccount((s) => s.user?.id)
   const [sum, setSum] = useState<AdminSummary | null>(null)
-  const [tab, setTab] = useState<Tab>('users')
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [reports, setReports] = useState<AdminReport[]>([])
   const [more, setMore] = useState({ users: false, reports: false })
@@ -27,6 +48,15 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(true)
   // 새 임시 PIN: 이 화면 상태에만 두고, 닫으면 지운다(다시 볼 수 없다)
   const [shownPin, setShownPin] = useState<{ name: string; pin: string; self: boolean } | null>(null)
+
+  const [opening, setOpening] = useState<string | null>(null) // 이동하려고 기다리는 신고 id
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   const [stamp, setStamp] = useState(0) // 값이 바뀌면 처음부터 다시 불러온다
   const reload = () => setStamp((n) => n + 1)
@@ -118,6 +148,18 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
       toast('복사하지 못했어요. 직접 적어 주세요.')
     }
   }
+  // 신고 한 건 열기: 일반 제보 상세(#/map?report=id)로 간다. 뒤로가면 이 시트의 신고 탭으로 돌아온다.
+  const openReport = async (r: AdminReport) => {
+    if (opening) return
+    setOpening(r.id)
+    setErr('')
+    const ok = await waitForReport(r.id, 10000, () => mounted.current)
+    if (!mounted.current) return
+    setOpening(null)
+    if (!ok) return setErr('이 기기로 아직 불러오지 못한 신고예요. 잠시 뒤에 다시 눌러 주세요.')
+    markDevReturn('reports')
+    go(TO.openReport(r.id))
+  }
   const removeReport = async (r: AdminReport) => {
     if (!(await confirmSheet({ title: '이 신고를 지울까요?', body: '되돌릴 수 없어요. 신고와 붙은 사진이 지워져요.', confirmLabel: '지우기', danger: true }))) return
     const e = await deleteReport(r.id)
@@ -202,14 +244,17 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
           {tab === 'reports' &&
             reports.map((r) => (
               <li key={r.id}>
-                <div className="dv-main">
-                  <strong>{r.type || '유형 없음'}</strong>
-                  {r.text && <span className="dv-text">{r.text}</span>}
-                  <small>
-                    {r.authorName || '알 수 없음'} · {shortDate(r.createdAt)}
-                    {r.hasPhoto ? ' · 사진 있음' : ''}
-                  </small>
-                </div>
+                <button type="button" className="dv-open" onClick={() => void openReport(r)} disabled={opening !== null} aria-busy={opening === r.id} aria-label={`${r.type || '유형 없음'} 신고 열기`}>
+                  <span className="dv-main">
+                    <strong>{r.type || '유형 없음'}</strong>
+                    {r.text && <span className="dv-text">{r.text}</span>}
+                    <small>
+                      {r.authorName || '알 수 없음'} · {shortDate(r.createdAt)}
+                      {r.hasPhoto ? ' · 사진 있음' : ''}
+                      {opening === r.id ? ' · 불러오는 중…' : ''}
+                    </small>
+                  </span>
+                </button>
                 <button type="button" className="dv-del" onClick={() => void removeReport(r)} aria-label="이 신고 지우기">
                   지우기
                 </button>
@@ -253,7 +298,9 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
 // 설정 시트의 한 행. role이 'dev'가 아니면 아무것도 그리지 않는다.
 export default function DevAdmin() {
   const dev = useAccount((s) => s.user?.role === 'dev')
-  const [open, setOpen] = useState(false)
+  const [back] = useState(readDevReturn) // 신고 상세에서 뒤로 돌아왔다면 그 탭으로 바로 연다
+  const [open, setOpen] = useState(back !== null)
+  useEffect(() => clearDevReturn(), [])
   if (!dev) return null
   return (
     <li>
@@ -263,7 +310,7 @@ export default function DevAdmin() {
       <button type="button" className="hm-tool hm-tool-row" aria-haspopup="dialog" aria-label="개발자 관리 열기" onClick={() => setOpen(true)}>
         <Icon name="chev" size={18} />
       </button>
-      {open && createPortal(<AdminSheet onClose={() => setOpen(false)} />, sheetHost())}
+      {open && createPortal(<AdminSheet onClose={() => setOpen(false)} initialTab={back ?? 'users'} />, sheetHost())}
     </li>
   )
 }

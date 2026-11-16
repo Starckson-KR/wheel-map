@@ -7,8 +7,7 @@ import AdminReport from '../components/AdminReport'
 import { useRecurrence } from '../lib/useRecurrence'
 import { lastExternal } from '../lib/externalStatus'
 import ReportDetail from '../components/ReportDetail'
-import ViewSettings from '../components/ViewSettings'
-import DemoTools, { MockStrip } from '../components/DemoTools'
+import AdminHeader from '../components/AdminHeader'
 import { findAgencyName } from '../lib/agencyName'
 import { listAgencies, listDepartments } from '../lib/agencyGuide'
 import { agencyOf, fmtDate, flagsOf, nextInspection, pendingTransfer, tabOf, type InboxTab } from '../lib/caseMetrics'
@@ -17,6 +16,7 @@ import { parseHash } from '../lib/nav'
 import { loadBarriers } from '../lib/seed'
 import type { Report } from '../types'
 import { confirmSheet, toast } from '../lib/uiStore'
+import { isMockReport, realFirstReports } from '../lib/realFirst'
 import CaseTitle from '../components/CaseTitle'
 import { Sentences } from '../components/Sentences'
 
@@ -114,7 +114,7 @@ export default function AdminPage() {
       if (!agency || t !== 'transfer') return !agency || agencyOf(r) === agency
       return true
     })
-  const list = inTab(tab).slice().reverse()
+  const list = realFirstReports(inTab(tab).slice().reverse())
   const overdue = scoped.filter((r) => flagsOf(r, now).some((f) => f.startsWith('처리기한'))).length
 
   const onReset = async () => {
@@ -175,23 +175,11 @@ export default function AdminPage() {
     .filter((r) => r.lastCheckedAt)
     .map((r) => ({ r, ni: nextInspection(r, now) }))
     .filter((x): x is { r: Report; ni: NonNullable<ReturnType<typeof nextInspection>> } => !!x.ni)
-    .sort((a, b) => a.ni.dueMs - b.ni.dueMs)
+    .sort((a, b) => Number(isMockReport(a.r)) - Number(isMockReport(b.r)) || a.ni.dueMs - b.ni.dueMs)
 
   return (
     <div className="bm adm">
-      <header className="adm-top">
-        <div className="adm-brand">
-          <button type="button" className="adm-tomap" onClick={() => (location.hash = '#/map')}>
-            지도로
-          </button>
-          <h1>이의있음! · 행정</h1>
-        </div>
-        <div className="adm-top-tools">
-          <MockStrip />
-          <ViewSettings />
-          <DemoTools page="admin" onReset={onReset} barriers={BARRIERS} />
-        </div>
-      </header>
+      <AdminHeader onReset={onReset} barriers={BARRIERS} />
       <div className="adm-main">
         <div className="adm-body">
           <div className="adm-wrap">

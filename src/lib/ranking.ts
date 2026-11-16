@@ -2,6 +2,7 @@
 // 그래서 기간을 "전체"로 잡으면 합계가 리워드 total과 같다. 순수 함수만 있다(화면·저장소 의존 없음).
 import type { Report } from '../types'
 import { computeRewards, type PointEvent, type PointKind } from './rewards'
+import { isMockUser } from './realFirst'
 
 export type RankPeriod = 'week' | 'month'
 
@@ -70,8 +71,13 @@ function rankOnce(reports: Report[], userIds: string[], range: PeriodRange): Omi
     const counts = KIND_ORDER.map((kind) => ({ kind, label: KIND_LABEL[kind], n: evs.filter((e) => e.kind === kind).length })).filter((c) => c.n > 0)
     return { userId, points, counts }
   })
-  rows.sort((a, b) => b.points - a.points || (a.userId < b.userId ? -1 : 1))
-  return rows.map((r) => ({ ...r, rank: r.points > 0 ? 1 + rows.filter((o) => o.points > r.points).length : null }))
+  // 실제 사용자(가입한 사람)가 가상 사용자보다 먼저. 각 묶음 안에서는 점수순이고, 가상 사용자의 순위는 실제 사용자 뒤에서 이어진다.
+  rows.sort((a, b) => Number(isMockUser(a.userId)) - Number(isMockUser(b.userId)) || b.points - a.points || (a.userId < b.userId ? -1 : 1))
+  const realRanked = rows.filter((o) => !isMockUser(o.userId) && o.points > 0).length
+  return rows.map((r) => {
+    const mock = isMockUser(r.userId)
+    return { ...r, rank: r.points > 0 ? (mock ? realRanked : 0) + 1 + rows.filter((o) => isMockUser(o.userId) === mock && o.points > r.points).length : null }
+  })
 }
 
 // 기간 랭킹. withPrev가 true면 직전 기간(지난주·지난달) 순위도 함께 붙인다.

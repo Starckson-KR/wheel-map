@@ -1,5 +1,6 @@
 import type { Barrier, Geometry, LatLng, Report } from '../types'
 import { DAY, deadlineOf } from './caseMetrics'
+import { isMockReport } from './realFirst'
 import type { PlanEntry } from './planStore'
 
 // 시민용 개선 현황: 민원과 팀 조사 지점을 진행 단계로 나눠 센다. 화면 코드가 없는 순수 함수만 둔다.
@@ -57,6 +58,7 @@ export type ProgressItem = {
   title: string
   sub: string // 목록 둘째 줄(민원 종류 또는 계획 반영 연도)
   at: number // 정렬·날짜 표시 기준(ms). 0이면 날짜 없음
+  mock?: boolean // 시연·체험 제보(목록에서 실제 제보 뒤로 보낸다)
 }
 
 export type ProgressSummary = {
@@ -103,7 +105,7 @@ export function buildProgress({ reports, barriers, plans, now, periodDays, place
     if (!stage) continue
     const created = new Date(r.createdAt).getTime()
     if (created < since) continue
-    items.push({ key: 'r:' + r.id, kind: 'report', id: r.id, stage, lat: r.lat, lng: r.lng, title: placeName(r), sub: r.type, at: created })
+    items.push({ key: 'r:' + r.id, kind: 'report', id: r.id, stage, lat: r.lat, lng: r.lng, title: placeName(r), sub: r.type, at: created, ...(isMockReport(r) ? { mock: true } : {}) })
     if (r.complaint) cases.push(r)
   }
   for (const b of barriers) {
@@ -112,7 +114,7 @@ export function buildProgress({ reports, barriers, plans, now, periodDays, place
     const a = anchorOf(b.geometry)
     items.push({ key: 's:' + b.id, kind: 'seed', id: b.id, stage: 'plan', lat: a[0], lng: a[1], title: seedName(b), sub: `${p.stage}${p.year ? ` · ${p.year}년` : ''}`, at: p.updatedAt ? new Date(p.updatedAt).getTime() : 0 })
   }
-  items.sort((x, y) => y.at - x.at)
+  items.sort((x, y) => Number(!!x.mock) - Number(!!y.mock) || y.at - x.at)
 
   const counts = Object.fromEntries(PROGRESS_ORDER.map((s) => [s, 0])) as Record<ProgressStage, number>
   for (const it of items) counts[it.stage]++

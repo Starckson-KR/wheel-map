@@ -8,25 +8,17 @@
 .adm-top {
   flex: none;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--s-3);
-  min-height: 60px;
-  padding: calc(var(--safe-top) + var(--s-2)) var(--s-5) var(--s-2);
+  gap: var(--s-2);
+  min-height: 56px;
+  padding: calc(var(--safe-top) + var(--s-1)) var(--s-5) var(--s-1);
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 
-.adm-brand {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-3);
+.adm-top h1 {
+  flex: 1;
   min-width: 0;
-}
-
-.adm-brand h1 {
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-sub);
@@ -35,12 +27,67 @@
   white-space: nowrap;
 }
 
-.adm-top-tools {
+.adm-tools {
   display: flex;
+  flex: none;
   align-items: center;
   gap: var(--s-2);
-  flex-wrap: wrap;
-  justify-content: flex-end;
+}
+
+/* 좁은 화면: 도구 두 개는 ⋯ 메뉴로, 넓은 화면: 두 버튼을 펼친다 */
+.adm-more {
+  display: none;
+}
+
+/* 가상 데이터·모의 연동일 때만 머리줄 아래에 얇은 한 줄 띠로 보인다(없으면 자리도 없다) */
+.adm-strip {
+  flex: none;
+}
+
+.adm-strip:empty {
+  display: none;
+}
+
+.adm-strip .mock-strip {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 3px var(--s-4);
+  border-radius: 0;
+  box-shadow: none;
+  white-space: nowrap;
+  font-size: min(0.75rem, 4.2vw);
+}
+
+.adm-strip .mock-strip-large {
+  box-shadow: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.adm-strip .rf-notice {
+  margin: 0;
+  border-radius: 0;
+}
+
+.adm-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--s-2);
+  border: 0;
+  border-top: 1px solid var(--grey-100);
+  border-radius: 0;
+  background: none;
+  color: var(--text-strong);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  text-align: left;
+}
+
+.adm-menu-row svg {
+  color: var(--text-sub);
 }
 
 .adm-main {
@@ -344,8 +391,16 @@
 
 @media (max-width: 767px) {
   :root:not([data-view='desktop']) .adm-top {
-    padding-left: var(--s-4);
-    padding-right: var(--s-4);
+    padding-left: var(--s-2);
+    padding-right: var(--s-2);
+  }
+
+  :root:not([data-view='desktop']) .adm-more {
+    display: grid;
+  }
+
+  :root:not([data-view='desktop']) .adm-wide {
+    display: none;
   }
 
   :root:not([data-view='desktop']) .adm-body {
@@ -368,8 +423,16 @@
 /*  data-view="mobile" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
 
 :root[data-view='mobile'] .adm-top {
-    padding-left: var(--s-4);
-    padding-right: var(--s-4);
+    padding-left: var(--s-2);
+    padding-right: var(--s-2);
+  }
+
+:root[data-view='mobile'] .adm-more {
+    display: grid;
+  }
+
+:root[data-view='mobile'] .adm-wide {
+    display: none;
   }
 
 :root[data-view='mobile'] .adm-body {
@@ -755,7 +818,40 @@
 }
 
 /* 행정 화면 머리줄과 빈 상태 버튼 정리 */
-.bm button.adm-tomap { min-height: 36px; padding: 0 var(--s-3); border-radius: var(--r-full); font-size: var(--fs-small); }
+.bm button.adm-tomap {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 var(--s-3) 0 var(--s-1);
+  border: 0;
+  border-radius: var(--r-full);
+  background: none;
+  color: var(--text-sub);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bm button.adm-more {
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-strong);
+}
+/* 아주 좁거나 글자가 클 때는 제목의 서비스 이름을 접어 한 줄을 지킨다 */
+@media (max-width: 359px) {
+  .adm-brand-name { display: none; }
+}
+@media (max-width: 767px) {
+  html[data-text='large'] .adm-brand-name { display: none; }
+}
 .bm button.adm-fill { min-height: 44px; padding: 0 var(--s-4); border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-weight: 700; }
 .bm button.adm-fill:hover:not(:disabled) { background: var(--primary-weak); }
 /* 탭이 더 있다는 걸 오른쪽 끝을 옅게 해서 알린다 */

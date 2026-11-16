@@ -7,6 +7,7 @@ import { findAgencyName } from './agencyName'
 import { buildDemoReports } from './demoData'
 import { avoidFromBarriers, buildLargeDemo, makeDemoFile, parseDemoFile, shiftDates, type Candidate } from './demoLarge'
 import { usePlan } from './planStore'
+import { setMockUserCheck } from './realFirst'
 import { getSession, useAccount } from './account/api'
 import { SYNC_NAMES_KEY } from './account/keys'
 import { mergeReport, reconcileVotes } from './account/merge'
@@ -85,6 +86,7 @@ function setCrowd(c: Crowd | null) {
 }
 export const userName = (id: string) => DEMO_USERS.find((u) => u.id === id)?.name ?? peerNames[id] ?? crowd?.users[id] ?? SYSTEM_NAMES[id] ?? id
 // 순위에 올릴 사용자: 시민·검증자(행정 담당 계정 제외) + 가상 사용자 명부
+setMockUserCheck((id) => !!crowd?.users[id])
 export const rankingUserIds = () => [...new Set([...DEMO_USERS.filter((u) => u.role !== 'officer').map((u) => u.id), ...Object.keys(peerNames), ...Object.keys(crowd?.users ?? {})])]
 
 export const STATUS_LABEL: Record<ReportStatus, string> = {
@@ -565,6 +567,8 @@ initSync({
   },
   applyRemote: (list, pending) => useReports.getState().applyRemote(list, pending),
   setNames: setPeerNames,
+  hasName: (id) => userName(id) !== id,
+  restore: (r) => useReports.setState((s) => ({ reports: s.reports.map((x) => (x.id === r.id ? r : x)) })),
 })
 
 // 변경될 때마다 저장. 실패하면 안내 문구를 남긴다.

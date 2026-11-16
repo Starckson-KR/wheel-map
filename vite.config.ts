@@ -178,18 +178,36 @@ function gitInfo() {
   let hash = 'dev'
   try {
     hash = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'dev'
-    if (execSync('git status --porcelain', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()) hash += '+dirty'
+    // 배포(CI)에서는 npm ci가 추적 파일을 바꿔도 +dirty를 붙이지 않는다(붙으면 새 버전 자동 적용이 꺼진다).
+    if (!process.env.CI && execSync('git status --porcelain', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()) hash += '+dirty'
   } catch {
     hash = 'dev'
   }
-  const d = new Date()
-  const p = (n: number) => String(n).padStart(2, '0')
-  return { hash, time: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}` }
+  // 빌드 서버는 UTC일 수 있어 시간대를 한국(KST)으로 고정해 표시한다.
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+      .formatToParts(new Date())
+      .map((x) => [x.type, x.value]),
+  )
+  return { hash, time: `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}` }
 }
 const BUILD = gitInfo()
 
+// 배포마다 dist/version.json({build, time})을 만든다. build는 번들에 박힌 __BUILD_HASH__와 같은 값이라 앱이 새 버전 여부를 비교한다.
+function versionFile(): Plugin {
+  return {
+    name: 'version-file',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD.hash, time: BUILD.time }) })
+    },
+  }
+}
+
 export default defineConfig({
-  define: { __BUILD_HASH__: JSON.stringify(BUILD.hash) },
+  define: { __BUILD_HASH__: JSON.stringify(BUILD.hash), __BUILD_TIME__: JSON.stringify(BUILD.time) },
   base: '/wheel-map/', // GitHub Pages(저장소 이름)용
-  plugins: [react(), devPhotos(), devTmap(), devBis(), devTransit()],
+  // Worker 허용 출처가 localhost:5173뿐이라 포트를 고정한다. 이미 쓰는 중이면 다른 번호로 옮겨 가지 않고 실패한다.
+  server: { port: 5173, strictPort: true },
+  plugins: [react(), versionFile(), devPhotos(), devTmap(), devBis(), devTransit()],
 })

@@ -31,7 +31,7 @@ export function getView(): ViewMode {
 }
 export function getTheme(): ThemeMode {
   const v = read(THEME_KEY)
-  return v === 'light' || v === 'dark' ? v : 'system'
+  return v === 'system' || v === 'dark' ? v : 'light' // 기본값은 라이트(사용자 결정 11/16)
 }
 
 // 휴대폰인데 폭이 768px 이상으로 잡히는 경우(브라우저의 '데스크톱 사이트' 보기, 일부 삼성 인터넷 등)에도 '자동'이 모바일 화면이 되게 한다.

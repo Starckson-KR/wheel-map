@@ -107,6 +107,16 @@ export function setTextSize(t: TextSize) {
   applyTextSize(t)
 }
 
+// 저장소(localStorage) 값이 바뀐 뒤(로그아웃·계정 전환·서버 설정 동기화) 화면 속성과 설정 시트가 같은 값을 보게 한다.
+export const PREFS_CHANGE_EVENT = 'wheelmap:prefschange'
+export function reapplyPrefs() {
+  applyTextSize(getTextSize())
+  applyView(getView())
+  applyTheme(getTheme())
+  window.dispatchEvent(new Event('wheelmap:viewchange'))
+  window.dispatchEvent(new Event(PREFS_CHANGE_EVENT))
+}
+
 export function initPrefs() {
   applyTextSize(getTextSize())
   applyView(getView())

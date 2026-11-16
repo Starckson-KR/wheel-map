@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
-import { getTextSize, getTheme, getView, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
+import { getTextSize, getTheme, getView, PREFS_CHANGE_EVENT, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
 import Icon from './Icon'
 import SheetHandle from './SheetHandle'
 
@@ -27,6 +27,16 @@ export default function ViewSettings({ floating = false, row = false }: { floati
   const [view, setV] = useState(getView)
   const [theme, setT] = useState(getTheme)
   const [text, setTx] = useState(getTextSize)
+  // 로그아웃·계정 전환·서버 설정 동기화로 저장 값이 바뀌면 시트 값도 다시 읽는다
+  useEffect(() => {
+    const sync = () => {
+      setV(getView())
+      setT(getTheme())
+      setTx(getTextSize())
+    }
+    window.addEventListener(PREFS_CHANGE_EVENT, sync)
+    return () => window.removeEventListener(PREFS_CHANGE_EVENT, sync)
+  }, [])
   return (
     <>
       <button type="button" className={floating ? 'hm-tool vs-float' : row ? 'hm-tool hm-tool-row' : 'hm-tool'} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={row ? '화면 설정 열기' : undefined}>

@@ -17,7 +17,7 @@ import {
 import { CATEGORIES, savePrefs, type BenefitCategory } from '../../lib/benefits'
 import { getLang, setLang, type Lang } from '../../lib/i18n'
 import {
-  getMotionForce, getTextSize, getTheme, prefersCalm, setMotionForce, setTextSize, setTheme, type TextSize, type ThemeMode,
+  getMotionForce, getTextSize, getTheme, PREFS_CHANGE_EVENT, prefersCalm, setMotionForce, setTextSize, setTheme, type TextSize, type ThemeMode,
 } from '../../lib/viewPrefs'
 import { Sentences } from '../Sentences'
 
@@ -86,6 +86,15 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
   useEffect(() => {
     userRef.current = user
   })
+
+  useEffect(() => {
+    const sync = () => {
+      setText(getTextSize())
+      setThemeState(getTheme())
+    }
+    window.addEventListener(PREFS_CHANGE_EVENT, sync)
+    return () => window.removeEventListener(PREFS_CHANGE_EVENT, sync)
+  }, [])
 
   useEffect(() => {
     mounted.current = true

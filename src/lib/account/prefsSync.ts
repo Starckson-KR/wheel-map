@@ -1,4 +1,5 @@
 import { apiCall, getSession, useAccount } from './api'
+import { reapplyPrefs } from '../viewPrefs'
 import { SYNCED_PREF_KEYS } from './keys'
 
 // 개인 설정 동기화(본인만). 다른 모듈의 코드는 건드리지 않고 localStorage 키 단위로 맞춘다.
@@ -63,6 +64,7 @@ async function begin(gen: number) {
   last = snapshot()
   await push(toPush)
   if (changed) {
+    reapplyPrefs() // 새로고침 전에도 화면 속성·설정 시트가 서버 값과 같아지게 한다
     const flag = `${s.user.id}:${b.updatedAt ?? 0}`
     try {
       if (sessionStorage.getItem(RELOAD_FLAG) !== flag) {

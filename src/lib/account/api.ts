@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ACCOUNT_URL } from '../config'
+import { reapplyPrefs } from '../viewPrefs'
 import { SESSION_KEY, SYNCED_PREF_KEYS } from './keys'
 
 // 간편 계정(이름 + 4자리 숫자). 서버는 wheelmap-ai Worker(worker/README.md). 세션 토큰은 localStorage `wheelmap.session`에만 둔다.
@@ -125,6 +126,7 @@ function clearSyncedPrefs() {
   } catch {
     /* 무시 */
   }
+  reapplyPrefs() // 화면(글자 크기·화면 색·보기 방식)도 비운 값에 맞춘다
 }
 
 // 앱을 열 때 저장된 세션이 아직 유효한지 확인한다(오프라인이면 그대로 둔다).

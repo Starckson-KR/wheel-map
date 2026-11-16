@@ -1,5 +1,15 @@
 import { authenticate, fail, isDev, reply } from './account.ts'
+import { hashPin, randomHex, sha256Hex } from './auth.ts'
 import type { D1Db, Env } from './types'
+
+// 0000~9999를 치우침 없이 고른다(거부 표집).
+function randomPin(): string {
+  const buf = new Uint32Array(1)
+  const limit = Math.floor(0x100000000 / 10000) * 10000
+  do crypto.getRandomValues(buf)
+  while (buf[0] >= limit)
+  return String(buf[0] % 10000).padStart(4, '0')
+}
 
 // 개발자(role='dev') 전용 관리 API. 역할을 바꾸는 API는 없다(역할은 DB에서 직접만 바꾼다).
 // 로그에는 이름·토큰을 남기지 않는다.
@@ -116,6 +126,36 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
         }
       })
       return reply({ ok: true, items, more, total: await count(db, 'SELECT COUNT(*) AS n FROM reports') }, 200, origin)
+    }
+
+    // 모든 로그인 시도 제한 풀기(가입 시도 제한 포함)
+    if (path === '/admin/throttle/clear') {
+      if (m !== 'POST') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
+      await db.prepare('DELETE FROM throttle').run()
+      return reply({ ok: true }, 200, origin)
+    }
+
+    // 계정별 잠금 풀기 / PIN 다시 정하기
+    const act = /^\/admin\/users\/([^/]+)\/(unlock|reset-pin)$/.exec(path)
+    if (act) {
+      if (m !== 'POST') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
+      const id = decodeURIComponent(act[1])
+      if (!ID_RE.test(id)) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
+      const u = await db.prepare('SELECT name_key AS nameKey FROM users WHERE id = ?').bind(id).first<{ nameKey: string }>()
+      if (!u) return fail(404, 'not_found', '이미 없어요.', origin)
+      const kName = await sha256Hex(`name|${u.nameKey}`)
+      if (act[2] === 'unlock') {
+        // 이름 기준 키만 지울 수 있다. 「이름+IP」 키는 IP 없이는 특정할 수 없어 「모든 잠금 풀기」로 푼다.
+        await db.prepare('DELETE FROM throttle WHERE key = ?').bind(kName).run()
+        return reply({ ok: true, partial: true }, 200, origin)
+      }
+      // 새 임시 PIN은 응답에만 담는다(저장은 salt+해시, 로그 없음). 그 계정의 세션은 모두 끊는다.
+      const pin = randomPin()
+      const salt = randomHex(16)
+      await db.prepare('UPDATE users SET pin_hash = ?, salt = ? WHERE id = ?').bind(await hashPin(pin, salt), salt, id).run()
+      await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run()
+      await db.prepare('DELETE FROM throttle WHERE key = ?').bind(kName).run()
+      return reply({ ok: true, pin, self: id === a.user.id }, 200, origin)
     }
 
     const rm = /^\/admin\/(reports|users)\/([^/]+)$/.exec(path)

@@ -36,3 +36,25 @@ async function del(path: string): Promise<string | null> {
 }
 export const deleteReport = (id: string) => del(`/admin/reports/${encodeURIComponent(id)}`)
 export const deleteUser = (id: string) => del(`/admin/users/${encodeURIComponent(id)}`)
+
+async function post(path: string): Promise<{ ok: true; body: Record<string, unknown> } | { ok: false; message: string }> {
+  const r = await apiCall(path, { method: 'POST' })
+  if (r.status === 200 && r.body?.ok) return { ok: true, body: r.body }
+  if (r.status === 403) return { ok: false, message: '권한이 없어요.' }
+  if (r.status === 404) return { ok: false, message: '이미 없는 계정이에요.' }
+  return { ok: false, message: '처리하지 못했어요. 잠시 뒤에 다시 해 주세요.' }
+}
+export async function unlockUser(id: string): Promise<string | null> {
+  const r = await post(`/admin/users/${encodeURIComponent(id)}/unlock`)
+  return r.ok ? null : r.message
+}
+export async function clearAllLocks(): Promise<string | null> {
+  const r = await post('/admin/throttle/clear')
+  return r.ok ? null : r.message
+}
+// 새 임시 PIN은 이 응답에만 있다. 저장·출력하지 말고 화면에 한 번만 보여 준다.
+export async function resetPin(id: string): Promise<{ ok: true; pin: string; self: boolean } | { ok: false; message: string }> {
+  const r = await post(`/admin/users/${encodeURIComponent(id)}/reset-pin`)
+  if (!r.ok) return r
+  return typeof r.body.pin === 'string' ? { ok: true, pin: r.body.pin, self: r.body.self === true } : { ok: false, message: '처리하지 못했어요. 잠시 뒤에 다시 해 주세요.' }
+}

@@ -843,4 +843,11 @@
 .dv-me { flex: none; color: var(--text-sub); font-size: var(--fs-small); font-weight: 600; }
 .bm .dv-del { flex: none; min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-sm); background: none; color: var(--danger); font-weight: 700; white-space: nowrap; }
 .bm .dv-more { min-height: var(--touch); margin-top: var(--s-2); border-radius: var(--r-md); background: var(--grey-100); color: var(--text-strong); font-weight: 700; }
+.dv-list > li:has(.dv-acts) { flex-wrap: wrap; row-gap: 0; }
+.dv-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0 var(--s-1); flex-basis: 100%; }
+.bm .dv-act { flex: none; min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-sm); background: none; color: var(--primary); font-weight: 700; white-space: nowrap; }
+.bm .dv-all { min-height: var(--touch); border-radius: var(--r-md); background: var(--primary-weak); color: var(--primary); font-weight: 700; }
+.dv-pin h2 { margin: 0; font-size: var(--fs-head); font-weight: 800; }
+.dv-pin-num { display: block; margin: var(--s-3) 0; padding: var(--s-5) 0; border-radius: var(--r-md); background: var(--grey-100); color: var(--text-strong); font-size: 2.5rem; font-weight: 800; letter-spacing: 0.4em; text-align: center; text-indent: 0.4em; font-variant-numeric: tabular-nums; }
+.dv-pin-note { margin: 0 0 var(--s-2); color: var(--text-sub); font-size: var(--fs-small); word-break: keep-all; }
 .dv-empty { margin: var(--s-4) 0; color: var(--text-sub); text-align: center; }

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
-import { useAccount } from '../lib/account/api'
-import { deleteReport, deleteUser, loadReports, loadSummary, loadUsers } from '../lib/account/admin'
+import { logOut, useAccount } from '../lib/account/api'
+import { clearAllLocks, deleteReport, deleteUser, loadReports, loadSummary, loadUsers, resetPin, unlockUser } from '../lib/account/admin'
 import type { AdminReport, AdminSummary, AdminUser } from '../lib/account/admin'
 import { confirmSheet, toast } from '../lib/uiStore'
 import Icon from './Icon'
@@ -25,6 +25,8 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
   const [more, setMore] = useState({ users: false, reports: false })
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(true)
+  // 새 임시 PIN: 이 화면 상태에만 두고, 닫으면 지운다(다시 볼 수 없다)
+  const [shownPin, setShownPin] = useState<{ name: string; pin: string; self: boolean } | null>(null)
 
   const [stamp, setStamp] = useState(0) // 값이 바뀌면 처음부터 다시 불러온다
   const reload = () => setStamp((n) => n + 1)
@@ -78,6 +80,44 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
     toast('계정을 지웠어요.')
     reload()
   }
+  const unlock = async (u: AdminUser) => {
+    if (!(await confirmSheet({ title: `${u.name} 로그인 잠금을 풀까요?`, body: '이름 기준 잠금만 풀려요. 계속 안 되면 모든 잠금을 풀어 주세요.', confirmLabel: '잠금 풀기' }))) return
+    const e = await unlockUser(u.id)
+    if (e) return setErr(e)
+    setErr('')
+    toast('잠금을 풀었어요.')
+  }
+  const unlockAll = async () => {
+    if (!(await confirmSheet({ title: '모든 로그인 잠금을 풀까요?', body: '모든 계정의 로그인·가입 시도 제한이 풀려요.', confirmLabel: '모두 풀기' }))) return
+    const e = await clearAllLocks()
+    if (e) return setErr(e)
+    setErr('')
+    toast('모든 잠금을 풀었어요.')
+  }
+  const newPin = async (u: AdminUser) => {
+    const self = u.id === myId
+    if (!(await confirmSheet({ title: `${u.name} PIN을 다시 정할까요?`, body: `새 임시 PIN이 만들어지고, 이 계정은 모두 로그아웃돼요.${self ? ' 내 계정이라 다시 로그인해야 해요.' : ''}`, confirmLabel: '다시 정하기', danger: true }))) return
+    const r = await resetPin(u.id)
+    if (!r.ok) return setErr(r.message)
+    setErr('')
+    setShownPin({ name: u.name, pin: r.pin, self: r.self })
+  }
+  const closePin = () => {
+    const self = shownPin?.self
+    setShownPin(null)
+    if (self) {
+      onClose()
+      void logOut() // 서버 세션이 이미 끊겼으므로 이 기기도 로그아웃 상태로 맞춘다
+    }
+  }
+  const copyPin = async () => {
+    try {
+      await navigator.clipboard.writeText(shownPin?.pin ?? '')
+      toast('복사했어요.')
+    } catch {
+      toast('복사하지 못했어요. 직접 적어 주세요.')
+    }
+  }
   const removeReport = async (r: AdminReport) => {
     if (!(await confirmSheet({ title: '이 신고를 지울까요?', body: '되돌릴 수 없어요. 신고와 붙은 사진이 지워져요.', confirmLabel: '지우기', danger: true }))) return
     const e = await deleteReport(r.id)
@@ -113,6 +153,9 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </dl>
+        <button type="button" className="dv-all" onClick={() => void unlockAll()}>
+          모든 로그인 잠금 풀기
+        </button>
         <div className="rf-seg" role="group" aria-label="목록 구분">
           <button type="button" className={tab === 'users' ? 'on' : ''} aria-pressed={tab === 'users'} onClick={() => setTab('users')}>
             계정
@@ -139,13 +182,21 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
                     가입 {shortDate(u.createdAt)} · 신고 {u.reportCount}건
                   </small>
                 </div>
-                {u.id === myId ? (
-                  <span className="dv-me">나</span>
-                ) : (
-                  <button type="button" className="dv-del" onClick={() => void removeUser(u)} aria-label={`${u.name} 계정 지우기`}>
-                    지우기
+                <div className="dv-acts">
+                  <button type="button" className="dv-act" onClick={() => void unlock(u)} aria-label={`${u.name} 로그인 잠금 풀기`}>
+                    잠금 풀기
                   </button>
-                )}
+                  <button type="button" className="dv-act" onClick={() => void newPin(u)} aria-label={`${u.name} PIN 다시 정하기`}>
+                    PIN 다시 정하기
+                  </button>
+                  {u.id === myId ? (
+                    <span className="dv-me">나</span>
+                  ) : (
+                    <button type="button" className="dv-del" onClick={() => void removeUser(u)} aria-label={`${u.name} 계정 지우기`}>
+                      지우기
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           {tab === 'reports' &&
@@ -172,6 +223,29 @@ function AdminSheet({ onClose }: { onClose: () => void }) {
           </button>
         )}
       </div>
+      {shownPin && (
+        <>
+          <div className="ms-dim dv-pin-dim" onClick={closePin} />
+          <div className="ms dv-pin" data-sheet role="dialog" aria-modal="true" aria-label="새 임시 PIN">
+            <SheetHandle onDown={closePin} />
+            <h2>{shownPin.name} 새 PIN</h2>
+            <output className="dv-pin-num" aria-label={`새 PIN ${shownPin.pin.split('').join(' ')}`}>
+              {shownPin.pin}
+            </output>
+            <p className="dv-pin-note">
+              닫으면 다시 볼 수 없어요.{shownPin.self ? ' 닫으면 로그아웃되니 새 PIN으로 다시 로그인해 주세요.' : ''}
+            </p>
+            <div className="rf-actions">
+              <button type="button" onClick={() => void copyPin()}>
+                복사
+              </button>
+              <button type="button" className="rf-primary" onClick={closePin}>
+                닫기
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   )
 }

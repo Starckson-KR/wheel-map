@@ -38,11 +38,17 @@ export function shouldReload(own: string, remote: unknown, last: UpdateTry | nul
   return true
 }
 
+// 실제로 화면에 보이는지: 숨겨진 탭 안에 남은 요소(hidden·inert·aria-hidden 조상, 크기 0)는 제외.
+function isShown(el: Element): boolean {
+  if (el.closest('[hidden], [inert], [aria-hidden="true"]')) return false
+  return el.getClientRects().length > 0
+}
+
 // 작성 중인 화면에서는 미룬다: 제보 작성·행정·확인 화면, 초기 설정·로그인, 열린 시트, 글자 입력 중.
 export function isBusy(doc: Document, hash: string): boolean {
   const page = hash.replace(/^#\/?/, '').split(/[/?]/)[0]
   if (page === 'report' || page === 'admin' || page === 'verify') return true
-  if (doc.querySelector('.ob-body, .ob-foot, [role="dialog"][aria-modal="true"]')) return true
+  if (Array.from(doc.querySelectorAll('.ob-body, .ob-foot, [role="dialog"][aria-modal="true"]')).some(isShown)) return true
   return isTyping(doc)
 }
 

@@ -20,13 +20,17 @@ test('같은 새 빌드로 시도한 뒤 10분간은 재시도 안 함', () => {
   assert.equal(shouldReload('aaa', 'bbb', last, 1000 + RETRY_MS), true)
   assert.equal(shouldReload('aaa', 'ccc', last, 2000), true)
 })
+const shown = (o: { hiddenAncestor?: boolean; rects?: number } = {}) => ({ closest: () => (o.hiddenAncestor ? {} : null), getClientRects: () => ({ length: o.rects ?? 1 }) })
+const fakeDoc = (els: unknown[]) => ({ querySelectorAll: () => els, activeElement: null }) as unknown as Document
 test('작성 화면은 미룸', () => {
-  const doc = { querySelector: () => null, activeElement: null } as unknown as Document
+  const doc = { querySelectorAll: () => [], activeElement: null } as unknown as Document
   assert.equal(isBusy(doc, '#/report?x=1'), true)
   assert.equal(isBusy(doc, '#/admin'), true)
   assert.equal(isBusy(doc, '#/'), false)
-  assert.equal(isBusy({ querySelector: () => ({}), activeElement: null } as unknown as Document, '#/'), true)
-  assert.equal(isBusy({ querySelector: () => null, activeElement: { tagName: 'INPUT' } } as unknown as Document, '#/me'), true)
+  assert.equal(isBusy(fakeDoc([shown()]), '#/'), true)
+  assert.equal(isBusy(fakeDoc([shown({ hiddenAncestor: true })]), '#/'), false) // 숨겨진 탭 안의 dialog
+  assert.equal(isBusy(fakeDoc([shown({ rects: 0 })]), '#/'), false) // 크기 0x0
+  assert.equal(isBusy({ querySelectorAll: () => [], activeElement: { tagName: 'INPUT' } } as unknown as Document, '#/me'), true)
 })
 
 test('옛 버전 판정은 최신 배포 빌드 기준', () => {

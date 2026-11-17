@@ -12,6 +12,8 @@ export const DEFAULT_WRITE_LIMIT = 300
 const NAME_FAIL_LIMIT = 30 // 이름 하나에 대한 전체(IP 무관) 실패 상한
 const SIGNUP_LIMIT = 20 // IP당 10분 가입 시도 상한
 const PAGE = 200
+const MAX_DELETED = 2000
+const MAX_IDS = 20000
 
 export type Deps = { now?: () => number }
 
@@ -211,11 +213,20 @@ export function validateReport(v: unknown, id: string): string | null {
 async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedUser, path: string, origin: string, now: number): Promise<Response> {
   if (path === '/reports') {
     if (request.method !== 'GET') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
+    // 서버에 있는 제보 id 전체(삭제 표시가 생기기 전에 지워진 제보를 기기에서 한 번 맞춰 지울 때 쓴다)
+    if (new URL(request.url).searchParams.get('ids') === '1') {
+      const { results: all } = await db.prepare('SELECT id FROM reports ORDER BY id LIMIT ?').bind(MAX_IDS + 1).all<{ id: string }>()
+      if (all.length > MAX_IDS) return reply({ ok: true, serverTime: now, complete: false, ids: [] }, 200, origin)
+      return reply({ ok: true, serverTime: now, complete: true, ids: all.map((x) => x.id) }, 200, origin)
+    }
     const since = Number(new URL(request.url).searchParams.get('since') ?? '0')
     const s = Number.isFinite(since) && since > 0 ? since : 0
     const { results } = await db.prepare('SELECT data, updated_at AS updatedAt FROM reports WHERE updated_at > ? ORDER BY updated_at ASC LIMIT ?').bind(s, PAGE + 1).all<{ data: string; updatedAt: number }>()
     const more = results.length > PAGE
     const page = more ? results.slice(0, PAGE) : results
+    // 그 시각 뒤에 지워진 제보 id(삭제 표시). 쪽을 나눠 받는 중이면 이번 쪽의 마지막 시각까지만 보내고, 마지막 쪽에서 나머지를 보낸다.
+    const upTo = more ? page[page.length - 1].updatedAt : Number.MAX_SAFE_INTEGER
+    const dels = await db.prepare('SELECT id FROM report_deletions WHERE deleted_at > ? AND deleted_at <= ? ORDER BY deleted_at ASC LIMIT ?').bind(s, upTo, MAX_DELETED).all<{ id: string }>()
     // 이름표(users)는 요청할 때(names=1)만 보낸다. 3~5초마다 받는 확인에서 users 전체를 읽으면 D1 읽기 한도를 낭비한다.
     const wantNames = new URL(request.url).searchParams.get('names') === '1'
     const users = wantNames ? (await db.prepare('SELECT id, name FROM users').all<{ id: string; name: string }>()).results : []
@@ -229,6 +240,7 @@ async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedU
         cursor: page.length > 0 ? page[page.length - 1].updatedAt : s,
         more,
         reports: page.map((r) => JSON.parse(r.data)),
+        deleted: dels.results.map((d) => d.id),
         ...(wantNames ? { users: Object.fromEntries(users.map((u) => [u.id, u.name])) } : {}),
       },
       200,
@@ -244,6 +256,11 @@ async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedU
   if (err) return fail(400, 'bad_input', err, origin)
   const incoming = body.value as Record<string, unknown>
   const row = await db.prepare('SELECT data FROM reports WHERE id = ?').bind(id).first<{ data: string }>()
+  if (!row) {
+    // 관리자가 지운 제보를 오래 쉬었던 기기가 다시 올려 되살리지 못하게 한다
+    const gone = await db.prepare('SELECT 1 AS x FROM report_deletions WHERE id = ?').bind(id).first()
+    if (gone) return fail(410, 'gone', '이미 지워진 제보예요.', origin)
+  }
   if (!row && incoming.userId !== user.id) return fail(400, 'bad_input', '내 계정으로 만든 제보만 새로 올릴 수 있어요.', origin)
   if (!(await takeQuota(db, user, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
   const merged = mergeReport(row ? JSON.parse(row.data) : null, incoming)

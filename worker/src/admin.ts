@@ -39,19 +39,24 @@ function photoIds(data: string): string[] {
   }
 }
 
-async function removeReport(db: D1Db, id: string): Promise<boolean> {
+const TOMBSTONE_KEEP_MS = 30 * 24 * 60 * 60 * 1000
+
+async function removeReport(db: D1Db, id: string, now: number): Promise<boolean> {
   const row = await db.prepare('SELECT author_id AS authorId, data FROM reports WHERE id = ?').bind(id).first<{ authorId: string; data: string }>()
   if (!row) return false
   for (const pid of photoIds(row.data)) await db.prepare('DELETE FROM photos WHERE id = ? AND owner_id = ?').bind(pid, row.authorId).run()
   await db.prepare('DELETE FROM reports WHERE id = ?').bind(id).run()
+  // 삭제 표시를 남기고(받아 간 기기가 지울 수 있게), 30일 지난 표시는 정리한다
+  await db.prepare('INSERT INTO report_deletions(id, deleted_at) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET deleted_at=excluded.deleted_at').bind(id, now).run()
+  await db.prepare('DELETE FROM report_deletions WHERE deleted_at < ?').bind(now - TOMBSTONE_KEEP_MS).run()
   return true
 }
 
-async function removeUser(db: D1Db, id: string): Promise<boolean> {
+async function removeUser(db: D1Db, id: string, now: number): Promise<boolean> {
   const exists = await db.prepare('SELECT 1 AS x FROM users WHERE id = ?').bind(id).first()
   if (!exists) return false
   const { results } = await db.prepare('SELECT id FROM reports WHERE author_id = ?').bind(id).all<{ id: string }>()
-  for (const r of results) await removeReport(db, r.id)
+  for (const r of results) await removeReport(db, r.id, now)
   await db.prepare('DELETE FROM photos WHERE owner_id = ?').bind(id).run()
   await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run()
   await db.prepare('DELETE FROM prefs WHERE user_id = ?').bind(id).run()
@@ -164,7 +169,7 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
       const id = decodeURIComponent(rm[2])
       if (!ID_RE.test(id)) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
       if (rm[1] === 'users' && id === a.user.id) return fail(400, 'self_delete', '내 계정은 여기서 지울 수 없어요.', origin)
-      const ok = rm[1] === 'reports' ? await removeReport(db, id) : await removeUser(db, id)
+      const ok = rm[1] === 'reports' ? await removeReport(db, id, now) : await removeUser(db, id, now)
       if (!ok) return fail(404, 'not_found', '이미 없어요.', origin)
       return reply({ ok: true }, 200, origin)
     }

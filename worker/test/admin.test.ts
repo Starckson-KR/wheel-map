@@ -211,3 +211,62 @@ test('로그인 시도 제한(throttle)은 개발자 계정에도 그대로 적�
   for (let i = 0; i < 4; i++) assert.equal((await call('POST', '/auth/login', { json: { name: '개발자', pin: '0000' } })).status, 401)
   assert.equal((await call('POST', '/auth/login', { json: { name: '개발자', pin: '0000' } })).status, 429)
 })
+
+test('지운 제보는 삭제 표시로 남아 변경분 받기(since)에 id로 내려오고, 지운 뒤의 받기에는 다시 나오지 않는다', async () => {
+  const { call, signup, makeDev, db } = setup()
+  const a = await signup('작성자')
+  const dev = await signup('관리자')
+  makeDev(dev.id)
+  await call('PUT', '/reports/r-1', { token: a.token, json: report('r-1', a.id) })
+  await call('PUT', '/reports/r-2', { token: a.token, json: report('r-2', a.id) })
+  const before = await call('GET', '/reports?since=0', { token: a.token })
+  assert.deepEqual(before.body.deleted, [])
+  const cursor = before.body.serverTime as number
+  const later = clock + 5000
+  assert.equal((await call('DELETE', '/admin/reports/r-1', { token: dev.token, deps: { now: () => later } })).status, 200)
+  assert.equal(count(db, 'report_deletions'), 1)
+  const after = await call('GET', `/reports?since=${cursor}`, { token: a.token })
+  assert.deepEqual(after.body.deleted, ['r-1'])
+  assert.equal(after.body.reports.length, 0)
+  const full = await call('GET', '/reports?since=0', { token: dev.token })
+  assert.deepEqual(full.body.reports.map((r: J) => r.id), ['r-2'])
+  assert.deepEqual(full.body.deleted, ['r-1']) // 처음부터 받는 기기에도 알려 준다(이미 없으면 무해)
+  assert.deepEqual((await call('GET', `/reports?since=${later}`, { token: a.token })).body.deleted, []) // 이미 받은 뒤에는 안 나온다
+})
+
+test('지워진 제보는 다시 올려 되살릴 수 없다(410), 다른 새 제보는 그대로 올라간다', async () => {
+  const { call, signup, makeDev } = setup()
+  const a = await signup('작성자')
+  const dev = await signup('관리자')
+  makeDev(dev.id)
+  await call('PUT', '/reports/r-1', { token: a.token, json: report('r-1', a.id) })
+  await call('DELETE', '/admin/reports/r-1', { token: dev.token })
+  assert.equal((await call('PUT', '/reports/r-1', { token: a.token, json: report('r-1', a.id) })).status, 410)
+  assert.equal((await call('PUT', '/reports/r-3', { token: a.token, json: report('r-3', a.id) })).status, 200)
+})
+
+test('계정을 지우면 그 계정의 제보도 삭제 표시가 남고, 30일 지난 표시는 다음 삭제 때 정리된다', async () => {
+  const { call, signup, makeDev, db } = setup()
+  const a = await signup('작성자')
+  const dev = await signup('관리자')
+  makeDev(dev.id)
+  await call('PUT', '/reports/r-1', { token: a.token, json: report('r-1', a.id) })
+  await call('PUT', '/reports/r-2', { token: a.token, json: report('r-2', a.id) })
+  await call('DELETE', `/admin/users/${a.id}`, { token: dev.token })
+  assert.equal(count(db, 'report_deletions'), 2)
+  db.raw.prepare('UPDATE report_deletions SET deleted_at = ?').run(clock - 31 * 24 * 60 * 60 * 1000) // 31일 전에 지워진 것으로
+  await call('PUT', '/reports/r-9', { token: dev.token, json: report('r-9', dev.id) })
+  await call('DELETE', '/admin/reports/r-9', { token: dev.token })
+  assert.equal(count(db, 'report_deletions'), 1) // 31일 전 표시 2개는 정리, 방금 것만 남음
+})
+
+test('서버 제보 id 전체 목록(/reports?ids=1)', async () => {
+  const { call, signup } = setup()
+  const a = await signup('작성자')
+  await call('PUT', '/reports/r-2', { token: a.token, json: report('r-2', a.id) })
+  await call('PUT', '/reports/r-1', { token: a.token, json: report('r-1', a.id) })
+  const r = await call('GET', '/reports?ids=1', { token: a.token })
+  assert.equal(r.body.complete, true)
+  assert.deepEqual(r.body.ids, ['r-1', 'r-2'])
+  assert.equal((await call('GET', '/reports?ids=1')).status, 401)
+})

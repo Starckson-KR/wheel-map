@@ -569,6 +569,10 @@ initSync({
   setNames: setPeerNames,
   hasName: (id) => userName(id) !== id,
   restore: (r) => useReports.setState((s) => ({ reports: s.reports.map((x) => (x.id === r.id ? r : x)) })),
+  removeIds: (ids) => {
+    const gone = new Set(ids)
+    useReports.setState((s) => (s.reports.some((r) => gone.has(r.id) && !r.demo && !r.demoSet) ? { reports: s.reports.filter((r) => !(gone.has(r.id) && !r.demo && !r.demoSet)) } : s))
+  },
 })
 
 // 변경될 때마다 저장. 실패하면 안내 문구를 남긴다.

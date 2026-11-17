@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { sheetHost } from '../lib/sheetHost'
+import { useSheetHost } from '../lib/sheetHost'
 import { logOut, useAccount } from '../lib/account/api'
 import { clearAllLocks, deleteReport, deleteUser, loadReports, loadSummary, loadUsers, resetPin, unlockUser } from '../lib/account/admin'
 import type { AdminReport, AdminSummary, AdminUser } from '../lib/account/admin'
@@ -301,6 +301,7 @@ export default function DevAdmin() {
   const [back] = useState(readDevReturn) // 신고 상세에서 뒤로 돌아왔다면 그 탭으로 바로 연다
   const [open, setOpen] = useState(back !== null)
   useEffect(() => clearDevReturn(), [])
+  const host = useSheetHost(open) // 렌더 중이 아니라 화면이 반영된 뒤에 고른다(뒤로가기로 막 돌아왔을 때 숨겨질 지도 틀에 붙지 않게)
   if (!dev) return null
   return (
     <li>
@@ -310,7 +311,7 @@ export default function DevAdmin() {
       <button type="button" className="hm-tool hm-tool-row" aria-haspopup="dialog" aria-label="개발자 관리 열기" onClick={() => setOpen(true)}>
         <Icon name="chev" size={18} />
       </button>
-      {open && createPortal(<AdminSheet onClose={() => setOpen(false)} initialTab={back ?? 'users'} />, sheetHost())}
+      {open && host && createPortal(<AdminSheet onClose={() => setOpen(false)} initialTab={back ?? 'users'} />, host)}
     </li>
   )
 }

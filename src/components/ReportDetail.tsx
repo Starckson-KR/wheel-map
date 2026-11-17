@@ -139,7 +139,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       )}
 
       {r.category === 'temporary' && r.expiresAt && (
-        <Sentences as="p" className={expired ? 'rf-warn' : 'rf-notice'} role="status">{`${expired ? '유효기간이 지났어요. 다시 확인이 필요해요.' : `${fmt(r.expiresAt)}까지 유효해요.`} ${!expired && ' 지나면 다시 확인해야 해요.'}`}</Sentences>
+        <Sentences as="p" className={expired ? 'rf-warn' : 'rf-notice'} role="status">{`${expired ? '유효기간이 지났어요. 다시 확인이 필요해요.' : `${fmt(r.expiresAt)}까지 유효해요.`}${expired ? '' : ' 지나면 다시 확인해야 해요.'}`}</Sentences>
       )}
 
       <dl>

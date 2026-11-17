@@ -3,6 +3,8 @@ export const SESSION_KEY = 'wheelmap.session'
 export const SYNC_CURSOR_KEY = 'wheelmap.sync.since' // 마지막으로 받은 서버 시각(ms)
 export const SYNC_PENDING_KEY = 'wheelmap.sync.pending' // 아직 못 올린 제보 id 목록
 export const SYNC_HASHES_KEY = 'wheelmap.sync.hashes' // 제보 id → 마지막으로 서버와 맞춘 내용의 해시
+export const SYNC_LOCALONLY_KEY = 'wheelmap.sync.localOnly' // 서버가 거절해 이 기기에만 남은 제보 id(서버 기준으로 지우지 않는다)
+export const SYNC_RECONCILED_KEY = 'wheelmap.sync.reconciled' // 서버 제보 목록과 한 번 맞춘 계정 id
 export const SYNC_NAMES_KEY = 'wheelmap.sync.names' // 다른 사용자 id → 이름
 export const SYNC_PHOTOS_KEY = 'wheelmap.sync.photosUp' // 서버에 올린 사진 키
 

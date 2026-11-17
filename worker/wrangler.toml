@@ -16,8 +16,8 @@ RATE_PER_MINUTE = "10"
 DAILY_LIMIT = "500"
 # 하루 계정당 쓰기 상한(제보·사진·설정 저장 합계)
 DAILY_WRITE_LIMIT = "300"
-# 광주 BIS 저상버스 중계: 하루 상류 호출 상한(개발계정 트래픽 100건보다 낮게), IP별 분당 요청 수. 키(DATA_GO_KR_KEY)는 secret으로만 넣는다.
-BIS_DAILY_CAP = "80"
+# 광주 BIS 저상버스 중계: 하루 상류 호출 상한(운영계정 트래픽 하루 100,000건, 2026-11-18 승인 — 개발 스크립트 몫을 남겨 낮게), IP별 분당 요청 수. 키(DATA_GO_KR_KEY)는 secret으로만 넣는다.
+BIS_DAILY_CAP = "20000"
 BIS_PER_MINUTE = "30"
 
 # 간편 계정·공유 제보 저장소(Cloudflare D1, 무료)

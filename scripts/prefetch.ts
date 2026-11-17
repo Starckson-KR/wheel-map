@@ -1,5 +1,5 @@
 // 광주 북구 공공데이터 사전 수집 스크립트 (키는 브라우저에 넣지 않고 미리 받아 JSON으로 저장)
-// 사용: node scripts/prefetch.ts [crosswalks|toilets|facilities|bus-stops|lowfloor-check|routes [쌍id]|pilot-stops|transit-demo|bus-snapshot|all]  (routes는 all에 포함되지 않음)
+// 사용: node scripts/prefetch.ts [crosswalks|toilets|facilities|bus-stops|lowfloor-check|routes [쌍id]|pilot-stops|transit-demo|bus-snapshot|vouchers [refresh]|all]  (routes는 all에 포함되지 않음)
 // 결과: data/public/<이름>.json / 캐시: data/public/.cache/ / 통계: data/public/.cache/stats.json
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,6 +12,7 @@ import { bisArrive, bisLineLow } from './bisClient.ts';
 import { callTransit, TRANSIT_DAILY_CAP, transitCallsToday } from './transitClient.ts';
 import { classifyMatch, matchBisStop, PILOT_MATCH_RADIUS_M, stopsNear, type BisStop, type PilotStopEntry } from '../src/lib/bus/stops.ts';
 import type { TItinerary } from '../src/lib/transit/parse.ts';
+import { attachFacilities, buildStores, isActiveFranchise, type FacilityLite, type RawFranchise, type VoucherFields } from '../src/lib/vouchers.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PUB = path.join(ROOT, 'data', 'public');
@@ -565,6 +566,74 @@ async function facilities() {
   log(`facilities: ${list.length}건, 좌표 ${withCoord}, 용봉동 ${yb.length}, 상세 ${Object.keys(detail).length}건, 오늘 호출 ${facCounter().n}/${FAC_CALL_CAP}`);
 }
 
+// ---------- 3-2. vouchers (상품권 가맹점, 용봉동만) ----------
+// 한국조폐공사_통합_가맹점기본정보(15119539). 용봉동 = 읍면동코드 12300107(전남광주통합특별시 북구 12300 + 용봉동 107, 응답의 읍면동명으로 3,176건 모두 확인).
+// 응답 원본(사업자번호 포함)은 .cache에만 두고 저장소에는 올리지 않는다. 캐시가 있으면 새로 호출하지 않는다(`vouchers refresh`로만 다시 받음).
+const VOUCHER_EMD_CD = '12300107';
+const VOUCHER_CALL_CAP = 30; // 개발계정 하루 10,000건이지만 꼭 필요한 만큼만
+const voucherRawPath = path.join(CACHE, 'vouchers-raw.json');
+const voucherCounterPath = path.join(CACHE, 'vouchers-calls.json');
+async function vouchers() {
+  let raw = process.argv[3] === 'refresh' ? null : readJson<RawFranchise[] | null>(voucherRawPath, null);
+  let calls = 0;
+  if (!raw) {
+    raw = [];
+    const c = readJson<{ date: string; n: number }>(voucherCounterPath, { date: today(), n: 0 });
+    const counter = c.date === today() ? c : { date: today(), n: 0 };
+    for (let page = 1; page <= 10; page++) {
+      if (counter.n >= VOUCHER_CALL_CAP) {
+        log('  상품권 가맹점 API 호출 상한 도달, 중단');
+        saveStats('vouchers', { ok: false, error: 'call cap' });
+        return;
+      }
+      counter.n++;
+      calls++;
+      writeJson(voucherCounterPath, counter);
+      const r = await getText(`https://apis.data.go.kr/B190001/localFranchisesV3/franchiseV3?${dk()}&page=${page}&perPage=1000&returnType=JSON&cond[emd_cd::EQ]=${VOUCHER_EMD_CD}`);
+      let j: { data?: RawFranchise[]; matchCount?: number; currentCount?: number } | null = null;
+      try {
+        j = JSON.parse(r.text);
+      } catch {
+        /* 아래에서 오류 처리 */
+      }
+      if (r.status !== 200 || !j || !Array.isArray(j.data)) {
+        log(`  상품권 가맹점 오류: HTTP ${r.status} ${r.text.slice(0, 80)}`);
+        saveStats('vouchers', { ok: false, error: `HTTP ${r.status}` });
+        return;
+      }
+      raw.push(...j.data);
+      if (raw.length >= (j.matchCount ?? 0) || !j.currentCount) break;
+      await sleep(300);
+    }
+    writeJson(voucherRawPath, raw);
+  }
+  const facs = readJson<{ items: FacilityLite[] }>(path.join(PUB, 'facilities.json'), { items: [] }).items;
+  const stores = attachFacilities(buildStores(raw), facs);
+  const dates = raw.filter(isActiveFranchise).map((r) => r.crtr_ymd ?? '').filter(Boolean).sort();
+  fs.writeFileSync(path.join(PUB, 'vouchers.json'), JSON.stringify({
+    source: '한국조폐공사 통합 가맹점기본정보(지역사랑상품권)',
+    provider: '한국조폐공사',
+    url: 'https://www.data.go.kr/data/15119539/openapi.do',
+    license: '이용허락범위 제한 없음 (공공데이터포털 페이지 기준)',
+    note: '용봉동(읍면동코드 12300107) 가맹 중인 가게만. 사업자번호·전화번호는 저장하지 않음. facility는 같은 주소(또는 같은 이름·80m 안)의 장애인편의시설과 확실한 경우만 짝지음.',
+    fetchedAt: new Date().toISOString(),
+    baseDate: dates.length ? dates[dates.length - 1] : '',
+    area: '광주 북구 용봉동',
+    count: stores.length,
+    items: stores,
+  }) + '\n', 'utf8'); // 건수가 많아 들여쓰기 없이 저장
+  const matched = stores.filter((s) => (s.fields as unknown as VoucherFields).facility);
+  saveStats('vouchers', {
+    ok: true,
+    원본행: raw.length,
+    가맹중_가게: stores.length,
+    편의시설_짝: matched.length,
+    접근정보_있음: matched.filter((s) => (s.fields as unknown as VoucherFields).access === 'info').length,
+    이번_호출: calls,
+  });
+  log(`vouchers: 원본 ${raw.length}행 → 가맹 중 ${stores.length}곳, 편의시설 짝 ${matched.length}곳 (이번 호출 ${calls}회)`);
+}
+
 // ---------- 4. bus-stops ----------
 // 광주 BIS(15157923)는 엔드포인트가 활용가이드 docx에만 있어 아직 사용하지 못함 → TAGO 정류소정보(15098534)의 좌표 근접 조회를 격자로 호출.
 const BUS_REGION_CAP = 1500;
@@ -977,6 +1046,7 @@ const jobs: Record<string, () => Promise<void>> = {
   crosswalks,
   toilets,
   facilities,
+  vouchers,
   'bus-stops': busStops,
   'bus-stops-bis': busStopsBis,
   'lowfloor-check': lowfloorCheck,
@@ -986,7 +1056,7 @@ const jobs: Record<string, () => Promise<void>> = {
   'bus-snapshot': busSnapshot,
 };
 const arg = process.argv[2] ?? 'all';
-const run = arg === 'all' ? Object.keys(jobs).filter((n) => !['routes', 'transit-demo', 'bus-snapshot'].includes(n)) : [arg]; // routes는 TMAP 호출이 들어가 따로 실행
+const run = arg === 'all' ? Object.keys(jobs).filter((n) => !['routes', 'transit-demo', 'bus-snapshot', 'vouchers'].includes(n)) : [arg]; // routes는 TMAP 호출이 들어가 따로 실행
 if (run.some((n) => !(n in jobs))) {
   console.error('사용: node scripts/prefetch.ts [' + Object.keys(jobs).join('|') + '|all]');
   process.exit(1);

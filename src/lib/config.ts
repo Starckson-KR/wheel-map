@@ -76,6 +76,20 @@ export const ROUTE_CFG = {
   stopRadiusM: 150, // 출발·도착 근처 정류장(버스 타기 불편 정보)
   destRadiusM: 50, // 도착지 건물 출입 불편을 판단하는 범위
 }
+// 2단계: 자체 보행망(OpenStreetMap) 경로 탐색. 아래 숫자는 이 팀이 정한 설계값이며 OSM이 정한 값이 아니다. 시연 쌍으로 검증한 뒤 팀이 조정한다.
+export const WALK_CFG = {
+  obstacleRadiusM: 10, // 장애요소가 영향을 주는 거리(경로 검사 반경 ROUTE_CFG.radiusM과 같게 둔다)
+  penaltyX: 20000, // X(어려움) 곳을 지나는 길 토막 벌점(m) — 사실상 통과 금지(대안이 전혀 없을 때만 지난다)
+  penaltyT: 150, // △(주의) 곳을 지나는 길 토막 벌점(m) — 150m까지 돌아가는 건 감수
+  penaltyStepsM: 5000, // 계단·휠체어 불가 길 토막 고정 벌점(m)
+  penaltyKerbM: 150, // 높은 턱 지점 벌점(m)
+  crossingM: 10, // 횡단보도 하나당 더하는 거리(m)
+  inclineWarnPct: 8, // 경사 8% 이상(기준 약 1/12)이면 가파른 길
+  snapMaxM: 150, // 출발·도착이 보행망에서 이 거리 넘게 떨어지면 자체 경로를 못 찾는 것으로 본다
+  walkSpeedMs: 1.37, // 시연 TMAP 경로의 거리÷시간 평균(2,156m/1,569s)
+  maxDetourRatio: 2, // 피해 가는 길 허용 길이(기본 길의 배수). 넘으면 피해 가는 길을 내지 않는다
+}
+export const ROUTE_OFF_ROUTE_M = 40 // 길 안내 중 내 위치가 경로에서 이만큼 떨어지면 "길에서 벗어났어요"로 본다
 export const ROUTE_CROSSWALK_RADIUS_M = 20 // 경로 근처 횡단보도
 export const ROUTE_STOP_RADIUS_M = 150 // 출발·도착 근처 버스정류장
 export const ROUTE_DEST_RADIUS_M = 50 // 도착지 장애인편의시설·장애인화장실

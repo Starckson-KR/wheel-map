@@ -17,4 +17,8 @@ export type RouteOverlay = {
   markers: RouteMarker[]
   focus: string | null
   fitKey: number
+  /** 안내 모드: 지금 단계를 지도에서 강조한다 */
+  guide?: { coords: Pt[]; next: Pt[]; at: Pt; turn: string; n: number }
+  /** 자체 보행망(OpenStreetMap) 경로를 보여 줄 때 true: 출처 표시를 같이 보인다 */
+  osm?: boolean
 }

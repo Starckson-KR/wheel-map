@@ -102,6 +102,12 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
                 </span>
                 <span className="lp-state">{on ? '켜짐' : '꺼짐'}</span>
               </button>
+              {l.id === 'voucher' && on && (
+                <label className="lp-check">
+                  <input type="checkbox" checked={layers.voucherAccessibleOnly} onChange={(e) => set({ voucherAccessibleOnly: e.target.checked })} />
+                  출입구 정보가 있는 곳만 보기
+                </label>
+              )}
               {l.id === 'toilet' && on && (
                 <label className="lp-check">
                   <input type="checkbox" checked={layers.toiletAccessibleOnly} onChange={(e) => set({ toiletAccessibleOnly: e.target.checked })} />

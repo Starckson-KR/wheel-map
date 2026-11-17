@@ -816,3 +816,172 @@ details.rt-more > summary {
   word-break: keep-all;
   overflow-wrap: break-word;
 }
+
+/* ───── 2단계: 자체 보행망 길 안내 ───── */
+.rt-osm {
+  display: block;
+  margin: 2px 0 0;
+  color: var(--text-sub);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rt-avoid {
+  margin: 0;
+  padding: var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--primary-weak);
+  color: var(--text-strong);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.rt-s-glyph {
+  display: inline-block;
+  min-width: 1.2em;
+  color: var(--primary);
+  font-weight: 800;
+  text-align: center;
+}
+
+.tl-note.rt-s-avoid {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.bm button.rf-primary.rt-g-start {
+  width: 100%;
+}
+
+/* 안내 모드 카드(시트 대신 아래에 작게) */
+.rt-guide {
+  position: absolute;
+  left: var(--s-4);
+  right: var(--s-4);
+  bottom: var(--s-4);
+  z-index: 37;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border-radius: var(--r-xl);
+  background: var(--bg);
+  box-shadow: var(--shadow-2);
+}
+
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .rt-guide {
+    right: auto;
+    width: 392px;
+  }
+}
+
+:root[data-view='desktop'] .rt-guide {
+  right: auto;
+  width: 392px;
+}
+
+.rt-g-main {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.rt-g-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary-weak);
+  color: var(--primary);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.rt-g-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.rt-g-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--fs-body);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.rt-g-sub {
+  margin: 2px 0 0;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+}
+
+.rt-g-count {
+  flex: none;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.rt-g-note {
+  margin: 0;
+  color: var(--primary);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.rt-g-note.rt-g-warn {
+  color: var(--text-strong);
+}
+
+.rt-g-meta {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+}
+
+.rt-g-btns {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.rt-g-btns > button {
+  flex: 1;
+}
+
+.rt-g-btns > button.on {
+  background: var(--primary-weak);
+  color: var(--primary);
+}
+
+.bm button.rt-g-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 지도 위: 지금 단계의 꺾는 곳 표시 */
+.rt-gstep {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #ff8a00;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font: 800 16px/1 var(--font);
+}

@@ -527,6 +527,20 @@
   box-shadow: 0 0 0 3px var(--blue-500);
 }
 
+/* 상품권 가맹점 중 출입구 정보(높이차이 제거)가 등록된 곳: 흰 테두리 대신 노란 고리와 ♿ 글자, 멀리서도 점이 흐려지지 않는다 */
+.bm-pub.bm-pub-acc {
+  border: 3px solid #ffd600;
+  outline: 2px solid var(--grey-900);
+  line-height: 20px;
+}
+
+.bm-pub.bm-pub-acc.bm-pub--dot {
+  min-width: 18px;
+  width: 18px;
+  height: 18px;
+  opacity: 1;
+}
+
 .bm-pub-chip {
   display: inline-block;
   min-width: 20px;
@@ -1081,6 +1095,28 @@
   margin: 4px 0;
   color: var(--text-sub);
   font-size: var(--fs-small);
+}
+
+.pc-acc {
+  margin: var(--s-2) 0;
+  padding: var(--s-3);
+  border-radius: 8px;
+  background: var(--grey-100);
+  color: var(--text-strong);
+  font-size: var(--fs-small);
+}
+
+.pc-acc p {
+  margin: 4px 0 0;
+  color: var(--text-sub);
+}
+
+.pc-acc--info {
+  background: var(--green-50);
+}
+
+.pc-acc--info strong {
+  color: var(--green-700);
 }
 
 .pc-dl {

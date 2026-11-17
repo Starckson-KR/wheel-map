@@ -39,7 +39,7 @@ import {
   loadLayers,
   loadPubDataset,
   saveLayers,
-  toiletAccessible,
+  pubItemShown,
   type LayerState,
   type PubDataset,
   type PubItem,
@@ -844,7 +844,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     for (const l of PUB_LAYERS) {
       const d = pubData[l.id]
       if (!layers[l.id] || !d) continue
-      const pool = d.items.filter((i) => i.lat != null && i.lng != null && (l.id !== 'toilet' || !layers.toiletAccessibleOnly || toiletAccessible(i)))
+      const pool = d.items.filter((i) => i.lat != null && i.lng != null && pubItemShown(l.id, i, layers))
       if (!view) {
         out.push({ layer: l.id, items: [], total: pool.length, inView: 0 })
         continue
@@ -866,13 +866,14 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       if (!info) continue
       for (const it of g.items) {
         const warn = g.layer === 'crosswalk' && it.fields['보도턱낮춤여부'] === 'N'
+        const acc = g.layer === 'voucher' && it.fields['access'] === 'info' // 출입구 정보가 있는 가맹점
         const isSel = pubSel?.item.id === it.id && pubSel.layer === g.layer
         const el = document.createElement('div')
         const dot = mapLevel > 3 && !isSel
-        el.className = 'bm-pub' + (warn ? ' bm-pub-warn' : '') + (isSel ? ' bm-pub-sel' : '') + (dot ? ' bm-pub--dot' : '')
+        el.className = 'bm-pub' + (warn ? ' bm-pub-warn' : '') + (acc ? ' bm-pub-acc' : '') + (isSel ? ' bm-pub-sel' : '') + (dot ? ' bm-pub--dot' : '')
         el.style.background = info.color
-        el.textContent = dot ? '' : warn ? `${info.glyph}!` : info.glyph
-        el.title = warn ? `${it.name} (보도턱 낮춤 없음)` : it.name
+        el.textContent = dot ? '' : warn ? `${info.glyph}!` : acc ? `${info.glyph}♿` : info.glyph
+        el.title = warn ? `${it.name} (보도턱 낮춤 없음)` : acc ? `${it.name} (출입구 정보 있음)` : it.name
         el.addEventListener('click', (e) => {
           e.stopPropagation()
           if (pickingRef.current) {
@@ -1019,6 +1020,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     if (!ready || !k || !map || !overlay) return
     if (overlay.fitKey !== lastFit.current) {
       lastFit.current = overlay.fitKey
+      if (overlay.guide) return // 안내 모드에서는 지금 단계로 맞춘다(아래 효과)
       const b = new k.maps.LatLngBounds()
       for (const p of [...(overlay.base ?? []), ...(overlay.detour ?? []), ...(overlay.legs ?? []).flatMap((l) => l.coords)]) b.extend(new k.maps.LatLng(p[0], p[1]))
       setTimeout(() => {
@@ -1030,6 +1032,39 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       if (h) map.panTo(new k.maps.LatLng(h.anchor[0], h.anchor[1]))
     }
   }, [ready, overlay])
+
+  // 안내 모드: 지금 단계의 경로선을 굵게 강조하고 꺾는 곳에 표시를 놓고, 이 단계와 다음 단계가 보이게 맞춘다
+  const guideN = overlay?.guide?.n ?? -1
+  useEffect(() => {
+    const k = kRef.current
+    const map = mapRef.current
+    const gd = overlay?.guide
+    if (!ready || !k || !map || !gd) return
+    const shapes: { setMap(m: kakao.maps.Map | null): void }[] = []
+    const lls = gd.coords.map((p) => new k.maps.LatLng(p[0], p[1]))
+    if (lls.length >= 2)
+      shapes.push(
+        new k.maps.Polyline({ map, path: lls, strokeWeight: 15, strokeColor: '#ffffff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 12 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: 10, strokeColor: '#ff8a00', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 13 }),
+      )
+    const el = document.createElement('div')
+    el.className = 'rt-gstep'
+    el.textContent = gd.turn
+    shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(gd.at[0], gd.at[1]), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 15 }))
+    const b = new k.maps.LatLngBounds()
+    for (const p of [...gd.coords, ...gd.next]) b.extend(new k.maps.LatLng(p[0], p[1]))
+    const t = setTimeout(() => {
+      map.relayout()
+      fitWithSheet(map, b, 70)
+      if (map.getLevel() < 2) map.setLevel(2)
+    }, 80)
+    return () => {
+      clearTimeout(t)
+      shapes.forEach((x) => x.setMap(null))
+    }
+    // 단계 번호가 바뀔 때만 다시 그린다(overlay 객체는 매번 새로 만들어진다)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, guideN, overlay?.guide?.at[0], overlay?.guide?.at[1]])
 
   // 제보 작성 중 위치 마커(끌어서 옮길 수 있음)
   useEffect(() => {

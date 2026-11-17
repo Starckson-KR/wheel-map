@@ -47,8 +47,9 @@ async function handleVisit(request: Request, db: D1Db, userId: string, origin: s
   const kind = typeof b.kind === 'string' && KINDS.includes(b.kind) ? b.kind : 'open'
   const standalone = b.standalone === true ? 1 : 0
 
-  const prev = await db.prepare('SELECT last_at AS lastAt FROM user_devices WHERE user_id = ? AND device_id = ?').bind(userId, b.deviceId).first<{ lastAt: number }>()
-  if (prev && now >= prev.lastAt && now - prev.lastAt < VISIT_DEDUP_MS) return reply({ ok: true, skipped: true }, 200, origin)
+  const prev = await db.prepare('SELECT last_at AS lastAt, build FROM user_devices WHERE user_id = ? AND device_id = ?').bind(userId, b.deviceId).first<{ lastAt: number; build: string }>()
+  // 빌드가 바뀌었으면(자동 업데이트 직후 등) 10분 안이어도 기록하고 기기 빌드를 갱신한다.
+  if (prev && prev.build === b.build && now >= prev.lastAt && now - prev.lastAt < VISIT_DEDUP_MS) return reply({ ok: true, skipped: true }, 200, origin)
 
   const ua = cut(request.headers.get('user-agent') ?? '', 300)
   const { device, os, browser } = parseUa(ua)

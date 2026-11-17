@@ -261,3 +261,21 @@ test('계정을 지우면 그 계정의 접속·기기·오류 기록도 지워�
   assert.equal((await call('DELETE', `/admin/users/${u.id}`, { token: d.token })).status, 200)
   assert.equal(n('visits') + n('user_devices') + n('client_errors'), 0)
 })
+
+test('접속 중복: 같은 빌드 10분 안은 무시, 다른 빌드는 기록하고 기기 빌드 갱신', async () => {
+  const t = setup()
+  const u = await t.signup('빌드시험')
+  const r1 = await t.visit(u.token, { build: 'old1111' })
+  assert.equal(r1.body.skipped, undefined)
+  clock += 60_000
+  const r2 = await t.visit(u.token, { build: 'old1111' })
+  assert.equal(r2.body.skipped, true)
+  assert.equal(t.n('visits'), 1)
+  clock += 60_000
+  const r3 = await t.visit(u.token, { build: 'new2222' })
+  assert.equal(r3.body.skipped, undefined)
+  assert.equal(t.n('visits'), 2)
+  const d = t.db.raw.prepare('SELECT build, count FROM user_devices WHERE user_id = ?').get(u.id) as J
+  assert.equal(d.build, 'new2222')
+  assert.equal(d.count, 2)
+})

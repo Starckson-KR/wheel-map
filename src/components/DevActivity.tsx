@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { loadActivity } from '../lib/account/admin'
 import type { AdminActivity, AdminDevice, AdminError, AdminUser } from '../lib/account/admin'
-import { isDevBuild } from '../lib/updateCheck'
+import { fetchLatestBuild, isOldBuild } from '../lib/updateCheck'
 import { toast } from '../lib/uiStore'
 import '../styles/activity.css'
 
@@ -20,9 +20,8 @@ export function kst(ms: number): string {
 const kstDate = (ms: number) => kstDay.format(new Date(ms)).replace(/\.\s*/g, '.').replace(/\.$/, '')
 
 const tail = (id: string) => id.slice(-4)
-const isOld = (build: string) => !isDevBuild(__BUILD_HASH__) && build !== __BUILD_HASH__
 
-function errorText(e: AdminError): string {
+function errorText(e: AdminError, isOld: (b: string) => boolean): string {
   const who = [e.device, e.os, e.browser].filter(Boolean).join(' · ')
   return [`[${kst(e.at)} 한국 시간] ${e.message}`, `화면: ${e.route || '-'}`, `빌드: ${e.build}${isOld(e.build) ? ' (옛 버전)' : ''}`, `기기: ${who || '-'} (#${tail(e.deviceId)})`, '', e.stack || '(스택 없음)'].join('\n')
 }
@@ -36,7 +35,7 @@ async function copy(text: string) {
   }
 }
 
-function DeviceRow({ d }: { d: AdminDevice }) {
+function DeviceRow({ d, isOld }: { d: AdminDevice; isOld: (b: string) => boolean }) {
   return (
     <li className="dv-act-row">
       <div className="dv-main">
@@ -63,8 +62,11 @@ export default function DevActivity({ user, onBack }: { user: AdminUser; onBack:
   const [data, setData] = useState<AdminActivity | null>(null)
   const [err, setErr] = useState('')
   const [stamp, setStamp] = useState(0)
+  const [latest, setLatest] = useState<string | null>(null)
+  const isOld = (b: string) => isOldBuild(b, latest, __BUILD_HASH__)
   useEffect(() => {
     let alive = true
+    void fetchLatestBuild().then((b) => alive && setLatest(b))
     void loadActivity(user.id).then((r) => {
       if (!alive) return
       if (r.ok) {
@@ -97,7 +99,7 @@ export default function DevActivity({ user, onBack }: { user: AdminUser; onBack:
       {data && (
         <>
           <h4 className="dv-sec">기기 {data.devices.length}</h4>
-          {data.devices.length === 0 ? <p className="dv-empty">기록이 없어요.</p> : <ul className="dv-list">{data.devices.map((d) => <DeviceRow key={d.deviceId} d={d} />)}</ul>}
+          {data.devices.length === 0 ? <p className="dv-empty">기록이 없어요.</p> : <ul className="dv-list">{data.devices.map((d) => <DeviceRow key={d.deviceId} d={d} isOld={isOld} />)}</ul>}
           <h4 className="dv-sec">접속 기록</h4>
           {data.visits.length === 0 ? (
             <p className="dv-empty">기록이 없어요.</p>
@@ -129,7 +131,7 @@ export default function DevActivity({ user, onBack }: { user: AdminUser; onBack:
             <ul className="dv-list">
               {data.errors.map((e, i) => (
                 <li key={`${e.at}-${i}`} className="dv-act-row">
-                  <button type="button" className="dv-open dv-err" onClick={() => void copy(errorText(e))} aria-label="오류 내용 복사">
+                  <button type="button" className="dv-open dv-err" onClick={() => void copy(errorText(e, isOld))} aria-label="오류 내용 복사">
                     <span className="dv-main">
                       <strong>{e.message}</strong>
                       <small>

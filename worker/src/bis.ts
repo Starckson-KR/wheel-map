@@ -133,7 +133,7 @@ export async function handleBis(request: Request, env: Env, origin: string, deps
   try {
     const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
     if (!(await windowAllowed(db, 'bis', ip, now, posInt(env.BIS_PER_MINUTE, DEFAULT_BIS_PER_MINUTE)))) return err(429, '잠시 뒤에 다시 해 주세요.', origin)
-    const c: Ctx = { db, key: env.DATA_GO_KR_KEY ?? '', now, cap: posInt(env.BIS_DAILY_CAP, DEFAULT_BIS_DAILY_CAP), f: deps.fetch ?? fetch }
+    const c: Ctx = { db, key: (env.DATA_GO_KR_KEY ?? '').trim(), now, cap: posInt(env.BIS_DAILY_CAP, DEFAULT_BIS_DAILY_CAP), f: deps.fetch ?? fetch }
 
     if (u.pathname === '/bis/arrive') {
       const id = u.searchParams.get('station') ?? ''

@@ -165,3 +165,11 @@ test('노선 저상 수: 노선 목록은 하루 한 번, 운행 버스는 10분
   assert.equal(urls.length, 3) // lineInfo 캐시, 위치만 다시
   assert.equal((await call('/bis/line?name=999')).status, 502)
 })
+
+test('secret 끝에 줄바꿈·공백이 붙어 있어도 상류에는 깨끗한 키로 부른다(붙으면 상류가 403 등록되지 않은 서비스키)', async () => {
+  const { call, urls } = setup({ DATA_GO_KR_KEY: ` ${KEY}\r\n` })
+  const r = await call('/bis/arrive?station=12345')
+  assert.equal(r.status, 200)
+  assert.ok(urls[0].includes(`serviceKey=${encodeURIComponent(KEY)}&`))
+  assert.ok(!urls[0].includes('%0A') && !urls[0].includes('%0D') && !urls[0].includes('%20'))
+})

@@ -2,6 +2,8 @@ import { LOCK_FAILS, SESSION_DAYS, afterFailure, hashPin, isLocked, nameKey, nor
 import type { Throttle } from './auth.ts'
 import { mergeReport } from './merge.ts'
 import { MAX_PREFS_BYTES, cleanPrefs } from './prefs.ts'
+import { notify } from './notify.ts'
+import type { NotifyDeps } from './notify.ts'
 import type { D1Db, Env } from './types'
 
 // 간편 계정·개인 설정·공유 제보·사진 엔드포인트. 로그에는 이름·PIN·토큰·IP를 남기지 않는다(console.log를 쓰지 않는다).
@@ -15,7 +17,7 @@ const PAGE = 200
 const MAX_DELETED = 2000
 const MAX_IDS = 20000
 
-export type Deps = { now?: () => number }
+export type Deps = { now?: () => number } & NotifyDeps
 
 export const isAccountPath = (p: string) => p.startsWith('/auth/') || p === '/prefs' || p === '/reports' || p.startsWith('/reports/') || p.startsWith('/photos/')
 
@@ -39,7 +41,7 @@ async function readBody(request: Request, max: number): Promise<{ ok: true; byte
   if (buf.byteLength > max) return { ok: false, res: 'too_large' }
   return { ok: true, bytes: new Uint8Array(buf) }
 }
-async function readJson(request: Request, max: number): Promise<{ ok: true; value: unknown } | { ok: false; res: 'too_large' | 'bad' }> {
+export async function readJson(request: Request, max: number): Promise<{ ok: true; value: unknown } | { ok: false; res: 'too_large' | 'bad' }> {
   const b = await readBody(request, max)
   if (!b.ok) return b
   try {
@@ -50,11 +52,11 @@ async function readJson(request: Request, max: number): Promise<{ ok: true; valu
 }
 
 // ---- 실패 횟수 ----
-async function getThrottle(db: D1Db, key: string): Promise<Throttle | null> {
+export async function getThrottle(db: D1Db, key: string): Promise<Throttle | null> {
   const r = await db.prepare('SELECT fails, window_start AS windowStart, locked_until AS lockedUntil FROM throttle WHERE key = ?').bind(key).first<Throttle>()
   return r ?? null
 }
-async function putThrottle(db: D1Db, key: string, t: Throttle) {
+export async function putThrottle(db: D1Db, key: string, t: Throttle) {
   await db
     .prepare('INSERT INTO throttle(key, fails, window_start, locked_until) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET fails=excluded.fails, window_start=excluded.window_start, locked_until=excluded.locked_until')
     .bind(key, t.fails, t.windowStart, t.lockedUntil)
@@ -166,7 +168,7 @@ async function handleAuth(request: Request, env: Env, db: D1Db, path: string, or
 }
 
 // ---- 개인 설정(본인만) ----
-async function handlePrefs(request: Request, env: Env, db: D1Db, user: AuthedUser, origin: string, now: number): Promise<Response> {
+async function handlePrefs(request: Request, env: Env, db: D1Db, user: AuthedUser, origin: string, now: number, deps: Deps): Promise<Response> {
   if (request.method === 'GET') {
     const row = await db.prepare('SELECT data, updated_at AS updatedAt FROM prefs WHERE user_id = ?').bind(user.id).first<{ data: string; updatedAt: number }>()
     // ?since=<updatedAt>: 그 뒤로 바뀐 게 없으면 내용 없이 unchanged만 돌려준다(실시간 확인용)
@@ -189,6 +191,7 @@ async function handlePrefs(request: Request, env: Env, db: D1Db, user: AuthedUse
   const text = JSON.stringify(cur)
   if (new TextEncoder().encode(text).length > MAX_PREFS_BYTES) return fail(413, 'too_large', '설정이 너무 커요.', origin)
   await db.prepare('INSERT INTO prefs(user_id, data, updated_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at').bind(user.id, text, now).run()
+  await notify(env, deps, 'prefs', user.id) // 같은 계정의 다른 기기에만
   return reply({ ok: true, data: cur, updatedAt: now }, 200, origin)
 }
 
@@ -210,7 +213,7 @@ export function validateReport(v: unknown, id: string): string | null {
   return null
 }
 
-async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedUser, path: string, origin: string, now: number): Promise<Response> {
+async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedUser, path: string, origin: string, now: number, deps: Deps): Promise<Response> {
   if (path === '/reports') {
     if (request.method !== 'GET') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
     // 서버에 있는 제보 id 전체(삭제 표시가 생기기 전에 지워진 제보를 기기에서 한 번 맞춰 지울 때 쓴다)
@@ -270,6 +273,7 @@ async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedU
     .prepare('INSERT INTO reports(id, author_id, data, updated_at) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at')
     .bind(id, user.id, text, now)
     .run()
+  await notify(env, deps, 'reports') // 로그인해 연결된 모든 기기에
   return reply({ ok: true, report: merged, serverTime: now }, 200, origin)
 }
 
@@ -322,8 +326,8 @@ export async function handleAccount(request: Request, env: Env, origin: string, 
     if (path.startsWith('/auth/')) return await handleAuth(request, env, db, path, origin, now)
     const a = await authenticate(db, request, now)
     if (!a) return fail(401, 'unauthorized', '다시 로그인해 주세요.', origin)
-    if (path === '/prefs') return await handlePrefs(request, env, db, a.user, origin, now)
-    if (path === '/reports' || path.startsWith('/reports/')) return await handleReports(request, env, db, a.user, path, origin, now)
+    if (path === '/prefs') return await handlePrefs(request, env, db, a.user, origin, now, deps)
+    if (path === '/reports' || path.startsWith('/reports/')) return await handleReports(request, env, db, a.user, path, origin, now, deps)
     return await handlePhotos(request, env, db, a.user, path, origin, now)
   } catch {
     console.log('wheelmap-ai error: account_internal') // 오류 종류만 남긴다

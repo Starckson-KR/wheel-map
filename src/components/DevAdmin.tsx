@@ -8,6 +8,7 @@ import { confirmSheet, toast } from '../lib/uiStore'
 import { useReports } from '../lib/reportStore'
 import { TO, go } from '../lib/nav'
 import { clearDevReturn, markDevReturn, readDevReturn } from '../lib/devReturn'
+import DevActivity from './DevActivity'
 import Icon from './Icon'
 import SheetHandle from './SheetHandle'
 
@@ -49,6 +50,7 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
   // 새 임시 PIN: 이 화면 상태에만 두고, 닫으면 지운다(다시 볼 수 없다)
   const [shownPin, setShownPin] = useState<{ name: string; pin: string; self: boolean } | null>(null)
 
+  const [detail, setDetail] = useState<AdminUser | null>(null) // 사용자 상세(접속 기록·기기·오류)
   const [opening, setOpening] = useState<string | null>(null) // 이동하려고 기다리는 신고 id
   const mounted = useRef(true)
   useEffect(() => {
@@ -80,10 +82,10 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
     }
   }, [stamp])
   useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && (detail ? setDetail(null) : onClose())
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
-  }, [onClose])
+  }, [onClose, detail])
 
   const loadMore = async () => {
     setBusy(true)
@@ -187,6 +189,10 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
             닫기
           </button>
         </div>
+        {detail ? (
+          <DevActivity user={detail} onBack={() => setDetail(null)} />
+        ) : (
+          <>
         <dl className="dv-stats">
           {stats.map(([label, n]) => (
             <div key={label}>
@@ -215,15 +221,17 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
           {tab === 'users' &&
             users.map((u) => (
               <li key={u.id}>
-                <div className="dv-main">
-                  <strong>
-                    {u.name}
-                    {u.role === 'dev' && <span className="dv-tag">개발자</span>}
-                  </strong>
-                  <small>
-                    가입 {shortDate(u.createdAt)} · 신고 {u.reportCount}건
-                  </small>
-                </div>
+                <button type="button" className="dv-open" onClick={() => setDetail(u)} aria-label={`${u.name} 접속 기록 보기`}>
+                  <span className="dv-main">
+                    <strong>
+                      {u.name}
+                      {u.role === 'dev' && <span className="dv-tag">개발자</span>}
+                    </strong>
+                    <small>
+                      가입 {shortDate(u.createdAt)} · 신고 {u.reportCount}건
+                    </small>
+                  </span>
+                </button>
                 <div className="dv-acts">
                   <button type="button" className="dv-act" onClick={() => void unlock(u)} aria-label={`${u.name} 로그인 잠금 풀기`}>
                     잠금 풀기
@@ -266,6 +274,8 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
           <button type="button" className="dv-more" onClick={() => void loadMore()} disabled={busy}>
             더 보기
           </button>
+        )}
+          </>
         )}
       </div>
       {shownPin && (

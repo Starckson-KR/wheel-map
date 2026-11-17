@@ -9,10 +9,12 @@ import { PressButton, SegBg } from '../motionKit'
 import { SPRING } from '../../lib/motionTokens'
 import PinPad from './PinPad'
 import WelcomeScreen from './WelcomeScreen'
+import InstallGuide from './InstallGuide'
+import { guessDevice, isStandalone, type Device } from './installEnv'
 import Stage from './Stage'
 import { accountConnected, logIn, signUp, useGateAccount } from './accountAdapter'
 import {
-  DOT_COUNT, MOBILITY_OPTIONS, ONBOARDED_KEY, ONBOARDING_EVENT, PROFILE_KEY, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, nameOk,
+  DOT_COUNT, MOBILITY_OPTIONS, afterDevice, afterWelcome, ONBOARDED_KEY, ONBOARDING_EVENT, PROFILE_KEY, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, nameOk,
   parsePreview, parseProfile, startScreen, toBenefitPrefs, type AuthCode, type Mobility, type Profile, type Screen,
 } from './flow'
 import { CATEGORIES, savePrefs, type BenefitCategory } from '../../lib/benefits'
@@ -78,6 +80,7 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
   const [busy, setBusy] = useState(false)
   const [lang, setLangState] = useState<Lang>(() => getLang() ?? 'ko')
   const [profile, setProfile] = useState<Profile>(() => parseProfile(read(PROFILE_KEY)))
+  const [device, setDevice] = useState<Device | null>(() => guessDevice(navigator.userAgent))
   const [picked, setPicked] = useState<Mobility | null>(() => (read(PROFILE_KEY) ? parseProfile(read(PROFILE_KEY)).mobility : null))
   const [text, setText] = useState<TextSize>(getTextSize)
   const [theme, setThemeState] = useState<ThemeMode>(getTheme)
@@ -261,7 +264,44 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
       </PressButton>
     )
 
-    if (s === 'welcome') return <WelcomeScreen onStart={() => goTo('lang')} />
+    if (s === 'welcome') return <WelcomeScreen onStart={() => goTo(afterWelcome(isStandalone({ navStandalone: (navigator as Navigator & { standalone?: boolean }).standalone, matchMedia: (q) => window.matchMedia(q) })))} />
+
+    if (s === 'device') {
+      return (
+        <>
+          <div className="ob-body">
+            <Title>어떤 폰을 쓰세요?</Title>
+            <Sentences as="p" className="ob-sub">홈 화면에 추가하는 방법을 알려 드려요.</Sentences>
+            <div className="ob-list" role="radiogroup" aria-label="폰 종류">
+              {([['ios', '아이폰', 'Safari'], ['android', '갤럭시', '삼성 인터넷 · Chrome']] as const).map(([id, label, hint]) => (
+                <PressButton key={id} type="button" role="radio" aria-checked={device === id} className={'ob-opt' + (device === id ? ' is-on' : '')} onClick={() => setDevice(id)}>
+                  <span className="ob-opt-main">
+                    <strong>{label}</strong>
+                    <small>{hint}</small>
+                  </span>
+                  <span className="ob-radio" aria-hidden="true" />
+                </PressButton>
+              ))}
+            </div>
+            <button type="button" className="ob-link" onClick={() => { setDevice(null); goTo('lang') }}>
+              건너뛰기
+            </button>
+          </div>
+          {foot(next('다음', () => goTo(afterDevice(device)), !device))}
+        </>
+      )
+    }
+
+    if (s === 'install') {
+      return (
+        <>
+          <div className="ob-body">
+            <InstallGuide device={device ?? 'ios'} />
+          </div>
+          {foot(next('다음', () => goTo('lang')))}
+        </>
+      )
+    }
 
     if (s === 'lang') {
       return (

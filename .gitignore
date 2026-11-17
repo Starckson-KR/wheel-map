@@ -29,3 +29,9 @@ docs/시드후보_정리.md
 docs/명세서.md
 docs/명세서_5장_수정안.md
 docs/참고_그늘로_분석.md
+docs/rename-icon-brief.md
+docs/공공데이터_신청_초안.md
+docs/북구동행지도_개발보고서.hwpx
+
+# Worker 로컬 개발용 비밀 값(키 포함, 커밋 금지)
+.dev.vars

@@ -58,3 +58,21 @@ export async function resetPin(id: string): Promise<{ ok: true; pin: string; sel
   if (!r.ok) return r
   return typeof r.body.pin === 'string' ? { ok: true, pin: r.body.pin, self: r.body.self === true } : { ok: false, message: '처리하지 못했어요. 잠시 뒤에 다시 해 주세요.' }
 }
+
+// 사용자 한 명의 접속·기기·오류(읽기 전용). online: 지금 연결된 기기 수(null이면 알 수 없음).
+export type AdminDevice = { deviceId: string; device: string; os: string; browser: string; ua: string; build: string; standalone: boolean; screen: string; firstAt: number; lastAt: number; count: number }
+export type AdminVisit = { at: number; deviceId: string; kind: string; build: string; standalone: boolean; screen: string; device: string; os: string; browser: string }
+export type AdminError = { at: number; deviceId: string; build: string; message: string; stack: string; route: string; device: string | null; os: string | null; browser: string | null }
+export type AdminActivity = { name: string; online: number | null; devices: AdminDevice[]; visits: AdminVisit[]; errors: AdminError[] }
+
+export const loadActivity = (id: string) =>
+  get<AdminActivity>(`/admin/users/${encodeURIComponent(id)}/activity`, (b) => {
+    const list = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
+    return {
+      name: typeof b.name === 'string' ? b.name : '',
+      online: typeof b.online === 'number' ? b.online : null,
+      devices: list<AdminDevice>(b.devices),
+      visits: list<AdminVisit>(b.visits),
+      errors: list<AdminError>(b.errors),
+    }
+  })

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { ACCOUNT_URL } from '../config'
 import { reapplyPrefs } from '../viewPrefs'
+import { setAuthKind } from './authKind'
 import { SESSION_KEY, SYNCED_PREF_KEYS } from './keys'
 
 // 간편 계정(이름 + 4자리 숫자). 서버는 wheelmap-ai Worker(worker/README.md). 세션 토큰은 localStorage `wheelmap.session`에만 둔다.
@@ -100,6 +101,7 @@ async function auth(path: '/auth/signup' | '/auth/login', name: string, pin: str
   const b = r.body as { ok?: boolean; code?: string; message?: string; token?: string; user?: AccountUser } | null
   if (r.status === 200 && b?.ok && typeof b.token === 'string' && b.user) {
     clearSyncedPrefs() // 이전 사람의 설정이 남지 않게 비우고, 서버의 이 계정 설정으로 복원한다(없으면 빈 상태)
+    setAuthKind(path === '/auth/signup' ? 'signup' : 'login') // 접속 기록의 종류(activity.ts가 읽는다)
     setSession({ token: b.token, user: { id: b.user.id, name: b.user.name, role: b.user.role } })
     return { ok: true, user: b.user }
   }

@@ -18,10 +18,14 @@ import App from './App.tsx'
 import MotionRoot from './components/MotionRoot'
 import { installLineTidy } from './lib/lineTidy'
 import { startUpdateCheck } from './lib/updateCheck'
+import { installPageHidden } from './lib/pageHidden'
+import { initActivity } from './lib/account/activity'
 
 initPrefs()
+installPageHidden()
 installLineTidy(document.getElementById('root'))
 startUpdateCheck()
+initActivity()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

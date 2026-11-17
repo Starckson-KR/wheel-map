@@ -1,16 +1,15 @@
 import snap from '../../../data/public/bus-snapshot.json'
-import type { Arrival, ArrivalResult, LineLow, LineLowResult } from './types.ts'
+import { ACCOUNT_URL } from '../config.ts'
+import type { Arrival,ArrivalResult, LineLow, LineLowResult } from './types.ts'
 
 // 저상버스 도착 정보 공급자(7단계). 화면은 이 인터페이스만 쓴다.
 //  - 개발 서버(npm run dev): vite 중계(/__bis/*)로 광주 BIS를 부른다. 키는 서버에만 있고 25초 캐시·하루 상한이 있다.
-//  - 배포(GitHub Pages): 서버가 없어 실시간이 불가능 → 미리 받아 둔 한 시점 스냅샷(data/public/bus-snapshot.json)만 보여 준다.
-//
-// 실시간을 배포판에도 붙이는 방법(메모): Cloudflare Workers(무료 하루 10만 요청) 같은 HTTPS 중계에
+//  - 배포(GitHub Pages): Cloudflare Worker(worker/src/bis.ts)의 /bis/arrive, /bis/line을 부른다(키는 Worker secret, 25초 캐시·하루 상한·IP 제한).
+//    중계가 실패하거나 한도에 닿으면 미리 받아 둔 한 시점 스냅샷(data/public/bus-snapshot.json)으로 돌아간다.
+//  - VITE_BUS_RELAY_URL을 주면 어느 모드에서든 그 주소를 먼저 쓴다(시험용).
+//  응답 형식(개발 중계·Worker 공통):
 //   GET <중계주소>/arrive?station=<BIS 정류소 id>  → { stationId, collectedAt, arrivals: Arrival[] }
 //   GET <중계주소>/line?name=<노선 이름>            → { lineName, total, low, collectedAt }
-// 를 만들고(공공데이터 serviceKey는 Workers 비밀 변수로, CORS는 이 사이트 주소만 허용, 25초 캐시),
-// 빌드 환경변수 VITE_BUS_RELAY_URL에 그 주소를 넣으면 이 파일이 자동으로 실시간 공급자를 쓴다.
-// 응답 형식은 scripts/bisClient.ts의 반환값과 같다. 토스 앱 안에서는 토스가 허용한 도메인·약관 확인이 먼저 필요하다.
 
 type SnapStation = { name: string; collectedAt: string; arrivals: Arrival[] }
 type Snap = { collectedAt: string; stations: Record<string, SnapStation>; lines: Record<string, LineLow> }
@@ -20,8 +19,8 @@ export const SNAPSHOT_AT: string = SNAP.collectedAt
 export const hasSnapshot = (stationId: string) => stationId in SNAP.stations
 
 const RELAY_ENV = (import.meta.env as Record<string, string | undefined>).VITE_BUS_RELAY_URL
-// 개발 서버가 아니면(배포 빌드) 중계 주소는 환경변수로 준 것만 쓴다.
-const relayBase: string | null = import.meta.env.DEV ? '/wheel-map/__bis' : RELAY_ENV ? RELAY_ENV.replace(/\/+$/, '') : null
+// 우선순위: 환경변수 주소 > 개발 서버 중계 > 배포 Worker(ACCOUNT_URL/bis)
+const relayBase: string | null = RELAY_ENV ? RELAY_ENV.replace(/\/+$/, '') : import.meta.env?.DEV ? '/wheel-map/__bis' : `${ACCOUNT_URL}/bis`
 
 export const LIVE_AVAILABLE = relayBase !== null
 

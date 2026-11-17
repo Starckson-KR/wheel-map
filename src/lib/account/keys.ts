@@ -8,6 +8,10 @@ export const SYNC_RECONCILED_KEY = 'wheelmap.sync.reconciled' // 서버 제보 �
 export const SYNC_NAMES_KEY = 'wheelmap.sync.names' // 다른 사용자 id → 이름
 export const SYNC_PHOTOS_KEY = 'wheelmap.sync.photosUp' // 서버에 올린 사진 키
 
+// 이 기기를 구분하는 무작위 값(접속·오류 기록용). 계정 간 설정 동기화 대상이 아니다(아래 SYNCED_PREF_KEYS에 없다). 로그아웃·초기화에도 지우지 않는다.
+export const DEVICE_ID_KEY = 'wheelmap.deviceId'
+export const ERR_SEEN_KEY = 'wheelmap.errSeen' // 오늘 이미 보낸 오류(메시지+빌드 해시 → 날짜)
+
 export const SYNCED_PREF_KEYS = [
   'wheelmap.benefitPrefs',
   'wheelmap.textSize',

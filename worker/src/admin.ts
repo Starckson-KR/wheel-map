@@ -1,5 +1,7 @@
 import { authenticate, fail, isDev, reply } from './account.ts'
 import { hashPin, randomHex, sha256Hex } from './auth.ts'
+import { hubStub, notify } from './notify.ts'
+import type { NotifyDeps } from './notify.ts'
 import type { D1Db, Env } from './types'
 
 // 0000~9999를 치우침 없이 고른다(거부 표집).
@@ -61,11 +63,25 @@ async function removeUser(db: D1Db, id: string, now: number): Promise<boolean> {
   await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run()
   await db.prepare('DELETE FROM prefs WHERE user_id = ?').bind(id).run()
   await db.prepare('DELETE FROM write_quota WHERE user_id = ?').bind(id).run()
+  for (const t of ['visits', 'user_devices', 'client_errors']) await db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(id).run() // 접속·기기·오류 기록
   await db.prepare('DELETE FROM users WHERE id = ?').bind(id).run()
   return true
 }
 
-export async function handleAdmin(request: Request, env: Env, origin: string, deps: { now?: () => number } = {}): Promise<Response> {
+// 지금 그 계정으로 연결된 기기 수(실시간 허브의 연결 수). 허브가 없거나 실패하면 null(알 수 없음).
+async function onlineCount(env: Env, userId: string): Promise<number | null> {
+  const stub = hubStub(env)
+  if (!stub) return null
+  try {
+    const r = await stub.fetch(`https://hub/count?user=${encodeURIComponent(userId)}`)
+    const n = Number(await r.text())
+    return r.ok && Number.isInteger(n) && n >= 0 ? n : null
+  } catch {
+    return null
+  }
+}
+
+export async function handleAdmin(request: Request, env: Env, origin: string, deps: { now?: () => number } & NotifyDeps = {}): Promise<Response> {
   const db = env.DB
   if (!db) return fail(503, 'not_configured', '계정 저장소가 아직 연결되지 않았어요.', origin)
   const now = (deps.now ?? Date.now)()
@@ -140,6 +156,38 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
       return reply({ ok: true }, 200, origin)
     }
 
+    // 사용자 한 명의 접속·기기·오류(읽기 전용)
+    const act2 = /^\/admin\/users\/([^/]+)\/activity$/.exec(path)
+    if (act2) {
+      if (m !== 'GET') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
+      const id = decodeURIComponent(act2[1])
+      if (!ID_RE.test(id)) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
+      const u = await db.prepare('SELECT name FROM users WHERE id = ?').bind(id).first<{ name: string }>()
+      if (!u) return fail(404, 'not_found', '이미 없어요.', origin)
+      const devices = await db
+        .prepare(
+          'SELECT device_id AS deviceId, device, os, browser, ua, build, standalone, screen, first_at AS firstAt, last_at AS lastAt, count FROM user_devices WHERE user_id = ? ORDER BY last_at DESC LIMIT 20',
+        )
+        .bind(id)
+        .all<{ standalone: number }>()
+      const visits = await db
+        .prepare('SELECT at, device_id AS deviceId, kind, build, standalone, screen, device, os, browser FROM visits WHERE user_id = ? ORDER BY at DESC, id DESC LIMIT 50')
+        .bind(id)
+        .all<{ standalone: number }>()
+      const errors = await db
+        .prepare(
+          'SELECT e.at AS at, e.device_id AS deviceId, e.build AS build, e.message AS message, e.stack AS stack, e.route AS route, d.device AS device, d.os AS os, d.browser AS browser FROM client_errors e LEFT JOIN user_devices d ON d.user_id = e.user_id AND d.device_id = e.device_id WHERE e.user_id = ? ORDER BY e.at DESC, e.id DESC LIMIT 50',
+        )
+        .bind(id)
+        .all()
+      const flag = <T extends { standalone: number }>(r: T) => ({ ...r, standalone: r.standalone === 1 })
+      return reply(
+        { ok: true, name: u.name, online: await onlineCount(env, id), devices: devices.results.map(flag), visits: visits.results.map(flag), errors: errors.results },
+        200,
+        origin,
+      )
+    }
+
     // 계정별 잠금 풀기 / PIN 다시 정하기
     const act = /^\/admin\/users\/([^/]+)\/(unlock|reset-pin)$/.exec(path)
     if (act) {
@@ -171,6 +219,7 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
       if (rm[1] === 'users' && id === a.user.id) return fail(400, 'self_delete', '내 계정은 여기서 지울 수 없어요.', origin)
       const ok = rm[1] === 'reports' ? await removeReport(db, id, now) : await removeUser(db, id, now)
       if (!ok) return fail(404, 'not_found', '이미 없어요.', origin)
+      await notify(env, deps, 'reports') // 지운 제보를 다른 기기에서도 바로 지운다
       return reply({ ok: true }, 200, origin)
     }
     return fail(404, 'not_found', '없는 주소예요.', origin)

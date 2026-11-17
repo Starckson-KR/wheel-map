@@ -16,6 +16,9 @@ RATE_PER_MINUTE = "10"
 DAILY_LIMIT = "500"
 # 하루 계정당 쓰기 상한(제보·사진·설정 저장 합계)
 DAILY_WRITE_LIMIT = "300"
+# 광주 BIS 저상버스 중계: 하루 상류 호출 상한(개발계정 트래픽 100건보다 낮게), IP별 분당 요청 수. 키(DATA_GO_KR_KEY)는 secret으로만 넣는다.
+BIS_DAILY_CAP = "80"
+BIS_PER_MINUTE = "30"
 
 # 간편 계정·공유 제보 저장소(Cloudflare D1, 무료)
 [[d1_databases]]
@@ -23,3 +26,12 @@ binding = "DB"
 database_name = "wheelmap-db"
 database_id = "cefa78de-61e1-4f5b-9e5e-5a3d5cd4e7ab"
 migrations_dir = "migrations"
+
+# 실시간 알림 허브(Durable Object, SQLite 기반 클래스 — 무료 요금제는 SQLite 기반만 가능). WebSocket으로 「바뀌었다」 신호만 보낸다.
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "RealtimeHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RealtimeHub"]

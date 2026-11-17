@@ -13,6 +13,9 @@ import {
 import { applyRules, isNonsense } from './rules.ts'
 import { authenticate, handleAccount, isAccountPath, isDev } from './account.ts'
 import { handleAdmin, isAdminPath } from './admin.ts'
+import { handleActivity, isActivityPath } from './activity.ts'
+import { handleBis, isBisPath } from './bis.ts'
+import { handleRt, isRtPath } from './rt.ts'
 import type { ApiBody } from './intents.ts'
 import type { Env } from './types'
 
@@ -21,7 +24,7 @@ const MODEL_TIMEOUT_MS = 8000 // 첫 호출과 재시도를 합친 총 제한
 const MIN_RETRY_MS = 1500 // 남은 시간이 이보다 적으면 재시도하지 않는다
 
 type Limiter = ReturnType<typeof createRateLimiter>
-type Deps = { limiter?: Limiter; now?: () => number }
+type Deps = { limiter?: Limiter; now?: () => number; fetch?: typeof fetch; waitUntil?: (p: Promise<unknown>) => void }
 
 let sharedLimiter: { key: string; limiter: Limiter } | null = null
 function getLimiter(env: Env): Limiter {
@@ -74,8 +77,11 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
     })
   }
   const path = new URL(request.url).pathname
-  if (isAdminPath(path)) return handleAdmin(request, env, origin as string, { now: deps.now })
-  if (isAccountPath(path)) return handleAccount(request, env, origin as string, { now: deps.now })
+  if (isRtPath(path)) return handleRt(request, env, origin as string, { now: deps.now })
+  if (isAdminPath(path)) return handleAdmin(request, env, origin as string, { now: deps.now, waitUntil: deps.waitUntil })
+  if (isActivityPath(path)) return handleActivity(request, env, origin as string, { now: deps.now })
+  if (isBisPath(path)) return handleBis(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
+  if (isAccountPath(path)) return handleAccount(request, env, origin as string, { now: deps.now, waitUntil: deps.waitUntil })
   if (request.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)
   if (path !== '/' && path !== '/intent') return json({ ok: false, error: 'not_found' }, 404, origin)
 
@@ -167,7 +173,10 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
 }
 
 export default {
-  fetch(request: Request, env: Env): Promise<Response> {
-    return handle(request, env)
+  fetch(request: Request, env: Env, ctx?: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
+    return handle(request, env, { waitUntil: ctx ? (p) => ctx.waitUntil(p) : undefined })
   },
 }
+
+// Durable Object 클래스는 Worker 진입 모듈에서 내보내야 한다(wrangler.toml의 durable_objects·migrations 참고).
+export { RealtimeHub } from './hub.ts'

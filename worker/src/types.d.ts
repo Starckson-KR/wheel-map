@@ -15,12 +15,26 @@ export interface D1Db {
   batch(statements: D1Statement[]): Promise<unknown[]>
 }
 
+// Durable Object 최소 선언(허브: worker/src/hub.ts)
+export interface DoStub {
+  fetch(input: string | Request, init?: RequestInit): Promise<Response>
+}
+export interface DoNamespace {
+  idFromName(name: string): unknown
+  get(id: unknown, opts?: { locationHint?: string }): DoStub
+}
+
 export interface Env {
   AI: AiBinding
   DB?: D1Db
+  HUB?: DoNamespace // 실시간 알림 허브. 없으면(시험·미설정) 알림만 건너뛴다
   AI_MODEL?: string
   ALLOWED_ORIGINS?: string
   RATE_PER_MINUTE?: string
   DAILY_LIMIT?: string
   DAILY_WRITE_LIMIT?: string
+  // 광주 BIS 중계: 키는 secret(wrangler secret put DATA_GO_KR_KEY)으로만 넣는다.
+  DATA_GO_KR_KEY?: string
+  BIS_DAILY_CAP?: string
+  BIS_PER_MINUTE?: string
 }

@@ -1,19 +1,29 @@
 // 초기 설정 흐름의 순수 로직(화면 없음): 어느 화면부터 시작할지, 진행 점, 저장 형식.
 import type { BenefitCategory, BenefitPrefs, WheelchairUse } from '../../lib/benefits'
 
-export type Screen = 'welcome' | 'lang' | 'choose' | 'name' | 'pin' | 'confirm' | 'mobility' | 'interests' | 'view' | 'done'
+export type Screen = 'welcome' | 'device' | 'install' | 'lang' | 'choose' | 'name' | 'pin' | 'confirm' | 'mobility' | 'interests' | 'view' | 'done'
 export type Mobility = 'manual' | 'power' | 'companion' | 'none' | 'skip'
 export type Profile = { mobility: Mobility; interests: BenefitCategory[] }
 
 export const ONBOARDED_KEY = 'wheelmap.onboarded'
 export const PROFILE_KEY = 'wheelmap.profile'
-export const SCREENS: Screen[] = ['welcome', 'lang', 'choose', 'name', 'pin', 'confirm', 'mobility', 'interests', 'view', 'done']
+export const SCREENS: Screen[] = ['welcome', 'device', 'install', 'lang', 'choose', 'name', 'pin', 'confirm', 'mobility', 'interests', 'view', 'done']
 export const DEFAULT_PROFILE: Profile = { mobility: 'skip', interests: [] }
 
 /** 앱을 열 때 어느 화면부터 보일지. null이면 초기 설정 없이 바로 앱. */
 export function startScreen(s: { loggedIn: boolean; onboarded: boolean }): Screen | null {
   if (!s.loggedIn) return 'welcome'
   return s.onboarded ? null : 'mobility'
+}
+
+/** 첫 화면의 "시작하기!" 다음 화면. 이미 홈 화면 앱으로 열려 있으면 기기·설치 안내를 건너뛴다. */
+export function afterWelcome(standalone: boolean): Screen {
+  return standalone ? 'lang' : 'device'
+}
+
+/** 기기를 고른 뒤 화면. 고르지 않고 건너뛰면 설치 안내 없이 언어 선택으로 간다. */
+export function afterDevice(device: 'ios' | 'android' | null): Screen {
+  return device ? 'install' : 'lang'
 }
 
 /** 로그인·가입에 성공한 뒤 이어질 화면. null이면 이미 초기 설정을 마친 기기라 바로 앱. */

@@ -8,13 +8,15 @@ import { shrinkForUpload } from './photoUpload'
 import { loadLocalPhoto } from '../photoStore'
 import { initPrefsSync, notifyPrefsAt } from './prefsSync'
 import { IDLE_AFTER_MS, nextDelay } from './pollPlan'
+import { initRealtime, isRealtimeUp } from './realtime'
 
 // 공유 제보 동기화. 로그인 상태에서만 동작한다.
 //  - 받기: 화면이 보일 때만 4초마다(1분 넘게 만지지 않으면 15초) GET /reports?since= 로 바뀐 것만 받아 제보 목록에 합친다.
 //    앱 시작·화면이 다시 보일 때·창을 다시 누를 때·인터넷이 돌아올 때·내가 올린 직후에는 기다리지 않고 바로 한 번 더 확인한다.
 //    실패하면 8초→16초→…→최대 60초로 늘려 가며 다시 시도하고, 성공하면 바로 4초로 돌아온다. 탭이 숨겨지면 멈춘다.
 //    같은 응답에 내 설정 변경 시각(prefsAt)이 실려 와 설정 동기화(prefsSync.ts)가 다른 기기의 설정 변경도 알아챈다.
-//  - 보내기: 내가 만든·바꾼 제보(시연 데이터 제외)를 0.4초 모아서 PUT. 화면에는 먼저 반영돼 있고(낙관적), 못 보내면 대기열(pending)에 두었다가 다음 기회에 다시 보낸다.
+//    실시간 연결(realtime.ts, WebSocket)이 살아 있으면 서버가 「바뀌었다」 신호를 보내는 즉시 같은 당겨오기를 실행하고, 이때 4초 확인은 30초 안전망으로 늦춘다.
+//  - 보내기: 내가 만든·바꾼 제보(시연 데이터 제외)를 기다리지 않고 바로(같은 순간의 변경만 묶어서) PUT. 화면에는 먼저 반영돼 있고(낙관적), 못 보내면 대기열(pending)에 두었다가 다음 기회에 다시 보낸다.
 //    서버가 형식 문제로 거절하면(4xx) 마지막으로 서버와 맞춘 모습으로 되돌린다(서버에 올라간 적 없는 제보는 이 기기에 그대로 둔다).
 //  - 삭제: 관리자가 서버에서 지운 제보는 서버가 삭제 표시(report_deletions)로 남겨, 받기 응답의 deleted로 내려온다 → 이 기기에서도 지운다.
 //    삭제 표시가 생기기 전에 지워진 제보는 계정마다 처음 한 번 서버의 제보 id 전체(/reports?ids=1)와 맞춰, 「서버와 맞춘 적 있는」 제보 중 서버에 없는 것만 지운다(reconcile.ts).
@@ -36,7 +38,7 @@ export type SyncHost = {
   removeIds(ids: string[]): void
 }
 
-const DEBOUNCE_MS = 400
+const DEBOUNCE_MS = 0 // 사용자가 누른 쓰기는 기다리지 않고 바로 보낸다(같은 순간의 여러 변경만 한 번에)
 const NAMES_REFRESH_MS = 5 * 60 * 1000
 const QUOTA_HOLD_MS = 5 * 60 * 1000
 
@@ -64,6 +66,8 @@ let cursor = 0
 let applying = false
 let pulling = false
 let flushing = false
+let flushAgain = false // 올리는 중에 새 변경이 생겼다 → 끝나고 다시 올린다
+let pullAgain = false // 받는 중에 신호가 왔다 → 끝나고 다시 받는다
 let pulledOnce = false
 let timer: ReturnType<typeof setTimeout> | undefined
 let debounce: ReturnType<typeof setTimeout> | undefined
@@ -193,7 +197,11 @@ async function reconcileOnce() {
 }
 
 async function pull(): Promise<boolean> {
-  if (!getSession() || !host || pulling) return false
+  if (!getSession() || !host) return false
+  if (pulling) {
+    pullAgain = true
+    return true
+  }
   pulling = true
   try {
     for (let page = 0; page < 20; page++) {
@@ -231,6 +239,10 @@ async function pull(): Promise<boolean> {
     return false
   } finally {
     pulling = false
+    if (pullAgain) {
+      pullAgain = false
+      queueMicrotask(() => pokeNow(0))
+    }
   }
 }
 
@@ -259,6 +271,7 @@ async function uploadPhotos(r: Report) {
 
 // 대기열의 제보를 올린다. 하나라도 올렸으면 true.
 async function flush(): Promise<boolean> {
+  if (flushing && getSession() && host) flushAgain = true
   if (!getSession() || !host || flushing || !pulledOnce || Date.now() < holdUntil || (typeof navigator !== 'undefined' && navigator.onLine === false)) return false
   flushing = true
   let sentAny = false
@@ -312,6 +325,10 @@ async function flush(): Promise<boolean> {
     }
   } finally {
     flushing = false
+    if (flushAgain) {
+      flushAgain = false
+      schedule()
+    }
   }
   return sentAny
 }
@@ -329,7 +346,7 @@ function arm(delay?: number) {
   clearTimeout(timer)
   timer = undefined
   if (!running || (typeof document !== 'undefined' && document.visibilityState === 'hidden')) return // 숨겨진 탭은 멈춘다. 다시 보이면 바로 시작한다.
-  timer = setTimeout(() => void loop(), delay ?? nextDelay(fails, Date.now() - lastActive, Math.random()))
+  timer = setTimeout(() => void loop(), delay ?? nextDelay(fails, Date.now() - lastActive, Math.random(), isRealtimeUp()))
 }
 
 async function loop() {
@@ -351,7 +368,7 @@ function schedule() {
   clearTimeout(debounce)
   debounce = setTimeout(async () => {
     if (!pulledOnce) return void pokeNow()
-    if (await flush()) pokeNow(300) // 올린 직후 다른 사람의 변경도 바로 확인
+    if ((await flush()) && !isRealtimeUp()) pokeNow(300) // 올린 직후 다른 사람의 변경도 바로 확인(실시간 연결이 있으면 서버가 알려 준다)
   }, DEBOUNCE_MS)
 }
 
@@ -398,4 +415,5 @@ export function initSync(h: SyncHost) {
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, touch, { passive: true })
   if (getSession()) start()
   initPrefsSync()
+  initRealtime({ onSignal: () => pokeNow(0), onState: () => pokeNow(0) })
 }

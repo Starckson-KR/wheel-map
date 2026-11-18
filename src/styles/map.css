@@ -109,13 +109,13 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
+  width: 50px;
+  height: 50px;
+  min-height: 50px;
   padding: 0;
   border-radius: 50%;
   background: var(--bg);
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-2), 0 0 0 1px rgb(25 31 40 / 0.06);
   color: var(--grey-800);
 }
 
@@ -125,12 +125,12 @@
   gap: 8px;
   flex: 1;
   min-width: 0;
-  height: 44px;
-  min-height: 44px;
+  height: 50px;
+  min-height: 50px;
   padding: 0 var(--s-4);
   border-radius: var(--r-full);
   background: var(--bg);
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-2), 0 0 0 1px rgb(25 31 40 / 0.06); /* 흐린 지도 위에서도 윤곽이 보이도록 얇은 테두리를 더한다 */
   color: var(--text-sub);
   font-size: var(--fs-body);
   font-weight: 500;
@@ -163,7 +163,7 @@
 /* 범례: 평소에는 작은 원형 버튼 하나, 누르면 카드가 열린다 */
 .hm-legend {
   position: absolute;
-  top: calc(var(--safe-top) + 106px);
+  top: calc(var(--safe-top) + 112px);
   left: 8px;
   right: 8px;
   display: grid;
@@ -647,6 +647,7 @@
 
 /* 손잡이 + 한 줄 요약: 시트 윗부분 전체를 잡고 끌 수 있다(높이 44px 이상) */
 .hm-grip {
+  position: relative;
   flex: none;
   margin: 0 calc(var(--s-4) * -1);
   padding: 0 var(--s-4);
@@ -660,9 +661,31 @@
   display: block;
   width: 36px;
   height: 4px;
-  margin: 8px auto 0;
   border-radius: 2px;
   background: var(--grey-300);
+}
+
+/* 손잡이: 누르거나 끌면 단계가 바뀐다. 키보드로도 닿는 버튼(보이는 막대는 그대로, 누르는 자리만 넓다) */
+.bm button.hm-grip-btn {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  transform: translateX(-50%);
+  border-radius: var(--r-md);
+  background: none;
+  cursor: grab;
+}
+.bm button.hm-grip-btn:active:not(:disabled) {
+  transform: translateX(-50%);
+}
+.bm button.hm-grip-btn .hm-grip-bar {
+  margin-top: -8px;
 }
 
 .hm-s-head {
@@ -671,34 +694,13 @@
   justify-content: space-between;
   gap: var(--s-2);
   min-height: 48px;
+  padding-top: 12px; /* 손잡이 막대 자리 */
 }
 
-.bm button.hm-snapbtn {
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--grey-100);
-  color: var(--grey-800);
-}
-.bm button.hm-snapbtn::before,
 .bm button.hm-cta-main::before {
   content: '';
   position: absolute;
   inset: -4px;
-}
-
-/* 기본 단계의 동작 버튼 3개: 한 줄에 같은 폭으로 */
-.hm-s-cta {
-  flex: none;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--s-2);
 }
 
 .hm-s-mid {
@@ -775,13 +777,6 @@
   color: var(--blue-700);
   font-size: var(--fs-caption);
   font-weight: 700;
-}
-
-.bm button.hm-cta-progress {
-  min-height: 44px;
-  border-radius: var(--r-lg);
-  background: var(--blue-50);
-  color: var(--blue-700);
 }
 
 .hm-counts {
@@ -1550,22 +1545,22 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .bm-fade-in {
+@media all {
+  html.motion-reduce .bm-fade-in {
     animation: none;
   }
 
-  html:not(.motion-force) .hm-sheet,
-  html:not(.motion-force) .bm-detail,
-  html:not(.motion-force) .ms,
-  html:not(.motion-force) .ms-dim,
-  html:not(.motion-force) .pc,
-  html:not(.motion-force) .rf-pick {
+  html.motion-reduce .hm-sheet,
+  html.motion-reduce .bm-detail,
+  html.motion-reduce .ms,
+  html.motion-reduce .ms-dim,
+  html.motion-reduce .pc,
+  html.motion-reduce .rf-pick {
     animation: none;
     transition: none;
   }
 
-  html:not(.motion-force) .bm-pin {
+  html.motion-reduce .bm-pin {
     transition: none;
   }
 }
@@ -1605,8 +1600,8 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .hm-me::after {
+@media all {
+  html.motion-reduce .hm-me::after {
     animation: none;
   }
 }
@@ -1986,7 +1981,7 @@ html[data-text='large'] .ms .rf-actions button {
 
 .bm button.hm-legend-toggle {
   position: absolute;
-  top: calc(var(--safe-top) + 60px);
+  top: calc(var(--safe-top) + 66px);
   right: 8px;
   display: grid;
   place-items: center;
@@ -2031,8 +2026,7 @@ html[data-text='large'] .ms .rf-actions button {
   }
 
   :root:not([data-view='mobile']) .hm-legend-toggle,
-  :root:not([data-view='mobile']) .hm-grip-bar,
-  :root:not([data-view='mobile']) .hm-snapbtn,
+  :root:not([data-view='mobile']) .hm-grip-btn,
   :root:not([data-view='mobile']) .hm-stats {
     display: none;
   }
@@ -2043,11 +2037,8 @@ html[data-text='large'] .ms .rf-actions button {
 
   :root:not([data-view='mobile']) .hm-s-head {
     min-height: 0;
+    padding-top: 0;
     margin-bottom: var(--s-2);
-  }
-
-  :root:not([data-view='mobile']) .hm-s-cta {
-    flex-wrap: wrap;
   }
 }
 :root[data-view='desktop'] .hm-bar--desk {
@@ -2060,8 +2051,7 @@ html[data-text='large'] .ms .rf-actions button {
   clip: auto;
 }
 :root[data-view='desktop'] .hm-legend-toggle,
-:root[data-view='desktop'] .hm-grip-bar,
-:root[data-view='desktop'] .hm-snapbtn,
+:root[data-view='desktop'] .hm-grip-btn,
 :root[data-view='desktop'] .hm-stats {
   display: none;
 }
@@ -2070,10 +2060,8 @@ html[data-text='large'] .ms .rf-actions button {
 }
 :root[data-view='desktop'] .hm-s-head {
   min-height: 0;
+  padding-top: 0;
   margin-bottom: var(--s-2);
-}
-:root[data-view='desktop'] .hm-s-cta {
-  flex-wrap: wrap;
 }
 
 /* 레이어 메뉴 안의 시민 제보 표시 규칙·설정 버튼 */

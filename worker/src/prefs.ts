@@ -2,6 +2,7 @@
 export const PREF_KEYS = [
   'wheelmap.benefitPrefs',
   'wheelmap.textSize',
+  'wheelmap.motionReduce',
   'wheelmap.theme',
   'wheelmap.view',
   'wheelmap.layers',

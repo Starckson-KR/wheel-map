@@ -185,7 +185,7 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
                         </li>
                       ))}
                     </ul>
-                    {ans.total > ans.cards.length && <p className="hp-ai-slots">{ans.total - ans.cards.length}개 더 있어요. 해당 화면에서 볼 수 있어요.</p>}
+                    {ans.total > ans.cards.length && <p className="hp-ai-slots">{ans.total - ans.cards.length}개 더 있어요</p>}
                   </>
                 ) : (
                   <>

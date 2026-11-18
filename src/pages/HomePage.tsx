@@ -12,11 +12,13 @@ import SheetHandle from '../components/SheetHandle'
 import { loadBarriers } from '../lib/seed'
 import { TO, go } from '../lib/nav'
 import { computeRanking } from '../lib/ranking'
+import { computeRewards } from '../lib/rewards'
+import { nextGradeRatio, ratingCounts } from '../lib/homeSummary'
 import { nowMs, rankingUserIds, useReports } from '../lib/reportStore'
 import { prefersCalm } from '../lib/viewPrefs'
 import { openGuide } from '../lib/usageGuide'
 import { confirmSheet, toast } from '../lib/uiStore'
-import { CountText } from '../components/CountUp'
+import CountUp, { CountText } from '../components/CountUp'
 import AiSearch from '../components/AiSearch'
 import { BENEFITS } from '../lib/benefitsData'
 import { homeCount, loadPrefs } from '../lib/benefits'
@@ -140,6 +142,12 @@ declare const __BUILD_HASH__: string
 declare const __BUILD_TIME__: string
 
 const BARRIERS = loadBarriers()
+const COUNTS = ratingCounts(BARRIERS)
+const SUM_CHIPS = [
+  { key: 'X', label: '지나기 어려움', n: COUNTS.X },
+  { key: 'TRIANGLE', label: '주의', n: COUNTS.TRIANGLE },
+  { key: 'O', label: '괜찮음', n: COUNTS.O },
+] as const
 
 // 설정 시트: 화면 설정과 시연 도구(기존 컴포넌트 재사용), 행정 화면 입구
 function SettingsSheet({ onClose }: { onClose: () => void }) {
@@ -239,6 +247,9 @@ export default function HomePage() {
     el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: calm ? 'auto' : 'smooth' })
   }, [gid])
 
+  const rw = useMemo(() => computeRewards(reports, [userId])[userId], [reports, userId])
+  const ratio = nextGradeRatio(rw?.next ?? null)
+
   const news = useMemo(() => {
     const mine = reports.filter((r) => r.userId === userId)
     const doing = mine.filter((r) => ['verified', 'filed', 'assigned', 'in_progress'].includes(r.status)).length
@@ -298,6 +309,20 @@ export default function HomePage() {
 
           <AiSearch onHelp={openHelp} />
 
+          {COUNTS.total > 0 && (
+            <section className="hp-card hp-sum" aria-labelledby="h-sum">
+              <div className="hp-card-top">
+                <h2 id="h-sum">오늘 장애요소 <b><CountUp value={COUNTS.total} /></b>곳</h2>
+                <button type="button" className="hp-link" onClick={() => go(TO.map)}>지도 보기</button>
+              </div>
+              <ul className="hp-sum-chips">
+                {SUM_CHIPS.map((c) => (
+                  <li key={c.key} className={'hp-sum-' + c.key}><b>{c.n}</b><span>{c.label}</span></li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="hp-svc" aria-labelledby="h-svc">
             <div className="hp-sh">
               <h2 id="h-svc">자주 찾는 서비스</h2>
@@ -314,6 +339,26 @@ export default function HomePage() {
               ))}
             </ul>
           </section>
+
+          {rw && (
+            <section className="hp-card hp-me" aria-labelledby="h-me">
+              <div className="hp-card-top">
+                <h2 id="h-me">{rw.title || '아직 칭호가 없어요'}</h2>
+                <button type="button" className="hp-link" onClick={() => go(TO.me)}>내 정보</button>
+              </div>
+              {rw.next ? (
+                <>
+                  <div className="hp-me-meta"><span>다음 칭호 · {rw.next.name}</span><b>{rw.total}점</b></div>
+                  <div className="hp-bar" role="progressbar" aria-label={`다음 칭호 ${rw.next.name}까지`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio * 100)}>
+                    <i style={{ transform: `scaleX(${ratio})` }} />
+                  </div>
+                  <p className="hp-me-how">{rw.next.how}{rw.next.anyOf ? ' (둘 중 하나)' : ''}</p>
+                </>
+              ) : (
+                <div className="hp-me-meta"><span>모든 칭호를 받았어요</span><b>{rw.total}점</b></div>
+              )}
+            </section>
+          )}
 
           <section aria-labelledby="h-news">
             <h2 id="h-news" className="hp-tab"><span>소식 <Icon name="chev" size={14} /></span></h2>

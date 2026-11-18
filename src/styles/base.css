@@ -599,14 +599,14 @@ h4 {
 }
 
 /* ───── 움직임을 줄여 달라는 설정 ───── */
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .bm button,
-  html:not(.motion-force) .rf-btn {
+@media all {
+  html.motion-reduce .bm button,
+  html.motion-reduce .rf-btn {
     transition: none;
   }
 
-  html:not(.motion-force) .bm button:active:not(:disabled),
-  html:not(.motion-force) .rf-btn:active {
+  html.motion-reduce .bm button:active:not(:disabled),
+  html.motion-reduce .rf-btn:active {
     transform: none;
   }
 }

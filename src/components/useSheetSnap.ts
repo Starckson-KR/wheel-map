@@ -8,11 +8,13 @@ import { resist, releaseVelocity, springTo, type Sample, type SpringRun } from '
 // 단계가 바뀔 때 안의 내용(핵심 3칸·목록)은 시트가 드러나는 정도에 맞춰 함께 나타난다(별도 타이머 없이 위치에 묶여 끊김이 없다).
 export type Snap = 0 | 1 | 2
 
-type Ctl = { id: number; y0: number; base: number; start: Snap; samples: Sample[]; ty: number }
+type Ctl = { id: number; y0: number; base: number; start: Snap; samples: Sample[]; ty: number; moved: boolean }
 type Nodes = { el: HTMLElement; mid: HTMLElement | null; more: HTMLElement | null }
 
 const px = (el: HTMLElement, name: string) => parseFloat(getComputedStyle(el).getPropertyValue(name)) || 0
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+/** 눌렀을 때 다음 단계 */
+const NEXT_SNAP: Record<Snap, Snap> = { 0: 1, 1: 2, 2: 0 }
 /** 내용이 나타날 때 올라오는 거리(px) */
 const RISE_MID = 8
 const RISE_MORE = 10
@@ -28,6 +30,7 @@ export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap
   const run = useRef<SpringRun | null>(null)
   const nodes = useRef<Nodes | null>(null)
   const cache = useRef<[number, number, number]>([0, 0, 0]) // 움직이는 동안 쓰는 단계 위치(프레임마다 다시 재지 않는다)
+  const draggedAt = useRef(0) // 마지막으로 끌어서 놓은 시각(끌기 뒤에 따라오는 클릭을 누르기로 보지 않으려고)
   const pending = useRef<Snap | null>(null) // 끌기로 정해 이미 움직이는 중인 단계
   const prev = useRef<{ el: HTMLElement | null; snap: Snap }>({ el: null, snap })
   const snapRef = useRef(snap)
@@ -93,7 +96,7 @@ export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap
     run.current = null
     const st = (cache.current = stops(el))
     const start = ([0, 1, 2] as Snap[]).reduce((a, b) => (Math.abs(st[b] - base) < Math.abs(st[a] - base) ? b : a), snapRef.current)
-    ctl.current = { id, y0: y, base, start, samples: [{ t: performance.now(), y: base }], ty: base }
+    ctl.current = { id, y0: y, base, start, samples: [{ t: performance.now(), y: base }], ty: base, moved: false }
     el.style.transition = 'none'
     el.style.willChange = 'transform'
     paint(el, base)
@@ -106,6 +109,7 @@ export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap
     if (!c || !el || c.id !== id) return
     const st = cache.current
     c.ty = resist(c.base + (y - c.y0), 0, st[0])
+    if (Math.abs(y - c.y0) > 6) c.moved = true
     paint(el, c.ty)
     c.samples.push({ t, y: c.ty })
     while (c.samples.length > 2 && t - c.samples[0].t > 120) c.samples.shift()
@@ -116,6 +120,7 @@ export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap
     const el = sheetRef.current
     if (!c || !el || c.id !== id) return
     ctl.current = null
+    if (c.moved) draggedAt.current = performance.now()
     const st = stops(el)
     const vy = releaseVelocity(c.samples, performance.now()) // px/s, 아래쪽이 +
     const v = vy / 1000 // px/ms
@@ -202,7 +207,7 @@ export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap
 
   const gripProps = {
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
-      if (ctl.current || (e.target as HTMLElement).closest('button')) return
+      if (ctl.current || (e.target as HTMLElement).closest('button:not([data-grip])')) return
       if (!begin(e.pointerId, e.clientY)) return
       try {
         e.currentTarget.setPointerCapture(e.pointerId)
@@ -218,6 +223,14 @@ export function useSheetSnap(sheetRef: React.RefObject<HTMLElement | null>, snap
     },
     onPointerUp: (e: React.PointerEvent<HTMLElement>) => end(e.pointerId),
     onPointerCancel: (e: React.PointerEvent<HTMLElement>) => end(e.pointerId),
+    // 손잡이·제목 줄을 누르거나(키보드는 손잡이 버튼) 하면 다음 단계로: 최소 → 기본 → 펼침 → 최소. 끌기 뒤의 클릭, 안의 다른 버튼 클릭은 건너뛴다.
+    onClick: (e: React.MouseEvent<HTMLElement>) => {
+      if ((e.target as HTMLElement).closest('button:not([data-grip])')) return
+      if (performance.now() - draggedAt.current < 400) return
+      const el = sheetRef.current
+      if (!el || getComputedStyle(el).transform === 'none') return // 큰 화면의 왼쪽 패널
+      setSnap(NEXT_SNAP[snapRef.current])
+    },
   }
   return { gripProps }
 }

@@ -15,11 +15,13 @@ export const ERR_SEEN_KEY = 'wheelmap.errSeen' // 오늘 이미 보낸 오류(�
 export const SYNCED_PREF_KEYS = [
   'wheelmap.benefitPrefs',
   'wheelmap.textSize',
+  'wheelmap.motionReduce',
   'wheelmap.theme',
   'wheelmap.view',
   'wheelmap.layers',
   'wheelmap.aiSearch',
   'wheelmap.sheetSnap',
+  'wheelmap.sheetSnap2',
   'wheelmap.profile',
   'wheelmap.lang',
   'wheelmap.onboarded',

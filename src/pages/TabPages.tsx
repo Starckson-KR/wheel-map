@@ -22,6 +22,7 @@ import AccountCard from '../components/onboarding/AccountCard'
 import { Sentences } from '../components/Sentences'
 import { Wordmark } from '../components/Wordmark'
 import { isMockReport } from '../lib/realFirst'
+import { nextGradeRatio } from '../lib/homeSummary'
 
 const BARRIERS = loadBarriers()
 
@@ -211,7 +212,12 @@ export function AlertsTab({ query = '' }: { query?: string }) {
           </div>
         </div>
         {rw.next && (
-          <p className="bm-meta">다음 칭호 &apos;{rw.next.name}&apos;: {rw.next.how}</p>
+          <>
+            <div className="hp-bar" role="progressbar" aria-label={`다음 칭호 ${rw.next.name}까지`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(nextGradeRatio(rw.next) * 100)}>
+              <i style={{ transform: `scaleX(${nextGradeRatio(rw.next)})` }} />
+            </div>
+            <p className="bm-meta">다음 칭호 &apos;{rw.next.name}&apos;: {rw.next.how}</p>
+          </>
         )}
         <button type="button" className="pg-wide" onClick={() => go(TO.me)}>내 기여 자세히 보기</button>
       </section>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
-import { getTextSize, getTheme, getView, PREFS_CHANGE_EVENT, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
+import { getMotionReduce, getTextSize, getTheme, getView, PREFS_CHANGE_EVENT, setMotionReduce, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
 import Icon from './Icon'
 import SheetHandle from './SheetHandle'
 
@@ -31,12 +31,14 @@ export default function ViewSettings({ floating = false, row = false, open: open
   const [view, setV] = useState(getView)
   const [theme, setT] = useState(getTheme)
   const [text, setTx] = useState(getTextSize)
+  const [calm, setCalm] = useState(getMotionReduce)
   // 로그아웃·계정 전환·서버 설정 동기화로 저장 값이 바뀌면 시트 값도 다시 읽는다
   useEffect(() => {
     const sync = () => {
       setV(getView())
       setT(getTheme())
       setTx(getTextSize())
+      setCalm(getMotionReduce())
     }
     window.addEventListener(PREFS_CHANGE_EVENT, sync)
     return () => window.removeEventListener(PREFS_CHANGE_EVENT, sync)
@@ -113,6 +115,16 @@ export default function ViewSettings({ floating = false, row = false, open: open
                         setTx(v.id)
                       }}
                     >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="ms-sec">
+                <h3>움직임 줄이기</h3>
+                <div className="rf-seg" role="group" aria-label="움직임 줄이기">
+                  {[{ on: false, label: '꺼짐' }, { on: true, label: '켜짐' }].map((v) => (
+                    <button key={v.label} type="button" className={calm === v.on ? 'on' : ''} aria-pressed={calm === v.on} onClick={() => { setMotionReduce(v.on); setCalm(v.on) }}>
                       {v.label}
                     </button>
                   ))}

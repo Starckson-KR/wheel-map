@@ -763,14 +763,14 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .rf,
-  html:not(.motion-force) .rp,
-  html:not(.motion-force) .rf-done-mark {
+@media all {
+  html.motion-reduce .rf,
+  html.motion-reduce .rp,
+  html.motion-reduce .rf-done-mark {
     animation: none;
   }
 
-  html:not(.motion-force) .rf-progress > i {
+  html.motion-reduce .rf-progress > i {
     transition: none;
   }
 }

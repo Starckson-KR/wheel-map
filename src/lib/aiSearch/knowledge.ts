@@ -7,6 +7,7 @@ import { TO } from '../nav'
 import type { PubDataset, PubItem } from '../publicLayers'
 import { GUIDE_SLIDES } from '../usageGuide'
 import { keywordSlots } from './keywords'
+import { facilityTitle } from '../facilityName'
 
 // 지식형 질문(ask) 답하기: 모델은 주제(topic)와 검색어만 고르고, 답 문장은 앱이 가진 자료(JSON)에서 그대로 꺼낸다.
 // 이 파일은 순수 함수만 둔다(자료는 인자로 받는다). 자료를 불러오는 일은 knowledgeData.ts가 한다.
@@ -15,7 +16,7 @@ export const TOPICS = ['benefit', 'toilet', 'facility', 'voucher', 'bus', 'agenc
 export type Topic = (typeof TOPICS)[number]
 export const isTopic = (v: unknown): v is Topic => typeof v === 'string' && (TOPICS as readonly string[]).includes(v)
 
-export type Card = { id: string; title: string; answer: string; meta?: string; source: string; sourceUrl?: string }
+export type Card = { id: string; title: string; answer: string; meta?: string; source: string; sourceUrl?: string; lat?: number; lng?: number }
 export type Go = { label: string; hash: string }
 export type AskAnswer = { topic: Topic | null; cards: Card[]; total: number; go: Go[]; found: boolean }
 export type LatLng = { lat: number; lng: number }
@@ -135,15 +136,26 @@ export function candidateTopics(question: string, modelTopic?: string): Topic[] 
 // ---------- 공통 ----------
 const GO: Record<Topic, Go[]> = {
   benefit: [{ label: '혜택·행사 보기', hash: TO.benefits }],
-  toilet: [{ label: '장애인화장실 지도 보기', hash: '#/map?layer=toilet' }],
-  facility: [{ label: '휠체어 길찾기 열기', hash: TO.route }],
+  toilet: [{ label: '화장실 지도 보기', hash: '#/map?layer=toilet' }],
+  facility: [{ label: '편의시설 지도 보기', hash: '#/map?layer=facility' }],
   voucher: [{ label: '가맹점 지도 보기', hash: '#/map?layer=voucher' }],
   bus: [{ label: '저상버스 도착 보기', hash: TO.bus }],
   agency: [{ label: '담당 기관 안내 보기', hash: TO.agency }],
   howto: [{ label: '신고하기 열기', hash: TO.newReport }],
 }
+const inKorea = (p: LatLng) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && p.lat > 33 && p.lat < 39 && p.lng > 124 && p.lng < 132
+// 지도 레이어로 가는 버튼은 지도를 볼 만큼 확대한 채(앱이 level을 정한다) 중심을 같이 보낸다: 「근처」이고 위치를 알면 내 위치, 아니면 첫 결과.
+export function goFor(topic: Topic, cards: Card[], origin?: LatLng, nearby = false): Go[] {
+  const base = GO[topic]
+  if (topic !== 'toilet' && topic !== 'facility' && topic !== 'voucher') return base
+  const first = cards.find((c) => c.lat !== undefined && c.lng !== undefined)
+  const at: LatLng | undefined = nearby && origin && inKorea(origin) ? origin : first ? { lat: first.lat as number, lng: first.lng as number } : undefined
+  if (!at || !inKorea(at)) return base
+  return base.map((g) => ({ ...g, hash: `${g.hash}&lat=${at.lat.toFixed(5)}&lng=${at.lng.toFixed(5)}` }))
+}
 
 const clean = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
+
 // 자료의 evalInfo는 같은 항목이 두 번 적힌 곳이 있어 한 번씩만 보여 준다.
 const uniqInfo = (v: string): string => [...new Set(v.split(',').map((x) => x.trim()).filter(Boolean))].join(', ')
 const dedupeCards = (cards: Card[]): Card[] => {
@@ -279,7 +291,9 @@ function searchToilets(q: string, d: KnowledgeData, origin?: LatLng): Hit {
     const ordered = pickCards(filtered.map((x) => ({ ...x, lat: x.it.lat, lng: x.it.lng })), origin, (x) => x.info.length)
     const cards = dedupeCards(ordered.slice(0, MAX_CARDS * 4).map((x): Card => ({
       id: x.it.id,
-      title: x.it.name,
+      title: facilityTitle(x.it),
+      lat: x.it.lat ?? undefined,
+      lng: x.it.lng ?? undefined,
       answer: `${clean(f(x.it)['faclTyCd'])} · ${uniqInfo(x.info)}`,
       meta: metaOf(x.it.address, x.it, origin),
       source: d.facilities?.source ?? '장애인편의시설 현황',
@@ -291,7 +305,7 @@ function searchToilets(q: string, d: KnowledgeData, origin?: LatLng): Hit {
     const n = Number(f(i)['장애인용위생시설합계'] ?? 0)
     const time = clean(f(i)['개방시간'])
     const bits = [clean(f(i)['구분명']), n > 0 ? `장애인용 시설 ${n}개` : '', /상시|24/.test(time) ? '상시 개방' : '', clean(f(i)['기저귀교환대유무']) === 'Y' ? '기저귀 교환대 있음' : ''].filter(Boolean)
-    return { id: i.id, title: i.name, answer: bits.join(' · '), meta: metaOf(i.address, i, origin), source: ds.source }
+    return { id: i.id, title: i.name, lat: i.lat ?? undefined, lng: i.lng ?? undefined, answer: bits.join(' · '), meta: metaOf(i.address, i, origin), source: ds.source }
   })
   return { cards, total: pool.length }
 }
@@ -313,7 +327,9 @@ function searchFacilities(q: string, d: KnowledgeData, origin?: LatLng): Hit {
   const cards = dedupeCards(
     ordered.slice(0, MAX_CARDS * 4).map((i): Card => ({
       id: i.id,
-      title: i.name,
+      title: facilityTitle(i),
+      lat: i.lat ?? undefined,
+      lng: i.lng ?? undefined,
       answer: `${clean(f(i)['faclTyCd'])} · ${uniqInfo(clean(f(i)['evalInfo']))}`,
       meta: metaOf(i.address, i, origin),
       source: ds.source,
@@ -356,7 +372,7 @@ function searchVouchers(q: string, d: KnowledgeData, origin?: LatLng): Hit {
     const v = card(i)
     const info = v.access === 'info' ? uniqInfo(clean(v.facility?.evalInfo)) : ''
     const bits = [v.category ?? '', ...(v.vouchers?.length ? [`${v.vouchers.join('·')} 가맹점`] : []), info ? `출입 정보: ${info}` : ''].filter(Boolean)
-    return { id: i.id, title: i.name, answer: bits.join(' · '), meta: metaOf(i.address, i, origin), source: ds.source }
+    return { id: i.id, title: i.name, lat: i.lat ?? undefined, lng: i.lng ?? undefined, answer: bits.join(' · '), meta: metaOf(i.address, i, origin), source: ds.source }
   })
   return { cards, total: pool.length }
 }
@@ -444,7 +460,7 @@ export function askKnowledge(question: string, o: AskOptions): AskAnswer {
   const topics = candidateTopics(question, o.topic)
   for (const t of topics) {
     const hit = searchTopic(t, q, o)
-    if (hit && hit.cards.length) return { topic: t, cards: hit.cards, total: hit.total, go: hit.go?.length ? hit.go : GO[t], found: true }
+    if (hit && hit.cards.length) return { topic: t, cards: hit.cards, total: hit.total, go: hit.go?.length ? hit.go : goFor(t, hit.cards, o.origin, wantsNearby(question)), found: true }
   }
   return { topic: topics[0] ?? null, cards: [], total: 0, go: topics[0] ? GO[topics[0]] : [], found: false }
 }

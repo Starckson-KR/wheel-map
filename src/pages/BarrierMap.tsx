@@ -1,4 +1,6 @@
+import { facilityTitle } from '../lib/facilityName'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { CENTER_ADDRESS_CANDIDATES, geocode, loadKakao } from '../lib/kakao'
 import { loadBarriers } from '../lib/seed'
 import { NAV_STEP_NEAR_M, NAV_Z } from '../lib/config'
@@ -134,7 +136,7 @@ const PIN_H = 30
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
 // 아래 시트 단계(0 최소 · 1 기본 · 2 펼침). 처음엔 지도가 가장 잘 보이는 최소로 시작하고, 사용자가 고른 단계(최소·기본)는 기억한다.
-const SNAP_KEY = 'wheelmap.sheetSnap'
+const SNAP_KEY = 'wheelmap.sheetSnap2' // 11/18: 접힌 단계가 한 줄로 바뀌어 이전 저장값(칩이 보이던 단계)은 이어 쓰지 않는다
 function loadSnap(): Snap {
   try {
     return localStorage.getItem(SNAP_KEY) === '1' ? 1 : 0
@@ -149,10 +151,11 @@ function saveSnap(s: Snap) {
     /* 저장하지 못해도 화면은 그대로 쓴다 */
   }
 }
-const SNAP_BTN: Record<Snap, { label: string; next: Snap; up: boolean }> = {
-  0: { label: '요약 보기', next: 1, up: true },
-  1: { label: '제보 목록 보기', next: 2, up: true },
-  2: { label: '지도 넓게 보기', next: 0, up: false },
+// 손잡이 버튼 이름(누르면 다음 단계로: 최소 → 기본 → 펼침 → 최소, 순서는 useSheetSnap)
+const SNAP_BTN: Record<Snap, { label: string }> = {
+  0: { label: '요약 보기' },
+  1: { label: '제보 목록 보기' },
+  2: { label: '지도 넓게 보기' },
 }
 
 // 길 안내 새 지도 시험판(MapLibre): 안내를 시작할 때 처음 내려받는다(첫 화면 번들에 넣지 않는다). 기본은 꺼짐: 개발 서버이거나 주소에 navmap=gl일 때만.
@@ -194,7 +197,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [start] = useState(() => {
     const q = new URLSearchParams(intent)
     const rid = q.get('report')
-    return { go: q.get('go'), layer: q.get('layer'), type: typeFromQuery(q.get('type')), from: placeFromQuery(q.get('from')), to: placeFromQuery(q.get('to')), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
+    const lat = Number(q.get('lat'))
+    const lng = Number(q.get('lng'))
+    const at = q.get('lat') && q.get('lng') && lat > 33 && lat < 39 && lng > 124 && lng < 132 ? { lat, lng } : null // AI 카드가 정한 중심(한국 안의 값만)
+    return { go: q.get('go'), layer: q.get('layer'), at, type: typeFromQuery(q.get('type')), from: placeFromQuery(q.get('from')), to: placeFromQuery(q.get('to')), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
   })
   const container = useRef<HTMLDivElement>(null)
   const kRef = useRef<typeof kakao | null>(null)
@@ -223,7 +229,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   // AI 검색이 「가맹점 지도 보기」처럼 레이어를 켜 달라고 하면(layer=voucher|toilet) 그 레이어를 켠 채로 연다.
   const [layers, setLayers] = useState<LayerState>(() => {
     const l = loadLayers()
-    return start.layer === 'voucher' ? { ...l, voucher: true } : start.layer === 'toilet' ? { ...l, toilet: true } : l
+    return start.layer === 'voucher' ? { ...l, voucher: true } : start.layer === 'toilet' ? { ...l, toilet: true } : start.layer === 'facility' ? { ...l, facility: true } : l
   })
   const [layerOpen, setLayerOpen] = useState(false)
   const [pubData, setPubData] = useState<Partial<Record<PubLayerId, PubDataset>>>({})
@@ -368,10 +374,12 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           }
         }
         if (start.report) center = new k.maps.LatLng(start.report.lat, start.report.lng)
+        else if (start.at) center = new k.maps.LatLng(start.at.lat, start.at.lng)
         if (cancelled || !container.current) return
         if (!center) throw new Error('지도 중심 주소를 찾지 못했어요. 카카오 앱의 지도·로컬 사용 설정을 확인해 주세요.')
-        const map = new k.maps.Map(container.current, { center, level: 4 })
-        if (located.length > 0 && !start.report) {
+        const map = new k.maps.Map(container.current, { center, level: Math.min(4, PUB_MAX_LEVEL) })
+        // 레이어를 켜 달라고 온 경우(layer=…)는 점이 보이는 확대(PUB_MAX_LEVEL 이하)로 열어야 해서 전체 보기로 넓히지 않는다.
+        if (located.length > 0 && !start.report && !start.layer) {
           const bounds = new k.maps.LatLngBounds()
           for (const b of located) {
             const g = b.geometry as Geometry
@@ -902,7 +910,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         el.className = 'bm-pub' + (warn ? ' bm-pub-warn' : '') + (acc ? ' bm-pub-acc' : '') + (isSel ? ' bm-pub-sel' : '') + (dot ? ' bm-pub--dot' : '')
         el.style.background = info.color
         el.textContent = dot ? '' : warn ? `${info.glyph}!` : acc ? `${info.glyph}♿` : info.glyph
-        el.title = warn ? `${it.name} (보도턱 낮춤 없음)` : acc ? `${it.name} (출입구 정보 있음)` : it.name
+        const shownName = g.layer === 'facility' ? facilityTitle(it) : it.name
+        el.title = warn ? `${shownName} (보도턱 낮춤 없음)` : acc ? `${shownName} (출입구 정보 있음)` : shownName
         el.addEventListener('click', (e) => {
           e.stopPropagation()
           if (pickingRef.current) {
@@ -1543,18 +1552,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     openReportRef.current = openReport
     openSeedRef.current = openSeed
   })
-  const openProgress = () => {
-    setProgressMode(true)
-    setProgressOpen(true)
-    setPanelOpen(false)
-    setRewardsOpen(false)
-    setRouteOpen(false)
-    setRoutePick(null)
-    setOverlay(null)
-    closeFlow()
-    setSelectedId(null)
-    setSelectedReportId(null)
-  }
   const pickProgress = (it: ProgressItem) => {
     if (it.kind === 'report') openReport(it.id)
     else openSeed(it.id)
@@ -1603,11 +1600,15 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 className="hm-search"
                 aria-expanded={routeOpen}
                 onClick={() => {
-                  leaveProgress()
-                  setRouteOpen(true)
-                  setRoutePick(null)
-                  setPanelOpen(false)
-                  setRewardsOpen(false)
+                  // 아이폰 Safari는 누른 동작 안에서 focus()를 불러야 키보드가 올라온다: 길찾기 화면을 그 자리에서 그려 넣고 도착 입력칸에 바로 커서를 둔다
+                  flushSync(() => {
+                    leaveProgress()
+                    setRouteOpen(true)
+                    setRoutePick(null)
+                    setPanelOpen(false)
+                    setRewardsOpen(false)
+                  })
+                  document.querySelector<HTMLInputElement>('.bm .rt input[data-place="to"]')?.focus()
                 }}
               >
                 어디로 가세요? 길찾기
@@ -1621,7 +1622,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             </div>
           </div>
           <div className="hm-chips">
-            <MockStrip />
+            <MockStrip hideLarge />
           </div>
           <button type="button" className="hm-legend-toggle" aria-expanded={legendOpen} aria-label={legendOpen ? '범례 접기' : '범례 보기'} title="범례" onClick={() => setLegendOpen((v) => !v)}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1681,18 +1682,15 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         {!overlayOpen && (
           <section ref={sheetRef} className={'hm-sheet' + (behind ? ' is-behind' : '')} data-sheet data-snap={snap} aria-label="이 지역 요약">
             <div className="hm-grip" {...gripProps}>
-              <span className="hm-grip-bar" aria-hidden="true" />
+              <button type="button" className="hm-grip-btn" data-grip aria-expanded={snap > 0} aria-label={SNAP_BTN[snap].label} title={SNAP_BTN[snap].label}>
+                <span className="hm-grip-bar" aria-hidden="true" />
+              </button>
               <div className="hm-s-head">
                 <h2 className="hm-title">
-                  {!view ? '지도를 불러오고 있어요' : here.length > 0 ? `장애요소 ${here.length}곳${hereCount('hard') > 0 ? ` · 어려운 곳 ${hereCount('hard')}` : ''}` : '여기에는 등록된 장애요소가 없어요'}
+                  {!view ? '지도를 불러오고 있어요' : here.length > 0 ? `장애요소 ${here.length}곳` : '여기에는 등록된 장애요소가 없어요'}
                 </h2>
                 <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
                   신고하기
-                </button>
-                <button type="button" className="hm-snapbtn" aria-expanded={snap > 0} aria-label={SNAP_BTN[snap].label} title={SNAP_BTN[snap].label} onClick={() => setSnap(SNAP_BTN[snap].next)}>
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d={SNAP_BTN[snap].up ? 'm5 12.5 5-5 5 5' : 'm5 7.5 5 5 5-5'} />
-                  </svg>
                 </button>
               </div>
             </div>
@@ -1741,17 +1739,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                   </li>
                 </ul>
               )}
-              <div className="hm-s-cta">
-                <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setRewardsOpen(false); setPanelOpen(true) }}>
-                  제보 현황
-                </button>
-                <button type="button" className="hm-cta-sub" onClick={() => { leaveProgress(); setPanelOpen(false); setRewardsOpen(true) }}>
-                  내 기여
-                </button>
-                <button type="button" className="hm-cta-sub hm-cta-progress" onClick={openProgress}>
-                  개선 현황
-                </button>
-              </div>
             </div>
             <div className="hm-more">
               {here.length > 0 && restCats.length > 0 && (

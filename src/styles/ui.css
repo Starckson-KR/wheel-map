@@ -39,10 +39,10 @@
 }
 .nt-item button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(142 193 255 / 0.6); }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .cs-dim,
-  html:not(.motion-force) .cs-sheet,
-  html:not(.motion-force) .nt-item { animation: none; }
+@media all {
+  html.motion-reduce .cs-dim,
+  html.motion-reduce .cs-sheet,
+  html.motion-reduce .nt-item { animation: none; }
 }
 
 /* ───── 빈 화면 다음 행동 버튼 ───── */
@@ -86,9 +86,9 @@
 .bm-lightbox-nav { display: flex; justify-content: space-between; gap: var(--s-2); margin-top: var(--s-2); }
 .bm-lightbox-nav button { flex: 1; min-height: 48px; }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .sk-bar { animation: none; }
-  html:not(.motion-force) .rf-spin { animation-duration: 2.4s; }
+@media all {
+  html.motion-reduce .sk-bar { animation: none; }
+  html.motion-reduce .rf-spin { animation-duration: 2.4s; }
 }
 .rf-preset { margin: 0 0 var(--s-3); color: var(--blue-700); font-weight: 600; }
 

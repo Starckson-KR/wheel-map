@@ -7,7 +7,7 @@ export type TextSize = 'normal' | 'large'
 
 const VIEW_KEY = 'wheelmap.view'
 const THEME_KEY = 'wheelmap.theme'
-const MOTION_KEY = 'wheelmap.motionForce'
+export const MOTION_REDUCE_KEY = 'wheelmap.motionReduce'
 const TEXT_KEY = 'wheelmap.textSize'
 
 function read(key: string): string | null {
@@ -75,23 +75,25 @@ export function setTheme(t: ThemeMode) {
   applyTheme(t)
 }
 
-// 시연용: 기기에서 움직임 줄이기를 켜 두었어도 화면 움직임을 보여 준다. <html class="motion-force">
-export function getMotionForce(): boolean {
-  return read(MOTION_KEY) === '1'
+// 움직임은 기본으로 켜져 있다(기기의 움직임 줄이기 설정과 상관없이). 앱 설정에서 「움직임 줄이기」를 켠 사람만 줄인다. <html class="motion-reduce">
+// 순수 함수: 기기 설정(osReduce)은 일부러 보지 않는다(사용자 결정 11/18, 기본값은 화려함).
+export function shouldReduceMotion(_osReduce: boolean, appReduce: boolean): boolean {
+  return appReduce
 }
-export function applyMotionForce(on: boolean) {
-  document.documentElement.classList.toggle('motion-force', on)
+export function getMotionReduce(): boolean {
+  return read(MOTION_REDUCE_KEY) === '1'
 }
-export function setMotionForce(on: boolean) {
-  write(MOTION_KEY, on ? '1' : '0')
-  applyMotionForce(on)
+export function applyMotionReduce(on: boolean) {
+  document.documentElement.classList.toggle('motion-reduce', on)
 }
-// 지금 움직임을 줄여야 하는지: 시연 스위치가 켜져 있으면 줄이지 않는다.
+export function setMotionReduce(on: boolean) {
+  write(MOTION_REDUCE_KEY, on ? '1' : '0')
+  applyMotionReduce(on)
+}
+// 지금 움직임을 줄여야 하는지: 앱 설정이 켜진 경우만.
 export function prefersCalm(): boolean {
-  if (document.documentElement.classList.contains('motion-force')) return false
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  return document.documentElement.classList.contains('motion-reduce')
 }
-
 
 // 글자 크기: 보통/크게. <html data-text="large">면 rem 기준이 커져 화면 전체가 따라온다.
 export function getTextSize(): TextSize {
@@ -113,6 +115,7 @@ export function reapplyPrefs() {
   applyTextSize(getTextSize())
   applyView(getView())
   applyTheme(getTheme())
+  applyMotionReduce(getMotionReduce())
   window.dispatchEvent(new Event('wheelmap:viewchange'))
   window.dispatchEvent(new Event(PREFS_CHANGE_EVENT))
 }
@@ -120,7 +123,7 @@ export function reapplyPrefs() {
 export function initPrefs() {
   applyTextSize(getTextSize())
   applyView(getView())
-  applyMotionForce(getMotionForce())
+  applyMotionReduce(getMotionReduce())
   applyTheme(getTheme())
   // 자동일 때 화면 폭이 바뀌면(회전 등) 휴대폰 판정을 다시 한다
   window.addEventListener('resize', () => {

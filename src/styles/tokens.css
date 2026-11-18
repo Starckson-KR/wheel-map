@@ -146,7 +146,7 @@
 
   --touch: 44px;
   /* 하단 탭 바 높이: 어느 화면에서도 같다. 모바일 보기에서만 아래에 붙고, PC 보기에서는 위쪽 내비라서 0 */
-  --tabbar-h: calc(56px + var(--safe-bottom));
+  --tabbar-h: calc(60px + var(--safe-bottom));
   color-scheme: light;
 }
 
@@ -212,8 +212,8 @@
   color-scheme: dark;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) {
+@media all {
+  html.motion-reduce {
     --t-sheet: 1ms;
   }
 }

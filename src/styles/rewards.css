@@ -293,9 +293,9 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .rw-toast,
-  html:not(.motion-force) .rw-bar-t i {
+@media all {
+  html.motion-reduce .rw-toast,
+  html.motion-reduce .rw-bar-t i {
     animation: none;
     transition: none;
   }
@@ -342,8 +342,8 @@
 .ch-wait { display: flex; flex-direction: column; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
 .bm button.ch-go { align-self: flex-start; max-width: 100%; min-height: var(--touch); padding: 0 var(--s-4); border-radius: var(--r-full); font-size: var(--fs-small); overflow-wrap: anywhere; text-align: left; }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .ch-track i { transition: none; }
+@media all {
+  html.motion-reduce .ch-track i { transition: none; }
 }
 
 /* 챌린지 버튼: 다크에서도 면이 보이게 파란 연한 면 + 파란 글자 */

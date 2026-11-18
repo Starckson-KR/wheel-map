@@ -8,6 +8,7 @@ import { alongM, distToRoute, searchRoute, type Hit, type Obstacle, type Pt, typ
 import { buildSteps, stepText, type Step, type Turn } from '../lib/routing/guide.ts'
 import { autoStep } from '../lib/routing/followNav.ts'
 import { searchOwn, type OwnSearch } from '../lib/routing/ownSearch.ts'
+import { searchDelay, showRecommended } from '../lib/routing/searchUi.ts'
 import { getWalkGraph } from '../lib/routing/walkData.ts'
 import type { OwnRoute } from '../lib/routing/walkRoute.ts'
 import { crosswalksOnRoute, loadExtras, type Extras } from '../lib/routing/extras.ts'
@@ -80,17 +81,24 @@ function PlacePicker(props: {
   onPickMap: () => void
   /** 홈 AI 검색에서 가져온 말: 입력칸에 채우고 검색 결과 목록까지만 띄운다(장소는 사용자가 고른다) */
   preset?: string
+  /** 입력칸 구분(화면 밖에서 도착 입력칸을 찾아 커서를 둘 때 쓴다) */
+  which: 'from' | 'to'
+  /** 입력한 말이 바뀔 때 알린다(비어 있는지에 따라 추천 경로를 보이거나 숨긴다) */
+  onQuery?: (q: string) => void
 }) {
-  const { label, value, k, allowCurrent, active, onChange, onPickMap, preset } = props
+  const { label, value, k, allowCurrent, active, onChange, onPickMap, preset, which, onQuery } = props
   const [q, setQ] = useState(preset ?? '')
-  const presetDone = useRef(false)
+  const first = useRef(!!preset) // 홈 검색에서 가져온 말만 기다리지 않고 바로 찾는다
+  const reqId = useRef(0)
   const [items, setItems] = useState<kakao.maps.services.PlaceResult[]>([])
   const [msg, setMsg] = useState('')
   const [outside, setOutside] = useState(false)
   const search = async (text = q) => {
     if (!k || !text.trim()) return
+    const my = ++reqId.current
     setMsg('찾고 있어요…')
     const r = await keywordSearch(k, text.trim(), 5)
+    if (my !== reqId.current) return // 그 사이에 더 새로 입력했으면 옛 결과는 버린다
     if (r.status === 'ok') {
       setItems(r.items)
       setOutside(r.outsideBukgu)
@@ -101,13 +109,24 @@ function PlacePicker(props: {
       setMsg(r.status === 'empty' ? '검색 결과가 없어요.' : '검색하지 못했어요. 잠시 뒤에 다시 해 주세요.')
     }
   }
+  // 입력하면 바로 찾는다(타이핑 사이에는 잠시 기다림). 홈 검색에서 가져온 말도 같은 길로 지도가 준비되면 목록을 띄운다.
   useEffect(() => {
-    if (!preset || !k || presetDone.current) return
-    presetDone.current = true
-    void search(preset)
-    // 한 번만: 지도가 준비되면 목록을 띄운다
+    onQuery?.(q)
+    const delay = searchDelay(q, first.current)
+    if (delay === null) {
+      reqId.current++
+      setItems([])
+      setOutside(false)
+      setMsg('')
+      return
+    }
+    if (!k) return
+    first.current = false
+    const t = setTimeout(() => void search(q), delay)
+    return () => clearTimeout(t)
+    // search는 q·k만 읽는다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [k])
+  }, [q, k])
   const current = () => {
     if (!navigator.geolocation) return setMsg('이 브라우저에서는 현재 위치를 쓸 수 없어요.')
     setMsg('현재 위치를 찾고 있어요…')
@@ -127,25 +146,16 @@ function PlacePicker(props: {
       <div className="rt-row">
         <input
           type="search"
+          data-place={which}
           value={q}
           placeholder="장소 이름 검색"
           aria-label={`${label} 장소 검색어`}
+          enterKeyHint="search"
+          autoComplete="off"
+          autoCorrect="off"
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
         />
-        <button type="button" onClick={() => search()} disabled={!k || !q.trim()}>
-          검색
-        </button>
-      </div>
-      <div className="rt-row">
-        <button type="button" onClick={onPickMap} aria-pressed={active} className={active ? 'on' : ''}>
-          {active ? '지도를 눌러 주세요…' : '지도에서 선택'}
-        </button>
-        {allowCurrent && (
-          <button type="button" onClick={current}>
-            현재 위치
-          </button>
-        )}
       </div>
       {msg && <Sentences as="p" className="bm-meta">{msg}</Sentences>}
       {preset && !value && items.length > 0 && <Sentences as="p" className="bm-meta">검색에서 가져온 말이에요. 아래에서 장소를 골라 주세요.</Sentences>}
@@ -169,6 +179,16 @@ function PlacePicker(props: {
           ))}
         </ul>
       )}
+      <div className="rt-row">
+        <button type="button" onClick={onPickMap} aria-pressed={active} className={active ? 'on' : ''}>
+          {active ? '지도를 눌러 주세요…' : '지도에서 선택'}
+        </button>
+        {allowCurrent && (
+          <button type="button" onClick={current}>
+            현재 위치
+          </button>
+        )}
+      </div>
     </fieldset>
   )
 }
@@ -186,6 +206,9 @@ export default function RoutePanel(props: Props) {
   const [chosen, setChosen] = useState(false) // 경로 카드를 골랐는가(고르면 그 경로만 보이고 단계별 안내가 나온다)
   const [fitN, setFitN] = useState(0)
   const [pairsOpen, setPairsOpen] = useState(false)
+  const [destQ, setDestQ] = useState(props.presetTo ?? '') // 도착 입력칸에 쓴 말(비어 있을 때만 추천 경로를 보인다)
+  const typingOff = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const [typing, setTyping] = useState(false) // 입력칸에 커서가 있는 동안: 휴대폰에서는 시트를 키워 키보드에 가려지지 않게 한다
   const topRef = useRef<HTMLDivElement>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [mode, setMode] = useState<'walk' | 'bus'>(props.initialMode ?? 'walk') // 걸어서 / 버스 타고(7단계)
@@ -645,7 +668,23 @@ export default function RoutePanel(props: Props) {
     {locBtn}
     {mini}
     {guidePanel}
-    <div className={'rp rt' + (picking ? ' rt-hidden' : '')} data-sheet role="dialog" aria-label="길찾기" hidden={!!picking || collapsed || !!guide}>
+    <div
+      className={'rp rt' + (picking ? ' rt-hidden' : '') + (typing ? ' rt-typing' : '')}
+      data-sheet
+      role="dialog"
+      aria-label="길찾기"
+      hidden={!!picking || collapsed || !!guide}
+      onFocus={(e) => {
+        if (!(e.target instanceof HTMLInputElement)) return
+        clearTimeout(typingOff.current)
+        setTyping(true)
+      }}
+      onBlur={(e) => {
+        if (!(e.target instanceof HTMLInputElement)) return
+        // 결과를 누르는 순간 시트가 줄어 눌린 자리가 어긋나지 않도록 잠시 뒤에 줄인다
+        typingOff.current = setTimeout(() => setTyping(false), 250)
+      }}
+    >
       <SheetHandle exit={!result} onDown={() => (result ? setCollapsed(true) : onClose())} />
       <div className="rf-head">
         <h2>길찾기</h2>
@@ -659,6 +698,26 @@ export default function RoutePanel(props: Props) {
         </span>
       </div>
 
+      <section className="rf-card rt-sec rt-search">
+        {DEV_TOOLS && <div className="tr-tabs" role="group" aria-label="경로 방식">
+          {(
+            [
+              ['own', '자체 보행망'],
+              ['tmap', 'TMAP 비교'],
+            ] as const
+          ).map(([id, label]) => (
+            <button key={id} type="button" aria-pressed={engineMode === id} className={'tr-tab' + (engineMode === id ? ' on' : '')} onClick={() => setEngineMode(id)}>
+              {label}
+            </button>
+          ))}
+        </div>}
+        <PlacePicker which="to" label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p))} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} onQuery={setDestQ} />
+        <PlacePicker which="from" label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), setFrom(p))} onPickMap={() => onPickRequest(picking === 'from' ? null : 'from')} preset={props.presetFrom ?? undefined} />
+        <button type="button" className="rf-primary" disabled={!canRun} onClick={() => from && to && run(from, to, pairId, `${from.name} → ${to.name}`)}>
+          {status === 'loading' ? '찾고 있어요…' : '길찾기'}
+        </button>
+      </section>
+
       {pairId && !pairsOpen && from && to ? (
         <div className="rt-pair-sum">
           <span className="rt-pair-name">
@@ -669,44 +728,23 @@ export default function RoutePanel(props: Props) {
           </button>
         </div>
       ) : (
-        <section className="rt-sec">
-          <h3>시연 경로</h3>
-          <ul className="rt-pairs">
-            {DEMO_PAIRS.map((p) => (
-              <li key={p.id}>
-                <button type="button" className={'lr rt-pair' + (pairId === p.id ? ' on' : '')} aria-pressed={pairId === p.id} onClick={() => choosePair(p)} disabled={status === 'loading'}>
-                  <span className="lr-main">
-                    <span className="lr-title rt-wrap">{stripId(p.fromName)} → {stripId(p.toName)}</span>
-                  </span>
-                  <span className="lr-chev" aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {(
-        <section className="rf-card rt-sec">
-          <h3>직접 검색{DEV_TOOLS ? ' (개발 모드)' : ''}</h3>
-          {DEV_TOOLS && <div className="tr-tabs" role="group" aria-label="경로 방식">
-            {(
-              [
-                ['own', '자체 보행망'],
-                ['tmap', 'TMAP 비교'],
-              ] as const
-            ).map(([id, label]) => (
-              <button key={id} type="button" aria-pressed={engineMode === id} className={'tr-tab' + (engineMode === id ? ' on' : '')} onClick={() => setEngineMode(id)}>
-                {label}
-              </button>
-            ))}
-          </div>}
-          <PlacePicker label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), setFrom(p))} onPickMap={() => onPickRequest(picking === 'from' ? null : 'from')} preset={props.presetFrom ?? undefined} />
-          <PlacePicker label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p))} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} />
-          <button type="button" className="rf-primary" disabled={!canRun} onClick={() => from && to && run(from, to, pairId, `${from.name} → ${to.name}`)}>
-            {status === 'loading' ? '찾고 있어요…' : '길찾기'}
-          </button>
-        </section>
+        showRecommended(destQ) && (
+          <section className="rt-sec rt-recommend">
+            <h3>추천 경로</h3>
+            <ul className="rt-pairs">
+              {DEMO_PAIRS.map((p) => (
+                <li key={p.id}>
+                  <button type="button" className={'lr rt-pair' + (pairId === p.id ? ' on' : '')} aria-pressed={pairId === p.id} onClick={() => choosePair(p)} disabled={status === 'loading'}>
+                    <span className="lr-main">
+                      <span className="lr-title rt-wrap">{stripId(p.fromName)} → {stripId(p.toName)}</span>
+                    </span>
+                    <span className="lr-chev" aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
       )}
 
       <div className="tr-tabs" role="tablist" aria-label="이동 방법">

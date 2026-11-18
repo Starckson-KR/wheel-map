@@ -18,8 +18,8 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const
 export const FADE = { duration: 0.18, ease: EASE_OUT } as const satisfies Transition
 export const FADE_OUT = { duration: 0.12, ease: EASE_OUT } as const satisfies Transition
 
-/** 하단 탭 순서(화면 전환 방향을 정한다). components/TabBar.tsx의 순서와 같다. */
-export const TAB_ORDER: readonly string[] = ['me', 'map', 'home', 'report', 'alerts']
+/** 하단 탭 순서(화면 전환 방향을 정한다). lib/tabs.ts의 TAB_ITEMS 순서와 같다. */
+export const TAB_ORDER: readonly string[] = ['home', 'map', 'report', 'alerts', 'me']
 /** 탭 전환에서 새 화면이 옆에서 들어오는 거리(px). 방향감만 준다. */
 export const PAGE_SHIFT = 18
 /** 카드·목록 첫 등장: 아래에서 올라오는 거리(px), 항목 사이 간격(초), 최대 몇 번째까지만 늦출지 */

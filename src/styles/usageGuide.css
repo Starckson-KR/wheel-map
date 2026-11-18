@@ -118,9 +118,9 @@
 .ug-next:active { transform: scale(0.98); }
 @media (hover: hover) { .ug-next:hover { background: var(--primary-hover); } }
 .ug-root :focus-visible:not([tabindex='-1']) { outline: none; box-shadow: var(--focus-ring); }
-@media (prefers-reduced-motion: reduce) {
-  html:not(.motion-force) .ug-root { animation: none; }
-  html:not(.motion-force) .ug-track { scroll-behavior: auto; }
-  html:not(.motion-force) .ug-dot, html:not(.motion-force) .ug-next { transition: none; }
-  html:not(.motion-force) .ug-next:active { transform: none; }
+@media all {
+  html.motion-reduce .ug-root { animation: none; }
+  html.motion-reduce .ug-track { scroll-behavior: auto; }
+  html.motion-reduce .ug-dot, html.motion-reduce .ug-next { transition: none; }
+  html.motion-reduce .ug-next:active { transform: none; }
 }

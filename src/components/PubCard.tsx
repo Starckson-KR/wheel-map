@@ -1,6 +1,7 @@
 import { PUB_LAYERS, type PubDataset, type PubItem, type PubLayerId } from '../lib/publicLayers'
 import { Sentences } from './Sentences'
 import type { VoucherFields } from '../lib/vouchers'
+import { facilityTitle, usableName } from '../lib/facilityName'
 
 type Props = { layer: PubLayerId; item: PubItem; dataset: PubDataset; onClose: () => void }
 
@@ -58,7 +59,7 @@ function VoucherAccess({ item }: { item: PubItem }) {
           {fac.evalInfo ? `등록된 편의시설: ${fac.evalInfo}.` : '편의시설 항목을 아직 조회하지 못했어요.'}
           {v.access === 'partial' && fac.evalInfo ? ' 출입구 높이차이 정보는 확인이 필요해요.' : ''}
           <br />
-          {fac.basis === 'address' ? '같은 주소' : '같은 이름·가까운 위치'}의 장애인편의시설 &lsquo;{fac.name}&rsquo; 자료예요. 건물 기준이라 이 가게의 입구와 다를 수 있어요.
+          {fac.basis === 'address' ? '같은 주소' : '같은 이름·가까운 위치'}의 장애인편의시설 {usableName(fac.name, fac.type) ? <>&lsquo;{usableName(fac.name, fac.type)}&rsquo; </> : ''}자료예요. 건물 기준이라 이 가게의 입구와 다를 수 있어요.
         </p>
       ) : (
         <p>휠체어 접근 정보가 없어요. 방문 전에 확인해 주세요.</p>
@@ -76,7 +77,7 @@ export default function PubCard({ layer, item, dataset, onClose }: Props) {
           <i className="bm-pub-chip" style={{ background: info?.color }}>
             {info?.glyph}
           </i>{' '}
-          {item.name}
+          {layer === 'facility' ? facilityTitle(item) : item.name}
         </h2>
         <button type="button" className="bm-close" onClick={onClose} aria-label="닫기">
           닫기

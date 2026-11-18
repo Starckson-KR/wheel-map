@@ -35,8 +35,8 @@ export const ALL_PUB_LAYERS: PubLayerInfo[] = [
 
 // 기본 지도에는 이동 중 바로 필요한 장애인화장실만 둔다(2026-10-26 사용자 결정).
 // 횡단보도·정류장은 길찾기(5·7단계), 편의시설은 목적지 정보에서 쓴다 — 데이터와 로더는 유지.
-// 상품권 가맹점(2026-11-17)은 용봉동만, 기본은 꺼짐.
-export const PUB_LAYERS: PubLayerInfo[] = ALL_PUB_LAYERS.filter((l) => l.id === 'toilet' || l.id === 'voucher')
+// 상품권 가맹점(2026-11-17)은 용봉동만, 기본은 꺼짐. 편의시설(AI 검색 카드의 「편의시설 지도 보기」용)도 기본은 꺼짐.
+export const PUB_LAYERS: PubLayerInfo[] = ALL_PUB_LAYERS.filter((l) => l.id === 'toilet' || l.id === 'voucher' || l.id === 'facility')
 
 export const PUB_MAX_LEVEL = 5 // 이 레벨보다 넓게 보면 그리지 않는다(숫자가 클수록 넓음)
 export const PUB_MAX_DRAW = 500 // 한 번에 그리는 최대 개수

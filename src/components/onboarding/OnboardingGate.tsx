@@ -21,7 +21,7 @@ import { CATEGORIES, savePrefs, type BenefitCategory } from '../../lib/benefits'
 import { getLang, setLang, type Lang } from '../../lib/i18n'
 import { ONBOARDED_EVENT } from '../../lib/usageGuide'
 import {
-  getMotionForce, getTextSize, getTheme, PREFS_CHANGE_EVENT, prefersCalm, setMotionForce, setTextSize, setTheme, type TextSize, type ThemeMode,
+  getMotionReduce, getTextSize, getTheme, PREFS_CHANGE_EVENT, prefersCalm, setMotionReduce, setTextSize, setTheme, type TextSize, type ThemeMode,
 } from '../../lib/viewPrefs'
 import { Sentences } from '../Sentences'
 
@@ -84,7 +84,7 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
   const [picked, setPicked] = useState<Mobility | null>(() => (read(PROFILE_KEY) ? parseProfile(read(PROFILE_KEY)).mobility : null))
   const [text, setText] = useState<TextSize>(getTextSize)
   const [theme, setThemeState] = useState<ThemeMode>(getTheme)
-  const [motion, setMotion] = useState(getMotionForce)
+  const [motion, setMotion] = useState(getMotionReduce)
   const mounted = useRef(true)
   const leaveTimer = useRef(0)
   const userRef = useRef(user)
@@ -509,7 +509,7 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
             </div>
             {seg<TextSize>('글자 크기', text, [{ id: 'normal', label: '보통' }, { id: 'large', label: '크게' }], (v) => { setText(v); setTextSize(v) })}
             {seg<ThemeMode>('화면', theme, [{ id: 'system', label: '시스템' }, { id: 'light', label: '라이트' }, { id: 'dark', label: '다크' }], (v) => { setThemeState(v); setTheme(v) })}
-            {seg<'system' | 'on'>('움직임', motion ? 'on' : 'system', [{ id: 'system', label: '시스템 따르기' }, { id: 'on', label: '켜기' }], (v) => { setMotion(v === 'on'); setMotionForce(v === 'on') })}
+            {seg<'off' | 'on'>('움직임 줄이기', motion ? 'on' : 'off', [{ id: 'off', label: '끄기' }, { id: 'on', label: '켜기' }], (v) => { setMotion(v === 'on'); setMotionReduce(v === 'on') })}
           </div>
           {foot(next('다음', () => goTo('done')))}
         </>

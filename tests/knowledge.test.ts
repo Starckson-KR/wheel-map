@@ -2,7 +2,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { askKnowledge, candidateTopics, dataNeeds, distanceText, guessTopics, placeWords, stripJosa, wantsNearby } from '../src/lib/aiSearch/knowledge.ts'
+import { facilityTitle, usableName } from '../src/lib/facilityName.ts'
+import { askKnowledge, goFor, candidateTopics, dataNeeds, distanceText, guessTopics, placeWords, stripJosa, wantsNearby } from '../src/lib/aiSearch/knowledge.ts'
 import type { KnowledgeData } from '../src/lib/aiSearch/knowledge.ts'
 import { BENEFITS } from '../src/lib/benefitsData.ts'
 import { guardIntent } from '../src/lib/aiSearch/keywords.ts'
@@ -187,4 +188,41 @@ test('클라이언트: Worker가 ask를 돌려주면 그대로 이해하고, 실
   const k = await understand('상품권 쓸 수 있는 가게', { url: 'http://x', enabled: true, fetchImpl: bad })
   assert.equal(k.source, 'keyword')
   assert.notEqual(k.intent, 'ask')
+})
+
+test('편의시설 이름: 지번·건축물 용도·괄호 속 이름은 숨기고, 업종과 도로명·동으로 알아볼 수 있게 한다', () => {
+  const mk = (name: string, type: string, address: string) => ({ name, address, fields: { faclTyCd: type } })
+  const addr = '전남광주통합특별시 북구 가상로39번길 11 (가상동)'
+  assert.equal(facilityTitle(mk('가상동 578-9 제2종근린생활시설 (홍길동)', '일반음식점', addr)), '일반음식점 · 가상로39번길 11 가상동')
+  assert.equal(facilityTitle(mk('휴게음식점·제과점', '휴게음식점·제과점', addr)), '휴게음식점·제과점 · 가상로39번길 11 가상동')
+  assert.equal(facilityTitle(mk('가상빌딩 (임꺽정)', '일반음식점', addr)), '가상빌딩') // 상호는 남기고 괄호 속 이름만 뺀다
+  assert.equal(facilityTitle(mk('가상 마트', '수퍼마켓·일용품 등의 소매점', addr)), '가상 마트')
+  assert.equal(usableName('가상동 12 단독주택', '단독주택'), null)
+  assert.ok(!facilityTitle(mk('가상동 578-9 제2종근린생활시설 (홍길동)', '일반음식점', addr)).includes('홍길동'))
+})
+
+test('편의시설 카드 제목에는 원본의 지번·용도·괄호 이름이 나오지 않는다', () => {
+  const a = ask('경사로 있는 식당 추천해줘', 'facility')
+  for (const c of a.cards) {
+    assert.ok(!/제\s*\d\s*종|근린생활시설|\(/.test(c.title), c.title)
+    assert.ok(c.title.length > 3)
+  }
+})
+
+test('지도 버튼: 종류에 맞는 이름, 확대된 지도의 중심(근처면 내 위치, 아니면 첫 결과)을 함께 보낸다', () => {
+  const v = ask('휠체어로 갈 수 있는 상품권 가맹점 있어?', 'voucher')
+  assert.equal(v.go[0].label, '가맹점 지도 보기')
+  const first = v.cards[0]
+  assert.ok(v.go[0].hash.startsWith('#/map?layer=voucher&lat=') && v.go[0].hash.includes(`lat=${first.lat!.toFixed(5)}`))
+  const f = ask('경사로 있는 식당 추천해줘', 'facility')
+  assert.equal(f.go[0].label, '편의시설 지도 보기')
+  assert.ok(f.go[0].hash.startsWith('#/map?layer=facility&lat='))
+  const me = { lat: 35.1771, lng: 126.9035 }
+  const t = askKnowledge('근처 경사로 있는 화장실', { topic: 'toilet', data, now: NOW, origin: me })
+  assert.equal(t.go[0].label, '화장실 지도 보기')
+  assert.ok(t.go[0].hash.includes('lat=35.17710') && t.go[0].hash.includes('lng=126.90350'))
+  const noNear = askKnowledge('경사로 있는 화장실', { topic: 'toilet', data, now: NOW, origin: me })
+  assert.ok(!noNear.go[0].hash.includes('lat=35.17710')) // 「근처」를 묻지 않았으면 첫 결과
+  assert.deepEqual(goFor('toilet', [], undefined, false), [{ label: '화장실 지도 보기', hash: '#/map?layer=toilet' }]) // 결과가 없으면 기본 위치
+  assert.deepEqual(goFor('benefit', v.cards, me, true).map((g) => g.hash), ['#/alerts?section=benefits'])
 })

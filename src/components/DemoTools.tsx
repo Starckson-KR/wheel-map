@@ -6,20 +6,21 @@ import type { Barrier } from '../types'
 import Icon from './Icon'
 import SheetHandle from './SheetHandle'
 import { confirmSheet, toast } from '../lib/uiStore'
-import { getMotionForce, setMotionForce } from '../lib/viewPrefs'
+import { getMotionReduce, setMotionReduce } from '../lib/viewPrefs'
 import { getAiEnabled, setAiEnabled } from '../lib/aiSearch/aiPref'
 import { loadPubDataset } from '../lib/publicLayers'
 import { BADGE_TEXT, FILE_MAX_BYTES, pickCandidates } from '../lib/demoLarge'
 import { Sentences } from './Sentences'
 
 // 시연용 모의 연동 표시: 모의 접수 모드에서는 어느 화면에서나 계속 보인다.
-export function MockStrip() {
+// hideLarge: 지도 화면은 "시연용 가상 데이터" 배지를 보이지 않는다(홈·내 정보·행정 화면과 정보 패널에는 그대로 있다).
+export function MockStrip({ hideLarge = false }: { hideLarge?: boolean } = {}) {
   const mode = useReports((s) => s.complaintMode)
   const storageError = useReports((s) => s.storageError)
   const hasLarge = useReports((s) => s.reports.some((r) => r.demoSet === 'large'))
   return (
     <>
-      {hasLarge && (
+      {hasLarge && !hideLarge && (
         <div className="mock-strip mock-strip-large" role="note">
           {BADGE_TEXT}
         </div>
@@ -54,7 +55,7 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
   const open = openProp ?? openSelf
   const setOpen = onOpenChange ?? setOpenSelf
   const [msg, setMsg] = useState('')
-  const [motion, setMotion] = useState(getMotionForce)
+  const [motion, setMotion] = useState(getMotionReduce)
   const [ai, setAi] = useState(getAiEnabled)
   const userId = useReports((s) => s.userId)
   const setUser = useReports((s) => s.setUser)
@@ -182,16 +183,16 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
             </div>
 
             <div className="ms-sec">
-              <h3>움직임 보기</h3>
-              <div className="rf-seg" role="group" aria-label="움직임 보기">
-                <button type="button" className={!motion ? 'on' : ''} aria-pressed={!motion} onClick={() => { setMotion(false); setMotionForce(false) }}>
+              <h3>움직임 줄이기</h3>
+              <div className="rf-seg" role="group" aria-label="움직임 줄이기">
+                <button type="button" className={!motion ? 'on' : ''} aria-pressed={!motion} onClick={() => { setMotion(false); setMotionReduce(false) }}>
                   꺼짐
                 </button>
-                <button type="button" className={motion ? 'on' : ''} aria-pressed={motion} onClick={() => { setMotion(true); setMotionForce(true) }}>
+                <button type="button" className={motion ? 'on' : ''} aria-pressed={motion} onClick={() => { setMotion(true); setMotionReduce(true) }}>
                   켜짐
                 </button>
               </div>
-              <p className="bm-meta">기기의 움직임 줄이기와 상관없이 움직임을 보여 줘요.</p>
+              <p className="bm-meta">켜면 화면 움직임을 줄여요. 내 정보 설정과 같은 값이에요.</p>
             </div>
 
             <div className="ms-sec">

@@ -19,7 +19,7 @@ import { handleRt, isRtPath } from './rt.ts'
 import type { ApiBody } from './intents.ts'
 import type { Env } from './types'
 
-const DEFAULT_MODEL = '@cf/meta/llama-3.2-3b-instruct'
+const DEFAULT_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8'
 const MODEL_TIMEOUT_MS = 8000 // 첫 호출과 재시도를 합친 총 제한
 const MIN_RETRY_MS = 1500 // 남은 시간이 이보다 적으면 재시도하지 않는다
 
@@ -132,6 +132,8 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
           ],
           max_tokens: 120,
           temperature: 0,
+          // Qwen3·Gemma 4는 기본이 「생각 모드」라 생각에 토큰을 다 써 JSON이 끊긴다. 끈다(다른 모델은 이 필드를 무시한다).
+          chat_template_kwargs: { enable_thinking: false },
         }),
         new Promise<never>((_, rej) => {
           timer = setTimeout(() => rej(new Error('timeout')), timeoutMs)

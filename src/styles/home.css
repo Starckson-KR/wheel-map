@@ -512,6 +512,11 @@ html[data-page-hidden] .hp-ask::before { animation-play-state: paused; }
   width: 100%;
   text-align: left;
 }
+.hp-ai-answers { display: grid; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.hp-ai-ans { display: grid; gap: var(--s-1); padding-bottom: var(--s-3); border-bottom: 1px solid var(--line, rgba(0, 0, 0, 0.08)); }
+.hp-ai-ans:last-child { padding-bottom: 0; border-bottom: 0; }
+.hp-ai-src { margin: 0; font-size: 0.75rem; line-height: 1.5; color: var(--text-sub); overflow-wrap: anywhere; }
+.hp-ai-src a { color: inherit; text-decoration: underline; }
 .hp-ai-note { margin: 0; font-size: 0.75rem; line-height: 1.5; color: var(--text-sub); }
 .hp-ai-off { margin: 0; padding: 0 var(--s-2); font-size: var(--fs-small); color: var(--text-sub); }
 

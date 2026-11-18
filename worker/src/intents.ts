@@ -22,10 +22,14 @@ export const INTENTS = {
   alerts: { to: 'TO.alerts', slots: [], desc: '알림을 확인하고 싶다' },
   help: { to: '(TODO 확인 필요: 사용법 화면)', slots: [], desc: '앱 사용법·도움말이 필요하다' },
   toilet_find: { to: 'TO.map (장애인화장실 레이어)', slots: [], desc: '휠체어로 이용할 수 있는 장애인화장실이 어디 있는지 찾고 싶다(화장실이 없다·고장이라는 신고는 report_new)' },
+  ask: { to: '(앱 자료에서 찾은 답 카드)', slots: ['topic', 'query'], desc: '앱에 든 자료로 답할 수 있는 지식형 질문이다(혜택·택시·이동 지원, 조건이 붙은 화장실·편의시설, 상품권 가맹점, 신고 접수 방법)' },
   unknown: { to: '(이동 없음)', slots: [], desc: '위 어느 것도 아니다, 잘 모르겠다' },
 } as const
 
 export type IntentId = keyof typeof INTENTS
+
+// ask 의도의 주제 목록(앱 src/lib/aiSearch/knowledge.ts의 TOPICS에서 agency를 뺀 것. 어느 기관 담당이냐는 말은 agency 의도가 맡는다). 모델은 주제 id와 검색어만 고르고, 답 문장은 앱이 자기 자료에서 꺼낸다.
+export const ASK_TOPICS = ['benefit', 'toilet', 'facility', 'voucher', 'bus', 'howto'] as const
 export const INTENT_IDS = Object.keys(INTENTS) as IntentId[]
 export type Slots = Record<string, string>
 
@@ -108,7 +112,7 @@ function salvage(t: string): unknown {
   const cm = /["']?confidence["']?\s*[:=]\s*([0-9]*\.?[0-9]+)/i.exec(t)
   if (cm) out.confidence = Number(cm[1])
   const slots: Record<string, string> = {}
-  for (const k of ['type', 'place', 'from', 'to']) {
+  for (const k of ['type', 'place', 'from', 'to', 'topic', 'query']) {
     const m = new RegExp(`["']${k}["']\\s*:\\s*["']([^"'\\n]*)["']`, 'i').exec(t)
     if (m) slots[k] = m[1]
   }
@@ -155,6 +159,11 @@ export function validateResult(obj: unknown, question?: string): Result | null {
     const given = o.slots as Record<string, unknown>
     const allowed = INTENTS[intent].slots as readonly string[]
     for (const k of allowed) {
+      if (k === 'topic') {
+        const t = typeof given.topic === 'string' ? given.topic.trim() : ''
+        if ((ASK_TOPICS as readonly string[]).includes(t)) slots.topic = t
+        continue
+      }
       if (k === 'type') {
         const v = typeof given.type === 'string' ? normalizeType(stripControl(given.type).slice(0, 40)) : null
         if (v) slots.type = v
@@ -201,8 +210,11 @@ export function modelText(out: unknown): string | null {
   if (o.response && typeof o.response === 'object') return JSON.stringify(o.response) // 이미 JSON 객체로 온 경우
   const ch = o.choices
   if (Array.isArray(ch) && ch[0] && typeof ch[0] === 'object') {
-    const c = (ch[0] as { message?: { content?: unknown }; text?: unknown })
-    if (typeof c.message?.content === 'string') return c.message.content
+    const c = (ch[0] as { message?: { content?: unknown; reasoning_content?: unknown; reasoning?: unknown }; text?: unknown })
+    if (typeof c.message?.content === 'string' && c.message.content.trim()) return c.message.content
+    // Qwen3는 답을 content가 아니라 reasoning_content(또는 reasoning)에 담고 content는 null로 줄 수 있다.
+    if (typeof c.message?.reasoning_content === 'string' && c.message.reasoning_content.trim()) return c.message.reasoning_content
+    if (typeof c.message?.reasoning === 'string' && c.message.reasoning.trim()) return c.message.reasoning
     if (typeof c.text === 'string') return c.text
   }
   return null
@@ -228,7 +240,9 @@ export function buildSystemPrompt(strict = false): string {
 아래 목록의 intent 중 하나만 고른다. 목록에 없는 값은 쓰지 않는다. 확실하지 않으면 unknown.
 기관명·법령·접수번호·전화번호·기한·설명은 절대 쓰지 않는다. 지어내지 않는다.
 점수·포인트·칭호·등수·순위는 my_score, 내가 올린 신고·내 민원의 결과와 처리 상황은 my_reports, 동네 전체가 얼마나 개선됐는지는 progress다.
-화장실이 어디 있는지 찾는 말은 toilet_find, 화장실이 없다·고장·잠겼다고 알리는 말은 report_new다. 엘리베이터·주차장 같은 시설의 위치만 묻는 말은 신고가 아니므로 unknown이다.
+화장실 위치만 묻는 말은 toilet_find이고, 경사로·승강기·시간 같은 조건이 붙은 화장실 질문은 ask다. 화장실이 어디 있는지 찾는 말은 toilet_find, 화장실이 없다·고장·잠겼다고 알리는 말은 report_new다. 엘리베이터·주차장 같은 시설의 위치만 묻는 말은 신고가 아니므로 unknown이다.
+택시·이동 지원·수당·연금·보조기기·활동지원 같은 혜택 질문, 식당·병원 같은 곳의 경사로·승강기 질문, 상품권 쓸 수 있는 가게, 신고·민원 접수 방법은 ask다. ask의 slots: topic은 benefit(혜택·지원·택시·보조기기·행사), toilet(조건 있는 화장실), facility(건물의 편의시설), voucher(상품권 가맹점), bus(버스 정류장 정보), howto(신고·민원 접수 방법) 중 하나이고, query는 질문에 나온 핵심 낱말 하나(20자 이내)다.
+어느 기관이 담당하는지 묻는 말은 ask가 아니라 agency다.
 앱 사용법을 묻는 말만 help다. 처리기한·법령·전화번호·앱 내부 설정·뜻 없는 입력·날씨 같은 딴 얘기는 unknown이다.
 출력은 JSON 객체 하나, 한 줄만. 앞뒤에 다른 글자·설명·코드블록 금지. 형식: {"intent":"...","slots":{},"confidence":0.0~1.0}
 slots의 place·from·to에는 질문에 실제로 나온 낱말만 넣고(20자 이내), 없으면 비운다. type은 다음 중 하나만: ${types}${retry}
@@ -255,6 +269,11 @@ ${list}
 질문: 휠체어 타고 갈 수 있는 화장실 알려줘 -> {"intent":"toilet_find","slots":{},"confidence":0.9}
 질문: 근처 장애인화장실 어디 있어요 -> {"intent":"toilet_find","slots":{},"confidence":0.9}
 질문: 장애인화장실이 없어요 -> {"intent":"report_new","slots":{"type":"장애인화장실 없음"},"confidence":0.9}
+질문: 휠체어 택시 어디서 불러요 -> {"intent":"ask","slots":{"topic":"benefit","query":"택시"},"confidence":0.9}
+질문: 경사로 있는 화장실 알려줘 -> {"intent":"ask","slots":{"topic":"toilet","query":"경사로"},"confidence":0.85}
+질문: 상품권 쓸 수 있는 가게 -> {"intent":"ask","slots":{"topic":"voucher","query":"가게"},"confidence":0.9}
+질문: 엘리베이터 있는 병원 -> {"intent":"ask","slots":{"topic":"facility","query":"병원"},"confidence":0.85}
+질문: 신고는 어디에 어떻게 해요 -> {"intent":"ask","slots":{"topic":"howto","query":"신고"},"confidence":0.85}
 질문: 엘리베이터 어디 있어요 -> {"intent":"unknown","slots":{},"confidence":0.8}
 질문: 처리기한이 며칠이에요 -> {"intent":"unknown","slots":{},"confidence":0.9}
 질문: 담당 공무원 전화번호 알려줘 -> {"intent":"unknown","slots":{},"confidence":0.9}

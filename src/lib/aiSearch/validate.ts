@@ -1,6 +1,7 @@
 import { REPORT_TYPES } from '../reportTypes'
 import { SLOT_KEYS, isIntent } from './intents'
 import type { AiIntent, SlotKey, Slots } from './intents'
+import { isTopic } from './knowledge'
 
 // Worker 응답은 믿지 않고 앱에서 다시 검증한다. 모델이 만든 문장은 쓰지 않고 의도 id와 검증된 빈칸 값만 남긴다.
 export const MAX_QUESTION_CHARS = 120
@@ -70,6 +71,11 @@ export function verifySlots(intent: AiIntent, given: unknown, question: string):
   const q = compact(question)
   for (const k of SLOT_KEYS[intent] as readonly SlotKey[]) {
     const raw = g[k]
+    if (k === 'topic') {
+      const t = typeof raw === 'string' ? raw.trim() : ''
+      if (isTopic(t)) out.topic = t
+      continue
+    }
     if (k === 'type') {
       const t = typeof raw === 'string' ? stripControl(raw) : ''
       if (TYPE_VALUES.includes(t) && TYPE_HINTS[t]?.test(question)) out.type = t

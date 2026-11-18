@@ -194,7 +194,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [start] = useState(() => {
     const q = new URLSearchParams(intent)
     const rid = q.get('report')
-    return { go: q.get('go'), type: typeFromQuery(q.get('type')), from: placeFromQuery(q.get('from')), to: placeFromQuery(q.get('to')), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
+    return { go: q.get('go'), layer: q.get('layer'), type: typeFromQuery(q.get('type')), from: placeFromQuery(q.get('from')), to: placeFromQuery(q.get('to')), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
   })
   const container = useRef<HTMLDivElement>(null)
   const kRef = useRef<typeof kakao | null>(null)
@@ -220,7 +220,11 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [period, setPeriod] = useState<PeriodId>('90')
   const [pgStages, setPgStages] = useState<ProgressStage[]>(PROGRESS_ORDER)
   const [focusIds, setFocusIds] = useState<string[]>([])
-  const [layers, setLayers] = useState<LayerState>(loadLayers)
+  // AI 검색이 「가맹점 지도 보기」처럼 레이어를 켜 달라고 하면(layer=voucher|toilet) 그 레이어를 켠 채로 연다.
+  const [layers, setLayers] = useState<LayerState>(() => {
+    const l = loadLayers()
+    return start.layer === 'voucher' ? { ...l, voucher: true } : start.layer === 'toilet' ? { ...l, toilet: true } : l
+  })
   const [layerOpen, setLayerOpen] = useState(false)
   const [pubData, setPubData] = useState<Partial<Record<PubLayerId, PubDataset>>>({})
   const [pubError, setPubError] = useState<Partial<Record<PubLayerId, boolean>>>({})

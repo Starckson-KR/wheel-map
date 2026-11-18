@@ -9,6 +9,8 @@ import type { FallbackReason, Understood } from '../lib/aiSearch/client'
 import { targetFor } from '../lib/aiSearch/intents'
 import type { MovableIntent, Slots } from '../lib/aiSearch/intents'
 import { MAX_QUESTION_CHARS, cleanQuestion, hasPersonalInfo } from '../lib/aiSearch/validate'
+import { answerAsk } from '../lib/aiSearch/knowledgeData'
+import type { AskAnswer, Topic } from '../lib/aiSearch/knowledge'
 import { Sentences } from './Sentences'
 
 // 홈 검색창: 질문을 쓰면 알맞은 화면을 「안내」한다. 자동으로 이동하지 않고, 사용자가 버튼을 눌러야 이동한다.
@@ -24,8 +26,19 @@ const REASON_TEXT: Record<FallbackReason, string> = {
 }
 
 const SLOT_NAME = { type: '종류', place: '장소', from: '출발', to: '도착' } as const
+type ShownSlot = keyof typeof SLOT_NAME
 
-type State = { kind: 'idle' } | { kind: 'loading' } | { kind: 'done'; r: Understood }
+const TOPIC_LABEL: Record<Topic, string> = {
+  benefit: '혜택·행사',
+  toilet: '장애인화장실',
+  facility: '편의시설',
+  voucher: '상품권 가맹점',
+  bus: '버스 정류장',
+  agency: '담당 기관',
+  howto: '신고·이용 방법',
+}
+
+type State = { kind: 'idle' } | { kind: 'loading' } | { kind: 'done'; r: Understood; ans: AskAnswer | null }
 
 export default function AiSearch({ onHelp }: { onHelp: () => void }) {
   const [q, setQ] = useState('')
@@ -51,7 +64,16 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
     const id = ++seq.current
     setSt({ kind: 'loading' })
     const r = await understand(text, { url: AI_INTENT_URL, enabled: getAiEnabled(), token: getSession()?.token })
-    if (id === seq.current) setSt({ kind: 'done', r })
+    // 지식형 질문: 모델이 ask를 골랐거나, 모른다고 했어도 낱말로 주제를 짐작할 수 있으면 앱 자료에서 답을 찾는다(키워드 모드도 같다).
+    let ans: AskAnswer | null = null
+    if (r.intent === 'ask' || (r.intent === 'unknown' && r.reason !== 'blocked')) {
+      try {
+        ans = await answerAsk(r.question, r.slots, r.intent === 'ask')
+      } catch {
+        ans = null
+      }
+    }
+    if (id === seq.current) setSt({ kind: 'done', r, ans })
   }
 
   const open = (intent: MovableIntent, question: string, slots?: Slots) => {
@@ -61,9 +83,11 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
   }
 
   const r = st.kind === 'done' ? st.r : null
-  const movable = r && r.intent !== 'unknown' ? (r.intent as MovableIntent) : null
+  const ans = st.kind === 'done' ? st.ans : null
+  const showAsk = !!ans && (ans.found || r?.intent === 'ask')
+  const movable = r && r.intent !== 'unknown' && r.intent !== 'ask' && !showAsk ? (r.intent as MovableIntent) : null
   const target = movable && r ? targetFor(movable, r.question, r.slots) : null
-  const slots = r ? (Object.entries(r.slots) as [keyof typeof SLOT_NAME, string][]).filter(([, v]) => v) : []
+  const slots = r ? (Object.entries(r.slots) as [ShownSlot, string][]).filter(([k, v]) => v && k in SLOT_NAME) : []
 
   return (
     <section className="hp-ai" aria-label="AI 검색">
@@ -144,7 +168,53 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
               <span className="hp-ai-badge">AI 검색</span>
               {r.reason && REASON_TEXT[r.reason] && <span>{REASON_TEXT[r.reason]}</span>}
             </p>
-            {movable && target ? (
+            {showAsk && ans ? (
+              <>
+                {ans.found ? (
+                  <>
+                    {ans.topic && <p className="hp-ai-lead">{TOPIC_LABEL[ans.topic]}</p>}
+                    <ul className="hp-ai-answers" aria-label="찾은 내용">
+                      {ans.cards.map((c) => (
+                        <li key={c.id} className="hp-ai-ans">
+                          <p className="hp-ai-what">{c.title}</p>
+                          <p className="hp-ai-slots">{c.answer}</p>
+                          {c.meta && <p className="hp-ai-src">{c.meta}</p>}
+                          <p className="hp-ai-src">
+                            출처 {c.sourceUrl ? <a href={c.sourceUrl} target="_blank" rel="noopener noreferrer">{c.source}</a> : c.source}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                    {ans.total > ans.cards.length && <p className="hp-ai-slots">{ans.total - ans.cards.length}개 더 있어요. 해당 화면에서 볼 수 있어요.</p>}
+                  </>
+                ) : (
+                  <>
+                    <p className="hp-ai-what">앱 자료에서 찾지 못했어요</p>
+                    <p className="hp-ai-slots">{ans.go.length ? '아래 화면에서 직접 찾아볼 수 있어요.' : '이 중에 찾는 게 있나요?'}</p>
+                  </>
+                )}
+                <ul className="hp-ai-cands">
+                  {ans.go.map((g) => (
+                    <li key={g.hash}>
+                      <button type="button" onClick={() => go(g.hash)}>
+                        <span>{g.label}</span>
+                        <Icon name="chev" size={16} />
+                      </button>
+                    </li>
+                  ))}
+                  {!ans.found &&
+                    !ans.go.length &&
+                    r.candidates.map((c) => (
+                      <li key={c}>
+                        <button type="button" onClick={() => open(c, r.question)}>
+                          <span>{targetFor(c).label}</span>
+                          <Icon name="chev" size={16} />
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              </>
+            ) : movable && target ? (
               <>
                 <p className="hp-ai-lead">이렇게 이해했어요</p>
                 <p className="hp-ai-what">{target.label}</p>

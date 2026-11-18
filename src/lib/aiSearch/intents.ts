@@ -2,10 +2,11 @@ import { TO } from '../nav'
 import { placeFromQuery, typeFromQuery, withQuery } from './handoff'
 
 // AI 검색창의 의도 목록과 이동 대상. 모델은 이 목록의 id만 고를 수 있고, 주소와 안내 문구는 모두 여기(앱)에 고정돼 있다.
-export const AI_INTENTS = ['report_new', 'receipt_lookup', 'my_reports', 'route', 'bus', 'progress', 'my_score', 'agency', 'alerts', 'help', 'toilet_find', 'unknown'] as const
+export const AI_INTENTS = ['report_new', 'receipt_lookup', 'my_reports', 'route', 'bus', 'progress', 'my_score', 'agency', 'alerts', 'help', 'toilet_find', 'ask', 'unknown'] as const
 export type AiIntent = (typeof AI_INTENTS)[number]
-export type MovableIntent = Exclude<AiIntent, 'unknown'>
-export type SlotKey = 'type' | 'place' | 'from' | 'to'
+// ask(지식형 질문)는 화면 이동이 아니라 답 카드를 보여 주므로 이동 의도에서 뺀다.
+export type MovableIntent = Exclude<AiIntent, 'unknown' | 'ask'>
+export type SlotKey = 'type' | 'place' | 'from' | 'to' | 'topic' | 'query'
 export type Slots = Partial<Record<SlotKey, string>>
 
 export const isIntent = (v: unknown): v is AiIntent => typeof v === 'string' && (AI_INTENTS as readonly string[]).includes(v)
@@ -23,6 +24,7 @@ export const SLOT_KEYS: Record<AiIntent, readonly SlotKey[]> = {
   alerts: [],
   help: [],
   toilet_find: [],
+  ask: ['topic', 'query'],
   unknown: [],
 }
 

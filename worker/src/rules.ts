@@ -86,7 +86,9 @@ export function asksUnsupported(question: string): boolean {
 // 이 의도들은 질문 속 「기한」 같은 말이 곁가지일 수 있어(예: 며칠 전에 낸 접수번호) 보정하지 않는다.
 const UNSUPPORTED_EXEMPT = new Set(['report_new', 'route', 'bus', 'receipt_lookup'])
 
-const HELP_RE = /어떻게\s*(써|쓰|사용|이용)|사용\s*법|사용\s*방법|이용\s*방법|쓰는\s*법|쓰는\s*방법|도움말|처음|뭐\s*할\s*수|뭘\s*할\s*수|무엇을\s*할\s*수/
+// 「어케 써」처럼 줄인 말까지 포함한, 사용법을 묻는 분명한 말(모델이 unknown으로 답했을 때만 help로 올린다)
+const STRONG_HELP_RE = /(어떻게|어케|어캐)\s*(써|쓰|사용|이용)|사용\s*법|사용\s*방법|이용\s*방법|쓰는\s*(법|방법|거)|도움말/
+const HELP_RE = /(어떻게|어케|어캐)\s*(써|쓰|사용|이용)|사용\s*법|사용\s*방법|이용\s*방법|쓰는\s*법|쓰는\s*방법|도움말|처음|뭐\s*할\s*수|뭘\s*할\s*수|무엇을\s*할\s*수/
 export function hasHelpCue(question: string): boolean {
   return HELP_RE.test(question)
 }
@@ -107,7 +109,7 @@ const REROUTE_FROM_SCORE = new Set(['unknown', 'progress', 'alerts', 'help'])
 // 「찾기·위치 묻기」와 「문제를 알리는」 표현(공백 무시). src/lib/aiSearch/keywords.ts와 같은 기준이다.
 // 앱에 위치를 찾아 주는 화면은 장애인화장실(지도 레이어)뿐이라, 화장실 찾기만 toilet_find로 보내고 다른 시설 찾기는 신고로 보내지 않는다.
 const FIND_RE = /찾|어디|어느|근처|가까|알려|보여|위치|갈수있|이용할수|있나|있는지|있을까|있는곳|있는데/
-const PROBLEM_RE = /신고|제보|민원|고장|잠겨|잠겼|잠김|막혀|막혔|막힘|막고|막아|없어|없다|없네|없음|없는데|없습|끊|깨져|깨진|깨졌|파손|구멍|패였|패인|덜컹|울퉁|좁아|좁은|좁다|위험|높아|가파|못(?!찾)|불편|더러|부서|흔들|짧아|부족|방치|쌓여|세워|불법/
+const PROBLEM_RE = /신고|제보|민원|고장|잠겨|잠겼|잠김|막혀|막혔|막힘|막고|막아|없어|없다|없네|없음|없는데|없습|끊|깨져|깨진|깨졌|파손|구멍|패였|패인|덜컹|울퉁|좁아|좁은|좁다|위험|높아|가파|못(?!찾)|안열|안돼|안되|안됨|작동|열리지|불편|더러|부서|흔들|짧아|부족|방치|쌓여|세워|불법/
 export function hasFindCue(question: string): boolean {
   return FIND_RE.test(compact(question))
 }
@@ -115,6 +117,8 @@ export function hasProblemCue(question: string): boolean {
   return PROBLEM_RE.test(compact(question))
 }
 
+const ASK_PROBLEM_RE = /신고|제보|민원|끊겨|끊어|고장|깨져|깨진|깨졌|파손|막혀|막혔|막고|잠겨|잠겼|부서|흔들|구멍|패였|패인/
+const TOILET_COND_RE = /경사로|승강기|엘리베이터|엘베|기저귀|24시|상시|비상벨|문턱|턱없|자동문|열려/
 type Like = { intent: string; slots: Record<string, string>; confidence: number }
 
 // 모델 답 뒤에 적용하는 안전 보정. 의도만 unknown으로 낮추고, 다른 값을 새로 만들지 않는다.
@@ -128,8 +132,13 @@ export function applyRules<T extends Like>(question: string, r: T): T {
     // 화장실: 문제를 알리면 신고, 문제 말 없이 묻거나 찾으면 장애인화장실 지도. 모델이 둘을 바꿔 답한 것을 바로잡는다.
     const toilet = /화장실/.test(compact(question))
     const problem = hasProblemCue(question)
-    if (toilet && problem && r.intent === 'toilet_find') return { ...r, intent: 'report_new', slots: { type: '장애인화장실 없음' } }
+    if (toilet && problem && (r.intent === 'toilet_find' || r.intent === 'ask')) return { ...r, intent: 'report_new', slots: { type: '장애인화장실 없음' } }
     if (toilet && !problem && (r.intent === 'report_new' || (r.intent === 'unknown' && hasFindCue(question)))) return to('toilet_find')
+    // 조건이 붙은 화장실 질문(경사로·승강기·24시간·기저귀 교환대 등)은 위치 보기가 아니라 앱 자료로 답해야 한다.
+    if (toilet && !problem && r.intent === 'toilet_find' && TOILET_COND_RE.test(compact(question))) return { ...r, intent: 'ask', slots: { topic: 'toilet' } }
+    if (r.intent === 'unknown' && STRONG_HELP_RE.test(question)) return to('help')
+    // 시설에 문제가 있다고 알리는 말(끊겼다·고장·깨졌다…)을 시설 정보 질문(ask)으로 받았으면 신고로 바로잡는다.
+    if (r.intent === 'ask' && (r.slots.topic === 'facility' || r.slots.topic === 'toilet') && ASK_PROBLEM_RE.test(compact(question))) return { ...r, intent: 'report_new', slots: {} }
     // 문제 말 없이 위치만 묻는 시설(엘리베이터·주차장 등)은 신고가 아니다. 앱에 찾아 줄 화면이 없으니 unknown으로 둔다.
     if (r.intent === 'report_new' && !toilet && hasFindCue(question) && !problem) return toUnknown()
   }

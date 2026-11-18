@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { CENTER_ADDRESS_CANDIDATES, geocode, loadKakao } from '../lib/kakao'
 import { loadBarriers } from '../lib/seed'
 import { NAV_STEP_NEAR_M, NAV_Z } from '../lib/config'
@@ -11,6 +11,8 @@ import BarrierDetail from './BarrierDetail'
 import ReportDetail from '../components/ReportDetail'
 import ViewSettings from '../components/ViewSettings'
 import { isDesktopLayout } from '../lib/viewPrefs'
+import { glNavEnabled } from '../lib/guideGl/core.ts'
+import { webglOk } from '../lib/guideGl/support.ts'
 import { colsStyle } from '../lib/gridCols'
 import { useVisibleAddress } from '../lib/addressCache'
 import DemoTools, { MockStrip } from '../components/DemoTools'
@@ -153,6 +155,10 @@ const SNAP_BTN: Record<Snap, { label: string; next: Snap; up: boolean }> = {
   2: { label: '지도 넓게 보기', next: 0, up: false },
 }
 
+// 길 안내 새 지도 시험판(MapLibre): 안내를 시작할 때 처음 내려받는다(첫 화면 번들에 넣지 않는다). 기본은 꺼짐: 개발 서버이거나 주소에 navmap=gl일 때만.
+const GuideGlMap = lazy(() => import('../components/GuideGlMap'))
+const GL_NAV_ON = glNavEnabled(import.meta.env.DEV, location.search, location.hash)
+
 // 지도 아래를 덮는 시트(요약·상세)의 높이(px). 작은 화면에서 지금 보이는 시트 중 윗변이 가장 높은 것 기준. 큰 화면은 왼쪽 패널이라 0.
 function coverOf(mapEl: HTMLElement | null): number {
   if (!mapEl || isDesktopLayout()) return 0
@@ -243,6 +249,16 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [routePick, setRoutePick] = useState<'from' | 'to' | null>(null)
   const [routePicked, setRoutePicked] = useState<{ which: 'from' | 'to'; place: Place; n: number } | null>(null)
   const [overlay, setOverlay] = useState<RouteOverlay | null>(null)
+  const [glFailed, setGlFailed] = useState(false) // 새 지도를 못 열었으면 카카오 지도로 계속한다
+  const glPath = useMemo(() => {
+    if (!overlay) return []
+    if (overlay.legs?.length) return overlay.legs.flatMap((l) => l.coords)
+    return (overlay.active === 'base' ? overlay.base : overlay.detour) ?? overlay.base ?? overlay.detour ?? []
+  }, [overlay?.legs, overlay?.active, overlay?.base, overlay?.detour]) // eslint-disable-line react-hooks/exhaustive-deps
+  const glOn = GL_NAV_ON && !glFailed && !!overlay?.guide && glPath.length >= 2
+  useEffect(() => {
+    if (glOn && !webglOk()) setGlFailed(true)
+  }, [glOn])
   const routePickRef = useRef<'from' | 'to' | null>(null)
   const pickN = useRef(0)
   const lastFit = useRef(0)
@@ -1546,8 +1562,20 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
   return (
     <div className="bm">
-      <div className="bm-main">
+      <div className={'bm-main' + (glOn ? ' bm-gl' : '')}>
         <div ref={container} className="map" role="application" aria-label="이의있음!" />
+        {glOn && overlay?.guide && (
+          <Suspense fallback={null}>
+            <GuideGlMap
+              path={glPath}
+              guide={overlay.guide}
+              me={myPos}
+              headingRef={headingRef}
+              getInsets={() => ({ top: topCoverOf(container.current), bottom: coverOf(container.current), left: isDesktopLayout() ? 460 : 0 })}
+              onFail={() => setGlFailed(true)}
+            />
+          </Suspense>
+        )}
         {state.status === 'loading' && <p className="map-notice">지도를 불러오고 있어요…</p>}
         {state.status === 'error' && (
           <p className="map-notice map-notice-error" role="alert">
@@ -1864,7 +1892,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           />
         )}
 
-        {routeOpen && overlay?.osm && (
+        {/* 새 지도(MapLibre)는 왼쪽 아래에 자체 출처(OpenStreetMap 포함)를 표시하므로 겹치지 않게 숨긴다 */}
+        {routeOpen && overlay?.osm && !glOn && (
           <a className="rt-osm-corner" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
             길 자료 © OpenStreetMap contributors
           </a>

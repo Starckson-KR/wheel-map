@@ -83,7 +83,13 @@ export const WALK_CFG = {
   penaltyT: 150, // △(주의) 곳을 지나는 길 토막 벌점(m) — 150m까지 돌아가는 건 감수
   penaltyStepsM: 5000, // 계단·휠체어 불가 길 토막 고정 벌점(m)
   penaltyKerbM: 150, // 높은 턱 지점 벌점(m)
-  crossingM: 10, // 횡단보도 하나당 더하는 거리(m)
+  crossingM: 50, // 횡단보도 하나당 더하는 거리(m)(신호 기다림·차도 건너기, 휠체어는 더 오래 걸려 크게 둠)
+  roadMajorMult: 3, // 큰 차도(보도 없이 primary·secondary·tertiary를 걷는 길) 길이 배수
+  roadServiceMult: 2.5, // 단지 안길(highway=service) 길이 배수. 출입 제한·주차 차량 가능성이 있어 크게 둠
+  roadOtherMult: 1.4, // 그 밖의 보도 없는 차도(residential·living_street 등) 길이 배수
+  roughMult: 1.5, // 비포장·거친 노면(surface=dirt·gravel 등) 길이 추가 배수
+  wcLimitedMult: 1.3, // wheelchair=limited 길 길이 추가 배수
+  wcYesMult: 0.95, // wheelchair=yes·designated 길 길이 배수(1보다 작아 약간 선호)
   inclineWarnPct: 8, // 경사 8% 이상(기준 약 1/12)이면 가파른 길
   snapMaxM: 150, // 출발·도착이 보행망에서 이 거리 넘게 떨어지면 자체 경로를 못 찾는 것으로 본다
   walkSpeedMs: 1.37, // 시연 TMAP 경로의 거리÷시간 평균(2,156m/1,569s)

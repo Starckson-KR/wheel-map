@@ -47,6 +47,8 @@ import {
 } from '../lib/publicLayers'
 import { Sentences } from '../components/Sentences'
 import { Wordmark } from '../components/Wordmark'
+import { CENTER_DEADBAND_PX, centerDelta, compassHeading, easeOut, lerpLatLng, smoothHeading } from '../lib/routing/followNav.ts'
+import { prefersCalm } from '../lib/viewPrefs'
 import { isMockReport, realFirst } from '../lib/realFirst'
 
 const BARRIERS = loadBarriers()
@@ -229,6 +231,11 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const firstFixRef = useRef(false)
   const lastPosRef = useRef<kakao.maps.LatLng | null>(null)
   const followOffRef = useRef<() => void>(() => {})
+  const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null) // 길 안내가 단계를 넘길 때 쓰는 내 위치(화면 계산에만 쓰고 저장·전송하지 않는다)
+  const meElRef = useRef<HTMLElement | null>(null)
+  const headingRef = useRef<number | null>(null) // 폰이 향한 방향(북=0, 시계 방향). 모르면 null
+  const compassRef = useRef<(() => void) | null>(null) // 나침반 듣기 해제 함수
+  const moveRaf = useRef(0)
   const [locMode, setLocMode] = useState<'off' | 'follow' | 'free'>('off')
   const sheetRef = useRef<HTMLElement>(null)
   const [routePick, setRoutePick] = useState<'from' | 'to' | null>(null)
@@ -1055,8 +1062,24 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     for (const p of [...gd.coords, ...gd.next]) b.extend(new k.maps.LatLng(p[0], p[1]))
     const t = setTimeout(() => {
       map.relayout()
-      fitWithSheet(map, b, 70)
-      if (map.getLevel() < 2) map.setLevel(2)
+      if (wantLocRef.current && followRef.current) return // 따라가는 중에는 내 위치가 가운데에 오도록 위치가 들어올 때 맞춘다
+      const el = container.current
+      const proj = map.getProjection()
+      const pts = [...gd.coords, ...gd.next]
+      const inView =
+        !!el &&
+        pts.every((p) => {
+          const q = proj.containerPointFromCoords(new k.maps.LatLng(p[0], p[1]))
+          return q.x > 30 && q.x < el.clientWidth - 30 && q.y > topCoverOf(el) + 20 && q.y < el.clientHeight - coverOf(el) - 20
+        })
+      if (inView && pts.length > 0) {
+        // 이미 화면 안에 있으면 확대·축소 없이 부드럽게 옮기기만 한다
+        const c = pts.reduce((m, p) => [m[0] + p[0] / pts.length, m[1] + p[1] / pts.length], [0, 0])
+        centerOnMe(new k.maps.LatLng(c[0], c[1]))
+      } else {
+        fitWithSheet(map, b, 70)
+        if (map.getLevel() < 2) map.setLevel(2)
+      }
     }, 80)
     return () => {
       clearTimeout(t)
@@ -1253,10 +1276,90 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   // 내 위치: 버튼을 누르면 위치 추적(watchPosition)을 켜서 파란 점·정확도 원이 따라 움직인다. 위치는 저장하거나 보내지 않고 화면에만 쓴다.
   //  따라가기가 켜져 있으면 지도 중심이 내 위치를 따라가고, 사용자가 지도를 끌면 꺼진다. 탭을 떠나거나 화면이 숨겨지면 추적을 멈추고, 돌아오면 이어 간다.
   const clearMe = () => {
+    cancelAnimationFrame(moveRaf.current)
     meRef.current?.setMap(null)
     meRef.current = null
+    meElRef.current = null
     accRef.current?.setMap(null)
     accRef.current = null
+    setMyPos(null)
+  }
+  // 나침반: 사용자가 버튼을 누른 같은 동작 안에서 시작한다(iOS는 DeviceOrientationEvent.requestPermission()을 사용자 동작 안에서 불러야 한다).
+  // 거부하거나 지원하지 않으면 조용히 방향 표시 없이 동작한다. 방향은 화면에만 쓰고 저장하지 않는다.
+  const applyHeading = () => {
+    const el = meElRef.current
+    const h = headingRef.current
+    if (!el || h === null) return
+    el.style.setProperty('--hd', `${h.toFixed(1)}deg`)
+    el.classList.add('hm-me-dir')
+  }
+  const startCompass = () => {
+    if (compassRef.current || typeof DeviceOrientationEvent === 'undefined') return
+    let last = 0
+    const listen = (name: 'deviceorientation' | 'deviceorientationabsolute') => {
+      const on = (e: Event) => {
+        const now = performance.now()
+        if (now - last < 80) return
+        last = now
+        const ev = e as DeviceOrientationEvent & { webkitCompassHeading?: number }
+        if (name === 'deviceorientation' && typeof ev.webkitCompassHeading !== 'number') return // 상대 방향은 쓰지 않는다
+        const h = compassHeading({ alpha: ev.alpha, beta: ev.beta, gamma: ev.gamma, webkitCompassHeading: ev.webkitCompassHeading })
+        if (h === null) return
+        headingRef.current = smoothHeading(headingRef.current, h)
+        applyHeading()
+      }
+      window.addEventListener(name, on, true)
+      compassRef.current = () => window.removeEventListener(name, on, true)
+    }
+    const req = (DeviceOrientationEvent as unknown as { requestPermission?: (absolute?: boolean) => Promise<'granted' | 'denied'> }).requestPermission
+    // Chrome 계열은 deviceorientationabsolute(북 기준 절대 방향), iOS Safari는 deviceorientation + webkitCompassHeading를 쓴다.
+    // 상대 방향(alpha가 임의 기준)만 오는 환경은 방향을 틀리게 보일 수 있어 쓰지 않는다.
+    const name = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation'
+    if (typeof req === 'function') {
+      req
+        .call(DeviceOrientationEvent, name === 'deviceorientationabsolute')
+        .then((v) => v === 'granted' && listen(name))
+        .catch(() => {})
+    } else listen(name)
+  }
+  const stopCompass = () => {
+    compassRef.current?.()
+    compassRef.current = null
+    headingRef.current = null
+  }
+  // 내 위치 점을 이전 위치에서 부드럽게 옮긴다(움직임 줄이기면 바로 옮김)
+  const moveMe = (to: kakao.maps.LatLng, acc: number) => {
+    const k = kRef.current
+    if (!k || !meRef.current) return
+    const from = meRef.current.getPosition()
+    const a: [number, number] = [from.getLat(), from.getLng()]
+    const b: [number, number] = [to.getLat(), to.getLng()]
+    cancelAnimationFrame(moveRaf.current)
+    const set = (p: [number, number]) => {
+      const ll = new k.maps.LatLng(p[0], p[1])
+      meRef.current?.setPosition(ll)
+      accRef.current?.setPosition(ll)
+    }
+    accRef.current?.setRadius(acc)
+    const dist = Math.hypot((b[0] - a[0]) * 111320, (b[1] - a[1]) * 91000)
+    if (prefersCalm() || dist < 0.5 || dist > 200) return set(b)
+    const t0 = performance.now()
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - t0) / 700)
+      set(lerpLatLng(a, b, easeOut(t)))
+      if (t < 1) moveRaf.current = requestAnimationFrame(tick)
+    }
+    moveRaf.current = requestAnimationFrame(tick)
+  }
+  // 내 위치를 보이는 영역(아래 시트·안내 카드와 위 검색줄을 뺀 부분)의 가운데로 부드럽게 보낸다
+  const centerOnMe = (at: kakao.maps.LatLng) => {
+    const map = mapRef.current
+    const el = container.current
+    if (!map || !el) return
+    const pt = map.getProjection().containerPointFromCoords(at)
+    const d = centerDelta(pt, { w: el.clientWidth, h: el.clientHeight, top: topCoverOf(el), bottom: coverOf(el) })
+    if (Math.abs(d.dx) < CENTER_DEADBAND_PX && Math.abs(d.dy) < CENTER_DEADBAND_PX) return
+    map.panBy(d.dx, d.dy)
   }
   const haltWatch = () => {
     if (watchRef.current !== null) {
@@ -1283,15 +1386,22 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           const el = document.createElement('div')
           el.className = 'hm-me'
           meRef.current = new k.maps.CustomOverlay({ position: at, content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 3 })
-        } else meRef.current.setPosition(at)
-        if (!accRef.current) accRef.current = new k.maps.Circle({ map, center: at, radius: acc, strokeWeight: 1, strokeColor: '#2272eb', strokeOpacity: 0.35, fillColor: '#2272eb', fillOpacity: 0.12, zIndex: 1 })
-        else {
-          accRef.current.setPosition(at)
-          accRef.current.setRadius(acc)
+          const cone = document.createElement('i')
+          cone.className = 'hm-me-cone'
+          el.appendChild(cone)
+          meElRef.current = el
+          applyHeading()
         }
+        if (!accRef.current) {
+          accRef.current = new k.maps.Circle({ map, center: at, radius: acc, strokeWeight: 1, strokeColor: '#2272eb', strokeOpacity: 0.35, fillColor: '#2272eb', fillOpacity: 0.12, zIndex: 1 })
+        } else moveMe(at, acc)
+        setMyPos({ lat: pos.coords.latitude, lng: pos.coords.longitude })
         if (followRef.current) {
-          if (firstFixRef.current) map.setLevel(3)
-          map.setCenter(at)
+          if (firstFixRef.current) {
+            map.setLevel(3)
+            map.setCenter(at)
+          }
+          centerOnMe(at)
         }
         firstFixRef.current = false
         setLocMsg(followRef.current ? `내 위치를 따라가고 있어요 (오차 약 ${Math.round(acc / 10) * 10}m)` : `내 위치예요 (오차 약 ${Math.round(acc / 10) * 10}m)`)
@@ -1307,6 +1417,13 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 },
     )
   }
+  const stopLocate = () => {
+    wantLocRef.current = false
+    haltWatch()
+    stopCompass()
+    setFollow(false)
+    setLocMsg('')
+  }
   const locateMe = () => {
     const map = mapRef.current
     if (!kRef.current || !map) return
@@ -1314,18 +1431,16 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       setLocMsg('이 기기에서는 현재 위치를 쓸 수 없어요.')
       return
     }
+    startCompass() // 누른 동작 안에서 시작(iOS 권한 요청 조건)
     if (wantLocRef.current && followRef.current) {
       // 따라가는 중에 다시 누르면 끈다
-      wantLocRef.current = false
-      haltWatch()
-      setFollow(false)
-      setLocMsg('')
+      stopLocate()
       return
     }
     if (wantLocRef.current) {
       // 따라가기가 꺼져 있었다면 내 위치로 돌아와 다시 따라간다
       setFollow(true)
-      if (lastPosRef.current) map.setCenter(lastPosRef.current)
+      if (lastPosRef.current) centerOnMe(lastPosRef.current)
       return
     }
     wantLocRef.current = true
@@ -1351,6 +1466,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return () => {
       document.removeEventListener('visibilitychange', sync)
       haltWatch()
+      stopCompass()
     }
     // haltWatch·beginWatch는 ref만 쓰므로 탭·준비 상태가 바뀔 때만 다시 건다
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1738,9 +1854,17 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           />
         )}
 
+        {routeOpen && overlay?.osm && (
+          <a className="rt-osm-corner" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+            길 자료 © OpenStreetMap contributors
+          </a>
+        )}
+
         {routeOpen && (
           <RoutePanel
             onLocate={locateMe}
+            onStopLocate={stopLocate}
+            myPos={myPos}
             locMode={locMode}
             initialMode={start.mode}
             presetFrom={start.from}

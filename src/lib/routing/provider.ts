@@ -1,16 +1,17 @@
 import demo from '../../../data/routes/demo.json'
-import pairsData from '../../../data/routes/pairs.json'
+import pairsData from '../../../data/routes/demoPairs.json'
 import { viaKey, type Pt, type RouteData } from './engine.ts'
 
 // 경로 가져오기. 배포(빌드)에서는 미리 저장한 시연 경로(data/routes/demo.json)만 쓰고,
 // 개발 서버에서는 저장본이 없을 때만 개발 서버 중계(vite.config.ts)를 통해 TMAP을 부른다. 키는 브라우저에 없다.
 
 export type Place = { name: string; lat: number; lng: number; address?: string; id?: string }
-export type DemoPair = { id: string; label: string; fromId: string; toId: string; fromName: string; toName: string }
-export const DEMO_PAIRS = pairsData as DemoPair[]
+// 시연 경로(자체 보행망 기준). 좌표는 data/public/bus-stops.json의 정류장 값이다.
+export type DemoPair = { id: string; fromName: string; toName: string; from: { stopId: string; lat: number; lng: number }; to: { stopId: string; lat: number; lng: number }; note?: string }
+export const DEMO_PAIRS = (pairsData as unknown as { pairs: DemoPair[] }).pairs
 
-// 개발 모드에서만 자유 검색(빌드에서는 false로 치환되어 중계 호출 코드가 제거된다)
-export const FREE_SEARCH: boolean = import.meta.env.DEV
+// 개발 모드에서만 TMAP 비교·중계 호출(빌드에서는 false로 치환되어 중계 호출 코드가 제거된다). 장소 자유 검색은 배포판에서도 열려 있다(카카오 JS 키만 사용).
+export const DEV_TOOLS: boolean = import.meta.env.DEV
 
 type Stored = Record<string, { routes: Record<string, RouteData> }>
 const STORED = (demo as unknown as { pairs: Stored }).pairs

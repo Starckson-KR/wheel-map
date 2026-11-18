@@ -5,7 +5,8 @@ import { keywordSearch } from '../lib/kakao'
 import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import { isExpired } from '../lib/reportStore'
 import { alongM, distToRoute, searchRoute, type Hit, type Obstacle, type Pt, type RouteData, type SearchResult } from '../lib/routing/engine.ts'
-import { buildSteps, stepIndexAt, stepText, type Step, type Turn } from '../lib/routing/guide.ts'
+import { buildSteps, stepText, type Step, type Turn } from '../lib/routing/guide.ts'
+import { autoStep } from '../lib/routing/followNav.ts'
 import { searchOwn, type OwnSearch } from '../lib/routing/ownSearch.ts'
 import { getWalkGraph } from '../lib/routing/walkData.ts'
 import type { OwnRoute } from '../lib/routing/walkRoute.ts'
@@ -13,7 +14,7 @@ import { crosswalksOnRoute, loadExtras, type Extras } from '../lib/routing/extra
 import { recordNoAlt } from '../lib/routing/noAlt.ts'
 import { buildObstacles } from '../lib/routing/obstacles.ts'
 import type { RouteMarker, RouteOverlay } from '../lib/routing/overlay.ts'
-import { DEMO_PAIRS, FREE_SEARCH, makeFetcher, newStats, type DemoPair, type NetStats, type Place } from '../lib/routing/provider.ts'
+import { DEMO_PAIRS, DEV_TOOLS, makeFetcher, newStats, type DemoPair, type NetStats, type Place } from '../lib/routing/provider.ts'
 import type { Barrier, Rating, Report, ReportStatus } from '../types'
 import { boardingNear } from '../lib/bus/boarding.ts'
 import BusArrivals from './BusArrivals'
@@ -43,14 +44,17 @@ type Props = {
   /** 내 위치 버튼(시트 위로 올려 둔다) */
   onLocate?: () => void
   locMode?: 'off' | 'follow' | 'free'
+  /** 내 위치 따라가기를 완전히 끈다(길 안내를 끝낼 때) */
+  onStopLocate?: () => void
+  /** 지도가 추적 중인 내 위치(화면 계산에만 쓴다) */
+  myPos?: { lat: number; lng: number } | null
 }
 
 type Card = { id: 'base' | 'detour'; title: string; route: RouteData; hits: Hit[] }
-type Guide = { idx: number; follow: boolean }
+type Guide = { idx: number; manual: boolean } // manual: 이전·다음을 눌러 직접 넘기는 중(내 위치로 자동 넘김 잠시 멈춤)
 
 const TURN_GLYPH: Record<Turn, string> = { straight: '↑', 'slight-left': '↖', left: '←', 'sharp-left': '↙', 'slight-right': '↗', right: '→', 'sharp-right': '↘', uturn: '↩' }
 const stepGlyph = (st: Step) => (st.kind === 'crossing' ? '↔' : st.kind === 'stairs' ? '▤' : st.kind === 'arrive' ? '●' : TURN_GLYPH[st.turn])
-const OSM_URL = 'https://www.openstreetmap.org/copyright'
 type Result = {
   res: SearchResult
   pair: string
@@ -65,12 +69,6 @@ type Result = {
 }
 
 const fmtWalk = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(2)}km` : `${Math.round(m)}m`)
-
-function placeOfBarrier(b: Barrier, name: string): Place | null {
-  const g = b.geometry
-  if (g?.kind !== 'point') return null
-  return { id: b.id, name, lat: g.at[0], lng: g.at[1] }
-}
 
 function PlacePicker(props: {
   label: string
@@ -198,7 +196,6 @@ export default function RoutePanel(props: Props) {
   const [guide, setGuide] = useState<Guide | null>(null)
   const [guideMsg, setGuideMsg] = useState('')
   const [offRoute, setOffRoute] = useState<Pt | null>(null)
-  const byId = useMemo(() => new Map(barriers.map((b) => [b.id, b])), [barriers])
   // 버스 타고 가는 길·정류장 경고에 쓰는 장애요소(걷는 경로와 같은 규칙)
   const obstaclesNow = useMemo(
     () => buildObstacles(barriers, seedRatings, reports.filter((r) => !r.seedId && SHOWN_ON_MAP.includes(r.status) && !isExpired(r))),
@@ -230,11 +227,20 @@ export default function RoutePanel(props: Props) {
       const obstacles = buildObstacles(barriers, seedRatings, citizen)
       // 1순위: 자체 보행망(키·서버 없이 브라우저 안에서 계산). 못 찾으면(보행망 밖·연결 끊김) TMAP 방식으로 넘어간다.
       let own: OwnSearch | null = null
+      let why: 'load' | 'outside' | 'no-path' = 'load'
       if (engineMode === 'own') {
         const wg = await getWalkGraph()
         if (wg) {
           const o = searchOwn(wg, [f.lat, f.lng], [t.lat, t.lng], obstacles, ROUTE_CFG, WALK_CFG)
           if (o.base) own = o
+          else why = o.error === 'no-path' ? 'no-path' : 'outside'
+        }
+        // 배포판에는 TMAP 키가 없다: 자체 경로를 못 찾으면 짧은 안내만 보인다(개발 모드만 TMAP으로 넘어간다)
+        if (!own && !DEV_TOOLS) {
+          if (my !== runId.current) return
+          setStatus('error')
+          setError(why === 'load' ? '길 자료를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.' : why === 'no-path' ? '두 곳을 잇는 길을 찾지 못했어요.' : '시범 지역 안에서만 길을 찾을 수 있어요.')
+          return
         }
       }
       const res = own ? own.res : await searchRoute({ obstacles, cfg: ROUTE_CFG, fetchRoute: makeFetcher(pid, f, t, stats) })
@@ -279,19 +285,12 @@ export default function RoutePanel(props: Props) {
 
   const choosePair = (p: DemoPair) => {
     setPairsOpen(false)
-    const fb = byId.get(p.fromId)
-    const tb = byId.get(p.toId)
-    const f = fb ? placeOfBarrier(fb, stripId(p.fromName)) : null
-    const t = tb ? placeOfBarrier(tb, stripId(p.toName)) : null
-    if (!f || !t) {
-      setStatus('error')
-      setError('시연 지점의 좌표를 찾지 못했어요.')
-      return
-    }
+    const f: Place = { id: p.from.stopId, name: p.fromName, lat: p.from.lat, lng: p.from.lng }
+    const t: Place = { id: p.to.stopId, name: p.toName, lat: p.to.lat, lng: p.to.lng }
     setFrom(f)
     setTo(t)
     setPairId(p.id)
-    void run(f, t, p.id, p.label)
+    void run(f, t, p.id, `${p.fromName} → ${p.toName}`)
   }
 
   const cards: Card[] = useMemo(() => {
@@ -315,49 +314,51 @@ export default function RoutePanel(props: Props) {
   const avoidedNames = useMemo(() => (result?.own?.detour ? result.own.avoided.map((h) => obstacleName(h.o)) : []), [result])
   const extraM = result?.own?.detour && result.own.base ? result.own.detour.distance - result.own.base.distance : 0
 
-  // 안내 모드에서 내 위치를 따라가기: 위치는 화면 계산에만 쓰고 저장하거나 보내지 않는다
+  // 안내 모드: 내 위치(지도가 추적)가 들어올 때마다 경로에서 벗어났는지 보고, 다음 단계 지점에 가까워지면 단계를 자동으로 넘긴다.
+  // 위치는 화면 계산에만 쓰고 저장하거나 보내지 않는다.
+  const gOn = !!guide
+  const gManual = !!guide?.manual
   useEffect(() => {
-    if (!guide?.follow || !activeCard || steps.length === 0) return
-    if (!('geolocation' in navigator)) {
-      setGuideMsg('이 기기에서는 현재 위치를 쓸 수 없어요.')
-      setGuide((g) => g && { ...g, follow: false })
+    if (!gOn || !props.myPos || !activeCard || steps.length === 0) return
+    const coords = activeCard.route.coords
+    const p: Pt = [props.myPos.lat, props.myPos.lng]
+    if (distToRoute(coords, p) > ROUTE_OFF_ROUTE_M) {
+      setOffRoute(p)
       return
     }
-    const coords = activeCard.route.coords
-    const id = navigator.geolocation.watchPosition(
-      (pos) => {
-        const p: Pt = [pos.coords.latitude, pos.coords.longitude]
-        if (distToRoute(coords, p) > ROUTE_OFF_ROUTE_M) {
-          setOffRoute(p)
-          return
-        }
-        setOffRoute(null)
-        setGuideMsg('')
-        const idx = stepIndexAt(steps, alongM(coords, p))
-        setGuide((g) => (g && g.idx !== idx ? { ...g, idx } : g))
-      },
-      (err) => {
-        if (err.code === 1) {
-          setGuideMsg('위치를 가져오지 못했어요. 브라우저에서 위치를 허용해 주세요.')
-          setGuide((g) => g && { ...g, follow: false })
-        } else setGuideMsg('내 위치를 찾고 있어요…')
-      },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 },
-    )
-    return () => navigator.geolocation.clearWatch(id)
-  }, [guide?.follow, activeCard, steps])
+    setOffRoute(null)
+    if (gManual) return
+    const along = alongM(coords, p)
+    setGuide((g) => {
+      if (!g) return g
+      const idx = autoStep(steps, along, g.idx)
+      return idx === g.idx ? g : { ...g, idx }
+    })
+  }, [props.myPos, gOn, gManual, activeCard, steps])
 
+  const startedLoc = useRef(false)
   const startGuide = () => {
-    setGuide({ idx: 0, follow: false })
+    setGuide({ idx: 0, manual: false })
     setGuideMsg('')
     setOffRoute(null)
     setCollapsed(true)
+    // 길 안내를 시작하면 내 위치를 가운데에 두고 따라간다(누른 동작 안에서 위치·나침반 권한을 요청한다)
+    if (props.locMode !== 'follow') {
+      startedLoc.current = props.locMode === 'off' || props.locMode === undefined
+      props.onLocate?.()
+    }
   }
   const endGuide = () => {
     setGuide(null)
     setOffRoute(null)
     setGuideMsg('')
     setCollapsed(false)
+    if (startedLoc.current) props.onStopLocate?.()
+    startedLoc.current = false
+  }
+  const recenter = () => {
+    setGuide((g) => g && { ...g, manual: false })
+    if (props.locMode === 'free' || props.locMode === 'off' || props.locMode === undefined) props.onLocate?.()
   }
   const reroute = () => {
     if (!offRoute || !result) return
@@ -564,18 +565,12 @@ export default function RoutePanel(props: Props) {
   )
 
   // 접어도 시트는 숨겨서 남겨 둔다(지도의 경로 선은 시트가 정한다). 끝내기를 눌러야 지워진다.
-  const osmCredit = result?.own && mode === 'walk' && (
-    <a className="rt-osm" href={OSM_URL} target="_blank" rel="noreferrer">
-      길 자료 © OpenStreetMap contributors
-    </a>
-  )
-
   const gStep = guide ? steps[guide.idx] : undefined
   const gText = gStep ? stepText(gStep) : null
   const gLeft = gStep && activeCard ? Math.max(0, Math.round(activeCard.route.distance - gStep.startM)) : 0
   const guidePanel = guide && gStep && gText && (
     <div className="rt-guide" role="region" aria-label="길 안내" aria-live="polite" data-sheet>
-      <div className="rt-g-main">
+      <div className="rt-g-main" key={guide.idx}>
         <span className="rt-g-ico" aria-hidden="true">
           {stepGlyph(gStep)}
         </span>
@@ -609,22 +604,27 @@ export default function RoutePanel(props: Props) {
       {guideMsg && <p className="rt-g-note">{guideMsg}</p>}
       <p className="rt-g-meta">남은 거리 {fmtDist(gLeft)}</p>
       <div className="rt-g-btns">
-        <button type="button" onClick={() => setGuide({ ...guide, idx: Math.max(0, guide.idx - 1), follow: false })} disabled={guide.idx === 0}>
+        <button type="button" onClick={() => setGuide({ idx: Math.max(0, guide.idx - 1), manual: true })} disabled={guide.idx === 0}>
           이전
         </button>
-        <button type="button" className="rf-primary" onClick={() => setGuide({ ...guide, idx: Math.min(steps.length - 1, guide.idx + 1), follow: false })} disabled={guide.idx >= steps.length - 1}>
+        <button type="button" className="rf-primary" onClick={() => setGuide({ idx: Math.min(steps.length - 1, guide.idx + 1), manual: true })} disabled={guide.idx >= steps.length - 1}>
           다음
         </button>
       </div>
       <div className="rt-g-btns">
-        <button type="button" aria-pressed={guide.follow} className={guide.follow ? 'on' : ''} onClick={() => setGuide({ ...guide, follow: !guide.follow })}>
-          {guide.follow ? '내 위치 따라가기 끄기' : '내 위치 따라가기'}
-        </button>
+        {props.locMode === 'follow' && !guide.manual ? (
+          <button type="button" aria-pressed="true" className="on" onClick={() => props.onStopLocate?.()}>
+            내 위치 따라가기 끄기
+          </button>
+        ) : (
+          <button type="button" className="rf-recenter" onClick={recenter}>
+            {props.locMode === 'off' || props.locMode === undefined ? '내 위치 따라가기' : '다시 가운데로'}
+          </button>
+        )}
         <button type="button" onClick={endGuide}>
           안내 끝내기
         </button>
       </div>
-      {osmCredit}
     </div>
   )
 
@@ -637,8 +637,7 @@ export default function RoutePanel(props: Props) {
         <button type="button" onClick={onClose}>
           끝내기
         </button>
-        {osmCredit}
-        </div>
+          </div>
   )
 
   return (
@@ -687,10 +686,10 @@ export default function RoutePanel(props: Props) {
         </section>
       )}
 
-      {FREE_SEARCH && (
+      {(
         <section className="rf-card rt-sec">
-          <h3>직접 검색 (개발 모드)</h3>
-          <div className="tr-tabs" role="group" aria-label="경로 방식">
+          <h3>직접 검색{DEV_TOOLS ? ' (개발 모드)' : ''}</h3>
+          {DEV_TOOLS && <div className="tr-tabs" role="group" aria-label="경로 방식">
             {(
               [
                 ['own', '자체 보행망'],
@@ -701,7 +700,7 @@ export default function RoutePanel(props: Props) {
                 {label}
               </button>
             ))}
-          </div>
+          </div>}
           <PlacePicker label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), setFrom(p))} onPickMap={() => onPickRequest(picking === 'from' ? null : 'from')} preset={props.presetFrom ?? undefined} />
           <PlacePicker label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p))} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} />
           <button type="button" className="rf-primary" disabled={!canRun} onClick={() => from && to && run(from, to, pairId, `${from.name} → ${to.name}`)}>
@@ -767,8 +766,7 @@ export default function RoutePanel(props: Props) {
               )
             })}
           </ul>
-          {osmCredit}
-
+    
           {result.fallback && <Sentences as="p" className="rf-warn">이 구간은 길 자료가 부족해서 다른 방식으로 찾았어요. 장애요소를 다 피하지 못할 수 있어요.</Sentences>}
           {avoidedNames.length > 0 && (
             <p className="rt-avoid" role="status">

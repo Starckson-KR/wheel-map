@@ -1,0 +1,8 @@
+{
+  "source": "좌표는 data/public/bus-stops.json(광주 BIS 정류장)의 해당 정류장 값. 새로 만든 좌표 없음.",
+  "pairs": [
+    { "id": "w1", "fromName": "도로교통공단 대신파크", "toName": "전남대공과대학", "from": { "stopId": "KJB289", "lat": 35.1822149, "lng": 126.909184 }, "to": { "stopId": "KJB907", "lat": 35.178815, "lng": 126.911903 }, "note": "학교 쪽문(△)을 피함" },
+    { "id": "w2", "fromName": "도로교통공단 대신파크", "toName": "북구청", "from": { "stopId": "KJB289", "lat": 35.1822149, "lng": 126.909184 }, "to": { "stopId": "NJB602", "lat": 35.1734, "lng": 126.9138 }, "note": "학교 쪽문(△)을 피함" },
+    { "id": "w3", "fromName": "전남대", "toName": "용봉2휴먼시아아파트", "from": { "stopId": "NJB1633", "lat": 35.17009, "lng": 126.9038 }, "to": { "stopId": "KJB869", "lat": 35.172227, "lng": 126.897616 }, "note": "전남대치과대학병원 앞 횡단보도(X)를 피함" }
+  ]
+}

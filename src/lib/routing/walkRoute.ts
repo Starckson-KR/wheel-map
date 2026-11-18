@@ -11,6 +11,12 @@ export type WalkCfg = {
   penaltyStepsM: number // 계단·휠체어 불가(wheelchair=no) 길 토막 고정 벌점(m)
   penaltyKerbM: number // 높은 턱(kerb=raised·rolled·yes, barrier=kerb) 지점을 지날 때 벌점(m)
   crossingM: number // 횡단보도 하나를 건널 때 더하는 거리(m)(신호 기다림·차도 건너기)
+  roadMajorMult: number // 큰 차도 길이 배수
+  roadServiceMult: number // 단지 안길 길이 배수
+  roadOtherMult: number // 그 밖 차도 길이 배수
+  roughMult: number // 거친 노면 추가 배수
+  wcLimitedMult: number // wheelchair=limited 추가 배수
+  wcYesMult: number // wheelchair=yes 배수(1 이하)
   inclineWarnPct: number // 이 경사(%) 이상이면 가파른 길로 본다(국내 경사로 기준 1/12=8.3%)
   snapMaxM: number // 출발·도착이 보행망에서 이 거리 넘게 떨어져 있으면 못 찾는다
   walkSpeedMs: number // 시간 계산용 속도(m/s). TMAP 시연 경로의 거리÷시간(약 1.37)에 맞춤
@@ -146,10 +152,10 @@ class Heap {
 export function edgeBaseCost(e: { mask: number; len: number; inc: number }, cfg: WalkCfg): number {
   let mult = 1
   const m = e.mask
-  if (m & M.ROAD && !(m & (M.SIDEWALK | M.CROSSING))) mult = m & M.MAJOR ? 3 : m & M.SERVICE ? 1.5 : 1.4
-  if (m & M.ROUGH) mult *= 1.5
-  if (m & M.WC_LIMITED) mult *= 1.3
-  if (m & M.WC_YES) mult *= 0.95
+  if (m & M.ROAD && !(m & (M.SIDEWALK | M.CROSSING))) mult = m & M.MAJOR ? cfg.roadMajorMult : m & M.SERVICE ? cfg.roadServiceMult : cfg.roadOtherMult
+  if (m & M.ROUGH) mult *= cfg.roughMult
+  if (m & M.WC_LIMITED) mult *= cfg.wcLimitedMult
+  if (m & M.WC_YES) mult *= cfg.wcYesMult
   let c = e.len * mult
   if (m & M.CROSSING) c += cfg.crossingM
   if (m & (M.STEPS | M.WC_NO)) c += cfg.penaltyStepsM
@@ -274,7 +280,7 @@ export function findWalkRoute(g: WalkGraph, from: Pt, to: Pt, cfg: WalkCfg, opts
   const closed = new Uint8Array(total)
   const ex = X(nEnd)
   const ey = Y(nEnd)
-  const h = (n: number) => Math.hypot(X(n) - ex, Y(n) - ey) * 0.95
+  const h = (n: number) => Math.hypot(X(n) - ex, Y(n) - ey) * Math.min(1, cfg.wcYesMult)
   const heap = new Heap()
   gScore[nStart] = 0
   heap.push(h(nStart), nStart)

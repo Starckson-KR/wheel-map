@@ -79,3 +79,11 @@ export function autoStep(steps: Step[], along: number, cur: number): number {
   if (exact < cur && along < steps[cur].startM - BACK_M) return exact
   return cur
 }
+
+/** 내 위치가 지금 단계 지점에서 nearM 안이면 true(단계 화살표 원을 작고 흐리게 할지 정한다). 위치나 지점이 없으면 false. */
+export function isStepNear(me: [number, number] | null, at: [number, number] | null, nearM: number): boolean {
+  if (!me || !at) return false
+  const dy = (me[0] - at[0]) * 111320
+  const dx = (me[1] - at[1]) * 111320 * Math.cos((at[0] * Math.PI) / 180)
+  return Math.hypot(dx, dy) <= nearM
+}

@@ -994,6 +994,18 @@ details.rt-more > summary {
   font: 800 16px/1 var(--font);
 }
 
+/* 내 위치가 지금 단계 지점과 가까우면(NAV_STEP_NEAR_M) 단계 원을 작고 흐리게 해 내 위치 점이 묻히지 않게 한다 */
+.rt-gstep {
+  transition:
+    transform 160ms ease-out,
+    opacity 160ms ease-out;
+}
+
+.rt-gstep.rt-gstep-near {
+  transform: scale(0.62);
+  opacity: 0.55;
+}
+
 /* 내 위치 점의 방향 표시(부채꼴). 방향을 알 때만(.hm-me-dir) 보이고, 돌리는 것은 transform뿐이다. */
 .hm-me {
   isolation: isolate;

@@ -96,6 +96,8 @@ export const WALK_CFG = {
   maxDetourRatio: 2, // 피해 가는 길 허용 길이(기본 길의 배수). 넘으면 피해 가는 길을 내지 않는다
 }
 export const ROUTE_OFF_ROUTE_M = 40 // 길 안내 중 내 위치가 경로에서 이만큼 떨어지면 "길에서 벗어났어요"로 본다
+export const NAV_STEP_NEAR_M = 30 // 길 안내 중 내 위치가 지금 단계 지점에서 이만큼 안이면 단계 화살표 원을 작고 흐리게 해 내 위치 점이 묻히지 않게 한다
+export const NAV_Z = { route: 12, step: 15, me: 30 } as const // 길 안내 화면의 쌓이는 순서(큰 값이 위): 경로선·강조선 < 단계 화살표 < 내 위치 점·방향 부채꼴
 export const ROUTE_CROSSWALK_RADIUS_M = 20 // 경로 근처 횡단보도
 export const ROUTE_STOP_RADIUS_M = 150 // 출발·도착 근처 버스정류장
 export const ROUTE_DEST_RADIUS_M = 50 // 도착지 장애인편의시설·장애인화장실

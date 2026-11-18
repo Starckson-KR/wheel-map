@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { angleDelta, autoStep, centerDelta, compassHeading, easeOut, lerpLatLng, norm360, smoothHeading } from '../src/lib/routing/followNav.ts'
+import { angleDelta, autoStep, centerDelta, compassHeading, easeOut, isStepNear, lerpLatLng, norm360, smoothHeading } from '../src/lib/routing/followNav.ts'
 import { buildSteps } from '../src/lib/routing/guide.ts'
 import type { Pt } from '../src/lib/routing/engine.ts'
 
@@ -51,4 +51,14 @@ test('단계 자동 넘김: 다음 지점 15m 앞에서 넘기고, 작은 되돌
   assert.equal(autoStep(steps, 95, 1), 1, 'GPS가 조금 되돌아가도 그대로')
   assert.equal(autoStep(steps, 40, 1), 0, '많이 물러나면 이전 단계로')
   assert.equal(autoStep([], 5, 3), 0)
+})
+
+test('겹침 판단: 단계 지점에서 기준 거리 안이면 가깝다고 본다', () => {
+  const at: [number, number] = [35.1745, 126.9120]
+  assert.equal(isStepNear(at, at, 30), true)
+  assert.equal(isStepNear([at[0] + 20 / 111320, at[1]], at, 30), true) // 북쪽 20m
+  assert.equal(isStepNear([at[0] + 45 / 111320, at[1]], at, 30), false) // 북쪽 45m
+  assert.equal(isStepNear([at[0], at[1] + 25 / (111320 * Math.cos((at[0] * Math.PI) / 180))], at, 30), true) // 동쪽 25m
+  assert.equal(isStepNear(null, at, 30), false)
+  assert.equal(isStepNear(at, null, 30), false)
 })

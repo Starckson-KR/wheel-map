@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CENTER_ADDRESS_CANDIDATES, geocode, loadKakao } from '../lib/kakao'
 import { loadBarriers } from '../lib/seed'
+import { NAV_STEP_NEAR_M, NAV_Z } from '../lib/config'
 import { confirmSheet, toast } from '../lib/uiStore'
 import type { Barrier, Geometry, LatLng, Rating } from '../types'
 import { RATING_STYLE } from '../lib/rating'
@@ -47,7 +48,7 @@ import {
 } from '../lib/publicLayers'
 import { Sentences } from '../components/Sentences'
 import { Wordmark } from '../components/Wordmark'
-import { CENTER_DEADBAND_PX, centerDelta, compassHeading, easeOut, lerpLatLng, smoothHeading } from '../lib/routing/followNav.ts'
+import { CENTER_DEADBAND_PX, centerDelta, compassHeading, easeOut, isStepNear, lerpLatLng, smoothHeading } from '../lib/routing/followNav.ts'
 import { prefersCalm } from '../lib/viewPrefs'
 import { isMockReport, realFirst } from '../lib/realFirst'
 
@@ -233,6 +234,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const followOffRef = useRef<() => void>(() => {})
   const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null) // 길 안내가 단계를 넘길 때 쓰는 내 위치(화면 계산에만 쓰고 저장·전송하지 않는다)
   const meElRef = useRef<HTMLElement | null>(null)
+  const gstepElRef = useRef<HTMLElement | null>(null) // 지금 단계의 주황 화살표 원(내 위치가 가까우면 작고 흐리게)
   const headingRef = useRef<number | null>(null) // 폰이 향한 방향(북=0, 시계 방향). 모르면 null
   const compassRef = useRef<(() => void) | null>(null) // 나침반 듣기 해제 함수
   const moveRaf = useRef(0)
@@ -1051,13 +1053,14 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const lls = gd.coords.map((p) => new k.maps.LatLng(p[0], p[1]))
     if (lls.length >= 2)
       shapes.push(
-        new k.maps.Polyline({ map, path: lls, strokeWeight: 15, strokeColor: '#ffffff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 12 }),
-        new k.maps.Polyline({ map, path: lls, strokeWeight: 10, strokeColor: '#ff8a00', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 13 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: 15, strokeColor: '#ffffff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: NAV_Z.route }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: 10, strokeColor: '#ff8a00', strokeOpacity: 1, strokeStyle: 'solid', zIndex: NAV_Z.route + 1 }),
       )
     const el = document.createElement('div')
     el.className = 'rt-gstep'
     el.textContent = gd.turn
-    shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(gd.at[0], gd.at[1]), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 15 }))
+    shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(gd.at[0], gd.at[1]), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: NAV_Z.step }))
+    gstepElRef.current = el
     const b = new k.maps.LatLngBounds()
     for (const p of [...gd.coords, ...gd.next]) b.extend(new k.maps.LatLng(p[0], p[1]))
     const t = setTimeout(() => {
@@ -1083,11 +1086,18 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     }, 80)
     return () => {
       clearTimeout(t)
+      gstepElRef.current = null
       shapes.forEach((x) => x.setMap(null))
     }
     // 단계 번호가 바뀔 때만 다시 그린다(overlay 객체는 매번 새로 만들어진다)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, guideN, overlay?.guide?.at[0], overlay?.guide?.at[1]])
+
+  // 내 위치가 지금 단계 지점과 가까우면 단계 원을 작고 흐리게 해서 내 위치 점이 묻히지 않게 한다
+  const gAt = overlay?.guide?.at
+  useEffect(() => {
+    gstepElRef.current?.classList.toggle('rt-gstep-near', isStepNear(myPos ? [myPos.lat, myPos.lng] : null, gAt ?? null, NAV_STEP_NEAR_M))
+  }, [myPos, gAt, guideN, ready])
 
   // 제보 작성 중 위치 마커(끌어서 옮길 수 있음)
   useEffect(() => {
@@ -1385,7 +1395,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         if (!meRef.current) {
           const el = document.createElement('div')
           el.className = 'hm-me'
-          meRef.current = new k.maps.CustomOverlay({ position: at, content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 3 })
+          meRef.current = new k.maps.CustomOverlay({ position: at, content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: NAV_Z.me })
           const cone = document.createElement('i')
           cone.className = 'hm-me-cone'
           el.appendChild(cone)

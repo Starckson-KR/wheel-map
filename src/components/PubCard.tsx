@@ -1,4 +1,5 @@
 import { PUB_LAYERS, type PubDataset, type PubItem, type PubLayerId } from '../lib/publicLayers'
+import Icon from './Icon'
 import { Sentences } from './Sentences'
 import type { VoucherFields } from '../lib/vouchers'
 import { facilityTitle, usableName } from '../lib/facilityName'
@@ -50,7 +51,7 @@ function rows(layer: PubLayerId, it: PubItem): [string, string][] {
 function VoucherAccess({ item }: { item: PubItem }) {
   const v = item.fields as unknown as VoucherFields
   const fac = v.facility
-  const label = v.access === 'info' ? '♿ 출입구 정보 있음' : v.access === 'partial' ? '△ 일부 확인' : '? 확인 필요'
+  const label = v.access === 'info' ? '출입구 정보 있음' : v.access === 'partial' ? '△ 일부 확인' : '? 확인 필요'
   return (
     <div className={'pc-acc pc-acc--' + v.access}>
       <strong>{label}</strong>
@@ -75,7 +76,7 @@ export default function PubCard({ layer, item, dataset, onClose }: Props) {
       <div className="bm-detail-head">
         <h2>
           <i className="bm-pub-chip" style={{ background: info?.color }}>
-            {info?.glyph}
+            {info && <Icon name={info.icon} size={14} />}
           </i>{' '}
           {layer === 'facility' ? facilityTitle(item) : item.name}
         </h2>

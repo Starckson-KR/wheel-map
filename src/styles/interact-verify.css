@@ -20,7 +20,7 @@
   -webkit-user-select: none;
   user-select: none;
   cursor: grab;
-  box-shadow: 0 6px 18px rgba(25, 31, 40, 0.12);
+  box-shadow: var(--shadow-2);
   will-change: transform;
 }
 .vd-top:active { cursor: grabbing; }

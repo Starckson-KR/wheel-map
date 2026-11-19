@@ -155,7 +155,7 @@
   background: var(--bg);
   box-shadow: var(--shadow-1);
   text-align: left;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 @media (hover: hover) and (pointer: fine) {

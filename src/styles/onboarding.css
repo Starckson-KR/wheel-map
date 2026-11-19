@@ -87,7 +87,7 @@
   background: var(--bg);
 }
 /* 가로 밀기는 Stage.tsx의 motion이 맡는다. 들어오는 화면 왼쪽에만 옅은 그림자 */
-.ob-layer { box-shadow: -10px 0 24px rgb(25 31 40 / 0.06); }
+.ob-layer { box-shadow: var(--shadow-2); }
 @media (min-width: 520px) {
   .ob-layer { box-shadow: none; }
 }

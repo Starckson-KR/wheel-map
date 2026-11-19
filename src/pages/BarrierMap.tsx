@@ -11,6 +11,7 @@ import { impactOfReport } from '../lib/routing/impact.ts'
 import BarrierDetail from './BarrierDetail'
 import ReportDetail from '../components/ReportDetail'
 import ViewSettings from '../components/ViewSettings'
+import Icon, { iconSvg } from '../components/Icon'
 import { isDesktopLayout } from '../lib/viewPrefs'
 import { glNavEnabled } from '../lib/guideGl/core.ts'
 import { webglOk } from '../lib/guideGl/support.ts'
@@ -923,7 +924,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         const dot = mapLevel > 3 && !isSel
         el.className = 'bm-pub' + (warn ? ' bm-pub-warn' : '') + (acc ? ' bm-pub-acc' : '') + (isSel ? ' bm-pub-sel' : '') + (dot ? ' bm-pub--dot' : '')
         el.style.background = info.color
-        el.textContent = dot ? '' : warn ? `${info.glyph}!` : acc ? `${info.glyph}♿` : info.glyph
+        el.innerHTML = dot ? '' : iconSvg(info.icon, 14) + (warn ? '<b>!</b>' : '') + (acc ? iconSvg('access', 14) : '')
         const shownName = g.layer === 'facility' ? facilityTitle(it) : it.name
         el.title = warn ? `${shownName} (보도턱 낮춤 없음)` : acc ? `${shownName} (출입구 정보 있음)` : shownName
         el.addEventListener('click', (e) => {
@@ -1721,7 +1722,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             {PUB_LAYERS.filter((l) => layers[l.id]).map((l) => (
               <li key={l.id}>
                 <i className="hm-leg-pub" style={{ background: l.color }}>
-                  {l.glyph}
+                  <Icon name={l.icon} size={14} />
                 </i>
                 {l.label} (참고)
               </li>
@@ -1778,8 +1779,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             <div className="hm-more">
               {here.length > 0 && restCats.length > 0 && (
                 <>
-                  <p className="hm-eyebrow hm-counts-label">그 밖의 분류</p>
-                  <ul className="hm-counts" aria-label="그 밖의 영향 종류별 개수">
+                  <ul className="hm-counts" aria-label="종류별 개수">
                     {restCats.map((c) => (
                       <li key={c} className="hm-count">
                         <i className={'hm-cat hm-cat-' + c}>{CATEGORY_INFO[c].glyph}</i>
@@ -1806,7 +1806,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               )}
               {PROVISIONAL.length > 0 && (
                 <>
-                  <h3 style={{ marginTop: 20 }}>그 밖의 지점 {PROVISIONAL.length}곳</h3>
+                  <h3 style={{ marginTop: 20 }}>위치 확인 중인 곳 {PROVISIONAL.length}곳</h3>
                   <ul className="lr-list">
                     {PROVISIONAL.map((b) => (
                       <li key={b.id}>

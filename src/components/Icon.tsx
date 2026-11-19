@@ -23,7 +23,13 @@ const P: Record<string, string> = {
   star: 'M12 3.5l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6-4.5-4.2 6.1-.8z',
   clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2',
   close: 'M6 6l12 12M18 6L6 18',
+  access: 'M12 3a1.6 1.6 0 1 0 0 3.2A1.6 1.6 0 0 0 12 3zM10 8v6h5l3 6M10 11h5.5M7.2 12.5a5.5 5.5 0 1 0 8.3 6.8',
+  ticket: 'M3 7h18v3.2a1.8 1.8 0 0 0 0 3.6V17H3v-3.2a1.8 1.8 0 0 0 0-3.6zM9 7v10',
   refresh: 'M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5',
+}
+/** 카카오 지도 커스텀 오버레이처럼 HTML 문자열이 필요한 곳에서 쓰는 같은 그림 */
+export function iconSvg(name: string, size = 24): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${P[name] ?? ''}"/></svg>`
 }
 export default function Icon({ name, size = 24 }: { name: string; size?: number }) {
   return (

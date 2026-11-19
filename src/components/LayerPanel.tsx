@@ -84,14 +84,11 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
           return (
             <div key={l.id}>
               <button type="button" className={'lp-card' + (on ? ' on' : '')} aria-pressed={on} onClick={() => set({ [l.id]: !on } as Partial<LayerState>)}>
-                <span className="lp-icon" aria-hidden="true">
-                  <Icon name="building" size={22} />
+                <span className="lp-icon" aria-hidden="true" style={{ background: l.color, color: '#fff' }}>
+                  <Icon name={l.icon} size={22} />
                 </span>
                 <span className="lp-text">
                   <strong>
-                    <i className="bm-pub-chip" style={{ background: l.color }}>
-                      {l.glyph}
-                    </i>{' '}
                     {l.label}
                   </strong>
                   <span>

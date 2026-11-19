@@ -22,15 +22,15 @@ export type PubDataset = {
   items: PubItem[]
 }
 
-export type PubLayerInfo = { id: PubLayerId; label: string; glyph: string; color: string; icon: string; desc: string }
+export type PubLayerInfo = { id: PubLayerId; label: string; color: string; icon: string; desc: string }
 
-// 색은 ○△X(초록·주황·빨강·회색)와 겹치지 않는 중립색. 모양은 글자로 구분한다.
+// 색은 ○△X(초록·주황·빨강·회색)와 겹치지 않는 중립색. 모양은 선 아이콘(Icon.tsx 이름)으로 구분한다.
 export const ALL_PUB_LAYERS: PubLayerInfo[] = [
-  { id: 'crosswalk', label: '횡단보도', glyph: '횡', color: '#455a64', icon: '🚸', desc: '보도턱 낮춤 여부·폭 (북구 285곳)' },
-  { id: 'toilet', label: '장애인화장실', glyph: '♿WC', color: '#5e35b1', icon: '🚻', desc: '공중화장실과 장애인용 시설 수' },
-  { id: 'facility', label: '장애인편의시설', glyph: '편', color: '#6d4c41', icon: '♿', desc: '편의시설 현황 (시설 유형별)' },
-  { id: 'bus', label: '버스정류장', glyph: '버스', color: '#1e6fb5', icon: '🚌', desc: '정류소 이름과 번호' },
-  { id: 'voucher', label: '상품권 가맹점', glyph: '상', color: '#ad1457', icon: '🎟️', desc: '용봉동 지역사랑상품권 가맹점과 출입구 정보' },
+  { id: 'crosswalk', label: '횡단보도', color: '#455a64', icon: 'cross', desc: '보도턱 낮춤 여부·폭 (북구 285곳)' },
+  { id: 'toilet', label: '장애인화장실', color: '#5e35b1', icon: 'access', desc: '공중화장실과 장애인용 시설 수' },
+  { id: 'facility', label: '장애인편의시설', color: '#6d4c41', icon: 'building', desc: '편의시설 현황 (시설 유형별)' },
+  { id: 'bus', label: '버스정류장', color: '#1e6fb5', icon: 'bus', desc: '정류소 이름과 번호' },
+  { id: 'voucher', label: '상품권 가맹점', color: '#ad1457', icon: 'ticket', desc: '용봉동 지역사랑상품권 가맹점과 출입구 정보' },
 ]
 
 // 기본 지도에는 이동 중 바로 필요한 장애인화장실만 둔다(2026-10-26 사용자 결정).

@@ -134,7 +134,7 @@
   box-shadow: var(--shadow-2), 0 0 0 1px rgb(25 31 40 / 0.06); /* 흐린 지도 위에서도 윤곽이 보이도록 얇은 테두리를 더한다 */
   color: var(--text-sub);
   font-size: var(--fs-body);
-  font-weight: 500;
+  font-weight: 400;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -289,7 +289,7 @@
   border: 2px solid #fff;
   border-radius: var(--r-full);
   color: #fff;
-  font: 800 13px/1 var(--font);
+  font: 700 13px/1 var(--font);
   letter-spacing: 0;
   white-space: nowrap;
   box-shadow: 0 2px 6px rgb(25 31 40 / 0.32);
@@ -364,7 +364,7 @@
   border: 2px solid #fff;
   border-radius: var(--r-full);
   color: #fff;
-  font: 800 12px/1.2 var(--font);
+  font: 700 12px/1.2 var(--font);
   text-align: center;
   white-space: nowrap;
   box-shadow: 0 1px 4px rgb(25 31 40 / 0.4);
@@ -406,7 +406,7 @@
   border-radius: var(--r-full);
   background: #333d4b;
   color: #fff;
-  font: 800 14px/1 var(--font);
+  font: 700 14px/1 var(--font);
   box-shadow: 0 2px 8px rgb(25 31 40 / 0.4);
   cursor: pointer;
   transition: opacity var(--t-fast) var(--ease-out);
@@ -511,8 +511,11 @@
   color: #fff;
   font-size: 0.6875rem;
   font-weight: 700;
-  line-height: 22px;
-  text-align: center;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
   white-space: nowrap;
   box-shadow: 0 1px 4px rgb(25 31 40 / 0.4);
   cursor: pointer;
@@ -521,18 +524,16 @@
 .bm-pub-warn {
   border: 3px dashed #ffd600;
   outline: 2px solid var(--grey-900);
-  line-height: 20px;
 }
 
 .bm-pub-sel {
   box-shadow: 0 0 0 3px var(--blue-500);
 }
 
-/* 상품권 가맹점 중 출입구 정보(높이차이 제거)가 등록된 곳: 흰 테두리 대신 노란 고리와 ♿ 글자, 멀리서도 점이 흐려지지 않는다 */
+/* 상품권 가맹점 중 출입구 정보(높이차이 제거)가 등록된 곳: 흰 테두리 대신 노란 고리와 휠체어 아이콘, 멀리서도 점이 흐려지지 않는다 */
 .bm-pub.bm-pub-acc {
   border: 3px solid #ffd600;
   outline: 2px solid var(--grey-900);
-  line-height: 20px;
 }
 
 .bm-pub.bm-pub-acc.bm-pub--dot {
@@ -543,7 +544,8 @@
 }
 
 .bm-pub-chip {
-  display: inline-block;
+  display: inline-grid;
+  place-items: center;
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
@@ -553,8 +555,7 @@
   font-size: 0.8125rem;
   font-style: normal;
   font-weight: 700;
-  line-height: 20px;
-  text-align: center;
+  line-height: 1;
   vertical-align: middle;
 }
 
@@ -843,7 +844,7 @@
   overflow: hidden;
   color: var(--text-sub);
   font-size: var(--fs-caption);
-  font-weight: 500;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1170,7 +1171,7 @@
 .lp-text span {
   color: var(--text-sub);
   font-size: var(--fs-caption);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .lp-state {
@@ -2051,10 +2052,6 @@ html[data-text='large'] .ms .rf-actions button {
   padding: 0 var(--s-4);
 }
 
-.hm-more > .hm-counts-label {
-  margin: 0 0 6px;
-}
-
 /* ───── PC 보기(왼쪽 패널): 위쪽 줄은 예전 모양(회색 입력, 한 칸 위 표시 칩) ───── */
 @media (min-width: 768px) {
   :root:not([data-view='mobile']) .hm-chips { order: -1; max-width: none; }
@@ -2089,7 +2086,7 @@ html[data-text='large'] .ms .rf-actions button {
   color: var(--text-strong);
   font: inherit;
   font-size: 1rem; /* 16px 미만이면 아이폰이 입력칸을 확대한다 */
-  font-weight: 500;
+  font-weight: 400;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
@@ -2173,7 +2170,7 @@ html[data-text='large'] .ms .rf-actions button {
 .ps-addr {
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 500;
+  font-weight: 400;
 }
 .ps-note {
   margin: 0;

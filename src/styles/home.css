@@ -295,7 +295,7 @@
   display: block;
   color: var(--text-sub);
   font-size: var(--fs-caption);
-  font-weight: 500;
+  font-weight: 400;
 }
 .pg-set .hm-tool {
   min-height: var(--touch);
@@ -345,7 +345,7 @@
 .pg-line-t span {
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 500;
+  font-weight: 400;
 }
 .pg-lines > li + li { border-top: 1px solid var(--line); }
 
@@ -461,7 +461,7 @@ html[data-page-hidden] .hp-ask::before { animation-play-state: paused; }
   color: var(--text-strong);
   font: inherit;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
 }
 .bm .hp-ask .hp-ask-in::placeholder { color: var(--text-sub); opacity: 1; }
 .bm button.hp-ask-btn {
@@ -644,7 +644,7 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
   width: 100%; min-height: var(--touch); padding: 0 var(--s-4); border-radius: var(--r-md);
   background: var(--bg-sub, var(--blue-50)); text-align: left; font-weight: 700; color: var(--text-strong);
 }
-.bn-set small, .bn-q small { color: var(--text-sub); font-size: var(--fs-caption); font-weight: 500; margin-left: var(--s-2); }
+.bn-set small, .bn-q small { color: var(--text-sub); font-size: var(--fs-caption); font-weight: 400; margin-left: var(--s-2); }
 .bn-panel { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-4); border-radius: var(--r-md); border: 1px solid var(--line); }
 .bn-q { margin: 0 0 var(--s-2); font-weight: 700; color: var(--text-strong); }
 .bn-priv { margin: 0; }
@@ -801,7 +801,7 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 .hp-q { font-size: 1.75rem; font-weight: 800; line-height: 1.3; letter-spacing: -0.02em; color: var(--text-strong); word-break: keep-all; }
 .hp-ask.hp-ask-big { min-height: 68px; padding: 0 8px 0 var(--s-6); }
 .bm .hp-ask.hp-ask-big .hp-ask-in { height: 60px; font-size: 1.0625rem; font-weight: 600; }
-.bm .hp-ask.hp-ask-big .hp-ask-in::placeholder { font-weight: 500; }
+.bm .hp-ask.hp-ask-big .hp-ask-in::placeholder { font-weight: 400; }
 .bm .hp-ask.hp-ask-big button.hp-ask-go { width: 52px; min-width: 52px; height: 52px; }
 
 .hp-mine { position: relative; }

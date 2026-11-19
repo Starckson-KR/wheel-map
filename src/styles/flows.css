@@ -131,9 +131,19 @@
   bottom: 0;
   z-index: 4;
   margin: auto calc(var(--gutter) * -1) 0;
-  padding: var(--s-3) var(--gutter) var(--s-4);
+  padding: var(--s-3) var(--gutter) calc(var(--s-4) + var(--safe-bottom));
   background: linear-gradient(to bottom, transparent, var(--bg) 10px);
   flex-wrap: nowrap;
+}
+
+/* 고정 버튼 줄 바로 앞의 목록은 버튼 높이만큼 여백을 더 둬서, 마지막 항목이 버튼 위로 다 보이게 한다 */
+.rf-body > :has(+ .rf-actions) {
+  padding-bottom: var(--s-4);
+}
+
+.rf,
+.rp {
+  scroll-padding-bottom: calc(88px + var(--safe-bottom));
 }
 
 .rf .rf-actions button {
@@ -209,7 +219,7 @@
 .rf-type-text > span {
   color: var(--text-sub);
   font-size: var(--fs-caption);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.4;
 }
 
@@ -460,7 +470,7 @@
   overflow: hidden;
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 500;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

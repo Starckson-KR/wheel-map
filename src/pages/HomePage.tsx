@@ -22,6 +22,7 @@ import { pickCandidates } from '../lib/demoLarge'
 import { Sentences } from '../components/Sentences'
 import { Wordmark } from '../components/Wordmark'
 import { usePullRefresh } from '../components/usePullRefresh'
+import { WeatherLine } from '../components/WeatherBits'
 
 const MENU = [
   { id: 'home', icon: 'home', label: '홈', to: TO.home },
@@ -251,6 +252,7 @@ export default function HomePage() {
               <button type="button" className="pg-ic" aria-label="전체메뉴 열기" aria-haspopup="dialog" onClick={() => { setSettings(false); setMenu(true) }}><Icon name="menu" size={24} /></button>
             </div>
           </header>
+          <WeatherLine />
 
           {/* 「처음이세요?」 카드가 닫힐 때: 카드는 흐려지며 빠지고, 아래 내용(.hp-rest)은 제자리로 미끄러져 올라온다 */}
           <AnimatePresence mode="popLayout" initial={false}>

@@ -6,6 +6,7 @@ import { execSync } from 'node:child_process'
 import { callTmap, validateReq } from './scripts/tmapClient.ts'
 import { bisArrive, bisLineLow } from './scripts/bisClient.ts'
 import { callTransit, validateTransitReq } from './scripts/transitClient.ts'
+import { callWeather } from './scripts/weatherClient.ts'
 
 // 현장 사진(data/photos)은 내부 확인용이라 개발 서버에서만 제공한다.
 // apply: 'serve' 이므로 build에는 이 플러그인이 쓰이지 않고, 사진은 dist에 복사되지도 번들되지도 않는다.
@@ -173,6 +174,37 @@ function devTransit(): Plugin {
   }
 }
 
+// 기상청 날씨 중계(개발 서버 전용). 키는 .env의 DATA_GO_KR_KEY를 서버 쪽에서만 읽는다. 배포판은 Worker의 /weather를 쓴다(worker/src/weather.ts).
+const WEATHER_ROUTE = '/wheel-map/__weather'
+
+function devWeather(): Plugin {
+  return {
+    name: 'dev-weather-relay',
+    apply: 'serve',
+    configureServer(server) {
+      const root = server.config.root
+      const key = () => loadEnv(server.config.mode, server.config.envDir || root, '').DATA_GO_KR_KEY ?? ''
+      server.middlewares.use(WEATHER_ROUTE, async (req, res) => {
+        const send = (status: number, obj: unknown) => {
+          res.statusCode = status
+          res.setHeader('Content-Type', 'application/json; charset=utf-8')
+          res.setHeader('Cache-Control', 'no-store')
+          res.end(JSON.stringify(obj))
+        }
+        if (req.method !== 'GET') return send(405, { ok: false })
+        try {
+          const r = await callWeather(key())
+          console.log(`[weather] ${r.ok ? (r.fromCache ? '캐시' : '호출') : '실패'}`)
+          if (!r.ok) return send(502, { ok: false })
+          send(200, { ok: true, ...r.w })
+        } catch {
+          send(500, { ok: false })
+        }
+      })
+    },
+  }
+}
+
 // https://vite.dev/config/
 function gitInfo() {
   let hash = 'dev'
@@ -209,5 +241,5 @@ export default defineConfig({
   base: '/wheel-map/', // GitHub Pages(저장소 이름)용
   // Worker 허용 출처가 localhost:5173뿐이라 포트를 고정한다. 이미 쓰는 중이면 다른 번호로 옮겨 가지 않고 실패한다.
   server: { port: 5173, strictPort: true },
-  plugins: [react(), versionFile(), devPhotos(), devTmap(), devBis(), devTransit()],
+  plugins: [react(), versionFile(), devPhotos(), devTmap(), devBis(), devTransit(), devWeather()],
 })

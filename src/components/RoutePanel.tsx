@@ -26,6 +26,7 @@ import BusArrivals from './BusArrivals'
 import SheetHandle from './SheetHandle'
 import TransitView from './TransitView'
 import { Sentences } from './Sentences'
+import { WeatherBand } from './WeatherBits'
 import { Badge, RouteCard, Tl, TlHit, TlStep, VerdictBadge } from './RouteUi'
 import { fmtDist, fmtMin, WALK_COLOR } from './routeFmt'
 import { prefersCalm } from '../lib/viewPrefs'
@@ -936,6 +937,7 @@ export default function RoutePanel(props: Props) {
 
       {status === 'done' && result && activeCard && (
         <div ref={topRef} className="rt-top" aria-live="polite">
+          <WeatherBand />
           <div className="rc-rail" role="group" aria-label="경로 고르기. 옆으로 넘기거나 좌우 화살표 키를 눌러요">
             <ul
               ref={railRef}

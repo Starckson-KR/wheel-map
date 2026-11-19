@@ -13,6 +13,7 @@ import { MAX_QUESTION_CHARS, cleanQuestion, hasPersonalInfo } from '../lib/aiSea
 import { answerAsk } from '../lib/aiSearch/knowledgeData'
 import type { AskAnswer, Topic } from '../lib/aiSearch/knowledge'
 import { Sentences } from './Sentences'
+import { WeatherAnswer } from './WeatherBits'
 import { getMotionReduce } from '../lib/viewPrefs'
 
 // 홈 검색창: 질문을 쓰면 알맞은 화면을 「안내」한다. 자동으로 이동하지 않고, 사용자가 버튼을 눌러야 이동한다.
@@ -112,7 +113,8 @@ export default function AiSearch({ onHelp, home = false }: { onHelp: () => void;
   const r = st.kind === 'done' ? st.r : null
   const ans = st.kind === 'done' ? st.ans : null
   const showAsk = !!ans && (ans.found || r?.intent === 'ask')
-  const movable = r && r.intent !== 'unknown' && r.intent !== 'ask' && !showAsk ? (r.intent as MovableIntent) : null
+  const isWeather = r?.intent === 'weather'
+  const movable = r && r.intent !== 'unknown' && r.intent !== 'ask' && r.intent !== 'weather' && !showAsk ? (r.intent as MovableIntent) : null
   const target = movable && r ? targetFor(movable, r.question, r.slots) : null
   const slots = r ? (Object.entries(r.slots) as [ShownSlot, string][]).filter(([k, v]) => v && k in SLOT_NAME) : []
 
@@ -220,7 +222,9 @@ export default function AiSearch({ onHelp, home = false }: { onHelp: () => void;
               <span className="hp-ai-badge">AI 검색</span>
               {r.reason && REASON_TEXT[r.reason] && <span>{REASON_TEXT[r.reason]}</span>}
             </p>
-            {showAsk && ans ? (
+            {isWeather ? (
+              <WeatherAnswer />
+            ) : showAsk && ans ? (
               <>
                 {ans.found ? (
                   <>
@@ -297,7 +301,7 @@ export default function AiSearch({ onHelp, home = false }: { onHelp: () => void;
                 <p className="hp-ai-slots">다른 말로 물어봐 주세요.</p>
               </>
             )}
-            <Sentences as="p" className="hp-ai-note">AI 답변은 참고용이에요. 접수번호·처리기한·담당 기관은 해당 화면에서 확인해 주세요.</Sentences>
+            {!isWeather && <Sentences as="p" className="hp-ai-note">AI 답변은 참고용이에요. 접수번호·처리기한·담당 기관은 해당 화면에서 확인해 주세요.</Sentences>}
           </div>
         )}
         {st.kind === 'idle' && !aiOn && <Sentences as="p" className="hp-ai-off">AI 검색이 꺼져 있어요. 키워드로만 찾아요.</Sentences>}

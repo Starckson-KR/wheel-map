@@ -1,0 +1,43 @@
+/* 날씨 줄·주의 띠·카드. 값은 tokens.css의 것만 쓴다(굵기 600 이하, 그림자 없음). */
+.wx-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 240ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+.wx-reveal.on { grid-template-rows: 1fr; opacity: 1; }
+.wx-reveal-in { min-height: 0; overflow: hidden; }
+html.motion-reduce .wx-reveal { transition: none; }
+
+.wx-ic { display: inline-flex; flex: none; color: var(--text-sub); }
+
+/* 홈 머리줄 */
+.wx-line {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  padding: var(--s-1) 0;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.wx-extra { font-weight: 400; }
+
+/* 길찾기 주의 띠: 상태 표시라 연한 노랑 면 한 가지 */
+.wx-band {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--touch);
+  margin: 0 0 var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: 12px;
+  background: var(--amber-50);
+  color: var(--amber-700);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.wx-band .wx-ic { color: inherit; }
+
+.wx-what { display: flex; align-items: center; gap: var(--s-2); }

@@ -23,6 +23,7 @@ export const INTENTS = {
   help: { to: '(TODO 확인 필요: 사용법 화면)', slots: [], desc: '앱 사용법·도움말이 필요하다' },
   toilet_find: { to: 'TO.map (장애인화장실 레이어)', slots: [], desc: '휠체어로 이용할 수 있는 장애인화장실이 어디 있는지 찾고 싶다(화장실이 없다·고장이라는 신고는 report_new)' },
   ask: { to: '(앱 자료에서 찾은 답 카드)', slots: ['topic', 'query'], desc: '앱에 든 자료로 답할 수 있는 지식형 질문이다(혜택·택시·이동 지원, 조건이 붙은 화장실·편의시설, 상품권 가맹점, 신고 접수 방법)' },
+  weather: { to: '(날씨 카드)', slots: [], desc: '오늘 날씨·기온·비나 눈이 오는지 알고 싶다' },
   unknown: { to: '(이동 없음)', slots: [], desc: '위 어느 것도 아니다, 잘 모르겠다' },
 } as const
 
@@ -243,7 +244,7 @@ export function buildSystemPrompt(strict = false): string {
 화장실 위치만 묻는 말은 toilet_find이고, 경사로·승강기·시간 같은 조건이 붙은 화장실 질문은 ask다. 화장실이 어디 있는지 찾는 말은 toilet_find, 화장실이 없다·고장·잠겼다고 알리는 말은 report_new다. 엘리베이터·주차장 같은 시설의 위치만 묻는 말은 신고가 아니므로 unknown이다.
 택시·이동 지원·수당·연금·보조기기·활동지원 같은 혜택 질문, 식당·병원 같은 곳의 경사로·승강기 질문, 상품권 쓸 수 있는 가게, 신고·민원 접수 방법은 ask다. ask의 slots: topic은 benefit(혜택·지원·택시·보조기기·행사), toilet(조건 있는 화장실), facility(건물의 편의시설), voucher(상품권 가맹점), bus(버스 정류장 정보), howto(신고·민원 접수 방법) 중 하나이고, query는 질문에 나온 핵심 낱말 하나(20자 이내)다.
 어느 기관이 담당하는지 묻는 말은 ask가 아니라 agency다.
-앱 사용법을 묻는 말만 help다. 처리기한·법령·전화번호·앱 내부 설정·뜻 없는 입력·날씨 같은 딴 얘기는 unknown이다.
+앱 사용법을 묻는 말만 help다. 날씨·기온·비·눈이 오는지 묻는 말은 weather다. 처리기한·법령·전화번호·앱 내부 설정·뜻 없는 입력은 unknown이다.
 출력은 JSON 객체 하나, 한 줄만. 앞뒤에 다른 글자·설명·코드블록 금지. 형식: {"intent":"...","slots":{},"confidence":0.0~1.0}
 slots의 place·from·to에는 질문에 실제로 나온 낱말만 넣고(20자 이내), 없으면 비운다. type은 다음 중 하나만: ${types}${retry}
 
@@ -274,6 +275,8 @@ ${list}
 질문: 상품권 쓸 수 있는 가게 -> {"intent":"ask","slots":{"topic":"voucher","query":"가게"},"confidence":0.9}
 질문: 엘리베이터 있는 병원 -> {"intent":"ask","slots":{"topic":"facility","query":"병원"},"confidence":0.85}
 질문: 신고는 어디에 어떻게 해요 -> {"intent":"ask","slots":{"topic":"howto","query":"신고"},"confidence":0.85}
+질문: 오늘 날씨 어때요 -> {"intent":"weather","slots":{},"confidence":0.9}
+질문: 지금 비 와요 -> {"intent":"weather","slots":{},"confidence":0.85}
 질문: 엘리베이터 어디 있어요 -> {"intent":"unknown","slots":{},"confidence":0.8}
 질문: 처리기한이 며칠이에요 -> {"intent":"unknown","slots":{},"confidence":0.9}
 질문: 담당 공무원 전화번호 알려줘 -> {"intent":"unknown","slots":{},"confidence":0.9}

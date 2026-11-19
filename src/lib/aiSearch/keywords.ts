@@ -120,6 +120,8 @@ export function guardIntent(question: string, intent: AiIntent): AiIntent {
   return intent
 }
 
+// 날씨 묻는 말(worker/src/rules.ts의 WEATHER_RE와 같은 기준, 공백 지운 글 기준). 문제를 알리는 말이 같이 있으면 신고가 먼저다.
+const WEATHER_CUE = /날씨|기온|우산|몇도|비(가)?(와|오|내리)|눈(이)?(와|오|내리)/
 export type KeywordResult = { intent: AiIntent; score: number; ranked: { intent: MovableIntent; score: number }[] }
 
 const ORDER: MovableIntent[] = ['report_new', 'toilet_find', 'receipt_lookup', 'my_reports', 'my_score', 'route', 'bus', 'progress', 'agency', 'alerts', 'help']
@@ -139,6 +141,7 @@ export function keywordIntent(question: string): KeywordResult {
   const ranked = scoreIntents(question)
   const top = ranked[0]
   let intent: AiIntent = top && top.score >= MIN_SCORE ? top.intent : 'unknown'
+  if (WEATHER_CUE.test(squash(question)) && !PROBLEM_CUE.test(squash(question)) && (intent === 'unknown' || intent === 'help' || intent === 'alerts' || intent === 'progress')) intent = 'weather'
   // 문제를 알리는 말 없이 위치·있는 곳만 묻는 말(엘리베이터·주차장 어디 있어요)은 신고가 아니다. 앱에 그 시설을 찾아 주는 화면이 없으니 모른다고 한다.
   const s = squash(question)
   if (intent === 'report_new' && FIND_CUE_SRC.test(s) && !PROBLEM_CUE.test(s)) intent = 'unknown'

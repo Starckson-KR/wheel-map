@@ -103,6 +103,12 @@ export function hasScoreCue(question: string): boolean {
 export function hasMineReportCue(question: string): boolean {
   return MINE_REPORT_RE.test(question)
 }
+// 날씨·기온·비/눈이 오는지 묻는 말. 모델이 unknown·help 등으로 답했을 때만 weather로 올린다(문제를 알리는 신고 말투는 건드리지 않는다).
+const WEATHER_RE = /날씨|기온|우산|몇\s*도|비\s*(가\s*)?(와|오|내리)|눈\s*(이\s*)?(와|오|내리)/
+export function hasWeatherCue(question: string): boolean {
+  return WEATHER_RE.test(question)
+}
+const REROUTE_FROM_WEATHER = new Set(['unknown', 'help', 'progress', 'alerts'])
 const REROUTE_FROM_MINE = new Set(['unknown', 'progress', 'alerts', 'report_new'])
 const REROUTE_FROM_SCORE = new Set(['unknown', 'progress', 'alerts', 'help'])
 
@@ -128,6 +134,7 @@ export function applyRules<T extends Like>(question: string, r: T): T {
   if (!asksUnsupported(question)) {
     const to = (intent: string): T => ({ ...r, intent, slots: {}, confidence: r.intent === 'unknown' ? Math.min(r.confidence, 0.7) : r.confidence })
     if (hasMineReportCue(question) && REROUTE_FROM_MINE.has(r.intent)) return to('my_reports')
+    if (hasWeatherCue(question) && !hasProblemCue(question) && REROUTE_FROM_WEATHER.has(r.intent)) return to('weather')
     if (hasScoreCue(question) && REROUTE_FROM_SCORE.has(r.intent)) return to('my_score')
     // 화장실: 문제를 알리면 신고, 문제 말 없이 묻거나 찾으면 장애인화장실 지도. 모델이 둘을 바꿔 답한 것을 바로잡는다.
     const toilet = /화장실/.test(compact(question))
@@ -145,6 +152,7 @@ export function applyRules<T extends Like>(question: string, r: T): T {
   // 경사로가 막히거나 물건이 쌓였다는 말: 모델이 예시에 끌려 「파손 노면」으로 답한 적이 있다. 가장 가까운 기존 유형은 「경사로 없음」(쓸 수 있는 경사로가 없는 상태)이다. 가파르다는 말은 급경사로 둔다.
   if (r.intent === 'report_new' && /경사로/.test(compact(question)) && !/가파|가팔|급경사/.test(compact(question)))
     return { ...r, slots: { ...r.slots, type: '경사로 없음' } }
+  if (r.intent === 'weather' && !hasWeatherCue(question)) return toUnknown() // 날씨 말이 없는데 모델이 날씨로 답하면 믿지 않는다
   if (r.intent === 'unknown') return r
   if (!UNSUPPORTED_EXEMPT.has(r.intent) && asksUnsupported(question)) return toUnknown()
   if (r.intent === 'help' && !hasHelpCue(question)) return toUnknown()

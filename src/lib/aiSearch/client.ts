@@ -56,7 +56,9 @@ async function callWorker(question: string, o: Options): Promise<Understood> {
     }
     const v = verifyResponse(body, question)
     if (!v) return byKeyword(question, 'error')
-    const intent = guardIntent(question, v.intent)
+    let intent = guardIntent(question, v.intent)
+    // 아직 날씨를 모르는 옛 Worker가 unknown으로 답해도, 날씨를 묻는 말이면 날씨 카드로 답한다
+    if (intent === 'unknown' && keywordIntent(question).intent === 'weather') intent = 'weather'
     // AI가 빈칸을 못 채웠거나 검증에서 버려진 경우에만 키워드 규칙(같은 검증)으로 보충한다
     const slots = intent === v.intent ? { ...keywordSlots(question, intent), ...v.slots } : {}
     return { intent, slots, source: 'ai', candidates: candidatesFor(question), question }

@@ -66,6 +66,20 @@
 .rf > .rf-body > :nth-child(n + 4):not(.rf-actions):not(.rf-done) { animation-delay: 120ms; }
 .rf > .rf-body > .rf-actions { animation: fx-fade 200ms var(--ease-out) backwards; }
 
+/* ───── 같은 자리 글자·아이콘 교차 페이드(motionKit의 <Swap>), 글줄 안 조각(.fx-fade) ───── */
+.fx-swap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.fx-swap-in { display: inline-flex; align-items: center; white-space: nowrap; }
+.hs-item[aria-current] > .fx-swap:last-child { color: var(--primary); }
+.fx-fade { animation: fx-fade 200ms var(--ease-out) backwards; }
+.rp-badge { transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out); }
+.rf-rate label { transition: background-color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out); }
+
+/* ───── 지도 바닥 시트 본문: 지도를 움직여 새로 들어온 줄만 또렷해진다(남아 있는 줄은 그대로). 제보 상세의 검증 영역 ───── */
+:is(.hm-more .lr-list > li, .hm-more .lr-empty, .hm-more .hm-counts, .ms .rf-notice, .mock-strip) {
+  animation: fx-fade 200ms var(--ease-out) backwards;
+}
+.rd .rf-card { animation: fx-in 220ms var(--ease-out) backwards; }
+
 /* ───── 펼침 화살표: 펼치면 아래를 본다 ───── */
 .hp-nchev { display: inline-flex; transition: transform 200ms var(--ease-out); }
 .hp-nchev.on { transform: rotate(90deg); }
@@ -79,4 +93,5 @@ html.motion-reduce :is(
 ) {
   animation: none;
 }
-html.motion-reduce .hp-nchev { transition: none; }
+html.motion-reduce :is(.fx-fade, .hm-more .lr-list > li, .hm-more .lr-empty, .hm-more .hm-counts, .ms .rf-notice, .mock-strip, .rf-card) { animation: none; }
+html.motion-reduce :is(.hp-nchev, .rp-badge, .rf-rate label) { transition: none; }

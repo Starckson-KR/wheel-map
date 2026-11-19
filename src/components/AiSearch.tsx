@@ -22,10 +22,10 @@ const EXAMPLES = ['경사로가 막혔어요', '가까운 저상버스', '내 �
 export const ROTATE_MS = 3000
 const PLACEHOLDERS = ['예: 경사로가 막혔어요', '예: 가까운 저상버스 언제 와요?', '예: 전남대까지 휠체어 길', '예: 내 접수번호 찾기']
 
-// 예시 문구 교차 페이드: 이전 문구는 위로 올라가며 사라지고, 새 문구는 아래에서 올라온다(transform·opacity만)
-const PH_SHIFT = 7
-const PH_IN = { duration: 0.28, ease: [0.23, 1, 0.32, 1] } as const
-const PH_OUT = { duration: 0.2, ease: [0.4, 0, 1, 1] } as const
+// 예시 문구 굴리기: 이전 문구와 새 문구가 같은 속도로 함께 위로 굴러간다(입력칸 밖은 잘림, transform·opacity만).
+// 둘이 같은 시간·같은 곡선으로 움직여야 한 줄이 넘어가는 것처럼 보인다. 끝으로 갈수록 천천히 멈추는 ease-out.
+const PH_SHIFT = '80%'
+const PH_ROLL = { duration: 0.7, ease: [0.22, 1, 0.36, 1] } as const
 
 /** 멈춤(입력 중·포커스 중)이거나 움직임 줄이기면 첫 문구에 고정한다. 문구는 aria-hidden 겹침 글자로만 보이고 스크린리더에는 알리지 않는다(aria-live 없음). */
 function useRotatingPlaceholder(list: readonly string[], paused: boolean): string {
@@ -155,8 +155,8 @@ export default function AiSearch({ onHelp, home = false }: { onHelp: () => void;
               <m.span
                 key={rotating}
                 initial={{ opacity: 0, y: PH_SHIFT }}
-                animate={{ opacity: 1, y: 0, transition: PH_IN }}
-                exit={{ opacity: 0, y: -PH_SHIFT, transition: PH_OUT }}
+                animate={{ opacity: 1, y: 0, transition: PH_ROLL }}
+                exit={{ opacity: 0, y: `-${PH_SHIFT}`, transition: PH_ROLL }}
               >
                 {rotating}
               </m.span>

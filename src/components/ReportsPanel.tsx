@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { go, TO } from '../lib/nav'
 import { ReportThumb } from './ReportPhotos'
-import { RiseLi, SegBg } from './motionKit'
+import { RiseLi, SegBg, Swap } from './motionKit'
 import { useRiseOnce } from '../lib/useRiseOnce'
 import { STATUS_LABEL, isDone, useReports, userName } from '../lib/reportStore'
 import { coordText, useVisibleAddress } from '../lib/addressCache'
@@ -37,7 +37,7 @@ function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boole
             {userName(r.userId)} · {fmtShort(r.createdAt)} 접수{isSampleReport(r) ? ' · 샘플 사진' : ''}
           </span>
         </span>
-        <span className={'rp-badge rp-' + r.status}>{STATUS_LABEL[r.status]}</span>
+        <span className={'rp-badge rp-' + r.status}><Swap k={r.status}>{STATUS_LABEL[r.status]}</Swap></span>
       </button>
     </RiseLi>
   )

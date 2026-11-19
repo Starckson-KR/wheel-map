@@ -4,6 +4,7 @@ import { sheetHost } from '../lib/sheetHost'
 import { getMotionReduce, getTextSize, getTheme, getView, PREFS_CHANGE_EVENT, setMotionReduce, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
 import Icon from './Icon'
 import SheetHandle from './SheetHandle'
+import { SegBg } from './motionKit'
 
 const VIEWS: { id: ViewMode; label: string }[] = [
   { id: 'auto', label: '자동' },
@@ -76,6 +77,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
                         setV(v.id)
                       }}
                     >
+                      {view === v.id && <SegBg group="seg-set-view" />}
                       {v.label}
                     </button>
                   ))}
@@ -95,6 +97,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
                         setT(v.id)
                       }}
                     >
+                      {theme === v.id && <SegBg group="seg-set-theme" />}
                       {v.label}
                     </button>
                   ))}
@@ -115,6 +118,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
                         setTx(v.id)
                       }}
                     >
+                      {text === v.id && <SegBg group="seg-set-text" />}
                       {v.label}
                     </button>
                   ))}
@@ -125,6 +129,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
                 <div className="rf-seg" role="group" aria-label="움직임 줄이기">
                   {[{ on: false, label: '꺼짐' }, { on: true, label: '켜짐' }].map((v) => (
                     <button key={v.label} type="button" className={calm === v.on ? 'on' : ''} aria-pressed={calm === v.on} onClick={() => { setMotionReduce(v.on); setCalm(v.on) }}>
+                      {calm === v.on && <SegBg group="seg-set-calm" />}
                       {v.label}
                     </button>
                   ))}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Swap } from './motionKit'
 import ReportPhotos from './ReportPhotos'
 import SheetHandle from './SheetHandle'
 import ComplaintGuide from './ComplaintGuide'
@@ -90,7 +91,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       </div>
 
       <p>
-        <span className={'rp-badge rp-' + r.status}>{STATUS_LABEL[r.status]}</span>{' '}
+        <span className={'rp-badge rp-' + r.status}><Swap k={r.status}>{STATUS_LABEL[r.status]}</Swap></span>{' '}
         <span className={'rf-cat rf-cat-' + r.category}>{CATEGORY_LABEL[r.category]}</span>
         {isSampleReport(r) && (
           <>

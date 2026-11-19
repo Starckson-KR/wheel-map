@@ -93,9 +93,9 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
                   </strong>
                   <span>
                     {l.desc}
-                    {on && st === 'loading' && ' · 불러오고 있어요'}
-                    {on && st === 'error' && ' · 불러오지 못했어요'}
-                    {on && !st && data[l.id] && ` · 전체 ${data[l.id]?.count}건`}
+                    {on && st === 'loading' && <span key="loading" className="fx-fade"> · 불러오고 있어요</span>}
+                    {on && st === 'error' && <span key="error" className="fx-fade"> · 불러오지 못했어요</span>}
+                    {on && !st && data[l.id] && <span key="count" className="fx-fade">{` · 전체 ${data[l.id]?.count}건`}</span>}
                   </span>
                 </span>
                 <span className="lp-state">{on ? '켜짐' : '꺼짐'}</span>

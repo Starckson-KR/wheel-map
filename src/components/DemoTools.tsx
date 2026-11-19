@@ -5,6 +5,7 @@ import { DEMO_USERS, useReports } from '../lib/reportStore'
 import type { Barrier } from '../types'
 import Icon from './Icon'
 import SheetHandle from './SheetHandle'
+import { SegBg } from './motionKit'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { getMotionReduce, setMotionReduce } from '../lib/viewPrefs'
 import { getAiEnabled, setAiEnabled } from '../lib/aiSearch/aiPref'
@@ -158,9 +159,11 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
               <h3>접수 방식</h3>
               <div className="rf-seg" role="group" aria-label="접수 방식">
                 <button type="button" className={mode === 'link' ? 'on' : ''} aria-pressed={mode === 'link'} onClick={() => setMode('link')}>
+                  {mode === 'link' && <SegBg group="seg-demo-mode" />}
                   링크(실제)
                 </button>
                 <button type="button" className={mode === 'mock' ? 'on' : ''} aria-pressed={mode === 'mock'} onClick={() => setMode('mock')}>
+                  {mode === 'mock' && <SegBg group="seg-demo-mode" />}
                   모의 연동(시연)
                 </button>
               </div>
@@ -170,7 +173,7 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
             <div className="ms-sec">
               <h3>시간 앞당기기</h3>
               <div className="ms-row">
-                <Sentences as="span" className="bm-meta">{`앱 안의 날짜만 움직여요. 지금 +${offset}일`}</Sentences>
+                <Sentences key={offset} as="span" className="bm-meta fx-fade">{`앱 안의 날짜만 움직여요. 지금 +${offset}일`}</Sentences>
                 <span className="rf-actions">
                   <button type="button" onClick={() => advanceDays(7)}>
                     +7일
@@ -186,9 +189,11 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
               <h3>움직임 줄이기</h3>
               <div className="rf-seg" role="group" aria-label="움직임 줄이기">
                 <button type="button" className={!motion ? 'on' : ''} aria-pressed={!motion} onClick={() => { setMotion(false); setMotionReduce(false) }}>
+                  {!motion && <SegBg group="seg-demo-calm" />}
                   꺼짐
                 </button>
                 <button type="button" className={motion ? 'on' : ''} aria-pressed={motion} onClick={() => { setMotion(true); setMotionReduce(true) }}>
+                  {motion && <SegBg group="seg-demo-calm" />}
                   켜짐
                 </button>
               </div>
@@ -199,9 +204,11 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
               <h3>AI 검색</h3>
               <div className="rf-seg" role="group" aria-label="AI 검색">
                 <button type="button" className={ai ? 'on' : ''} aria-pressed={ai} onClick={() => { setAi(true); setAiEnabled(true) }}>
+                  {ai && <SegBg group="seg-demo-ai" />}
                   켜짐
                 </button>
                 <button type="button" className={!ai ? 'on' : ''} aria-pressed={!ai} onClick={() => { setAi(false); setAiEnabled(false) }}>
+                  {!ai && <SegBg group="seg-demo-ai" />}
                   꺼짐(키워드만)
                 </button>
               </div>

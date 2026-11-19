@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Swap } from './motionKit'
 import { findByReceipt } from '../lib/externalStatus'
 import { go, TO } from '../lib/nav'
 import { STATUS_LABEL, useReports } from '../lib/reportStore'
@@ -77,7 +78,7 @@ export default function ReceiptLookup({ onOpen }: { onOpen: (id: string) => void
                   <strong>{r.type}</strong>
                   <span className="bm-meta">{r.complaint?.receiptNo}</span>
                 </span>
-                <span className={'rp-badge rp-' + r.status}>{STATUS_LABEL[r.status]}</span>
+                <span className={'rp-badge rp-' + r.status}><Swap k={r.status}>{STATUS_LABEL[r.status]}</Swap></span>
               </button>
             </li>
           ))}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, m, useIsPresent } from 'motion/react'
 import Icon from '../components/Icon'
-import { PressButton, RiseLi } from '../components/motionKit'
+import { PressButton, RiseLi, Swap } from '../components/motionKit'
 import { useRiseOnce } from '../lib/useRiseOnce'
 import { FADE, FADE_OUT, SPRING } from '../lib/motionTokens'
 import DemoTools, { MockStrip } from '../components/DemoTools'
@@ -80,7 +80,7 @@ function ListSheet({ title, items, selectedId, onPick, onClear, onClose }: { tit
               <button type="button" className="hs-item" aria-current={it.id === selectedId || undefined} onClick={() => onPick(it.id)}>
                 <span className="hs-ic"><Icon name={it.icon} size={20} /></span>
                 <span>{it.label}</span>
-                <Icon name={it.id === selectedId ? 'check' : 'chev'} size={it.id === selectedId ? 18 : 16} />
+                <Swap k={it.id === selectedId ? 'check' : 'chev'} pop><Icon name={it.id === selectedId ? 'check' : 'chev'} size={it.id === selectedId ? 18 : 16} /></Swap>
               </button>
             </li>
           ))}

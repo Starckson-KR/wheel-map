@@ -155,7 +155,7 @@ export default function MyBenefits() {
           {view.matched.length === 0 ? (
             <Sentences as="p" className="bm-meta">설정에 맞는 혜택이 아직 없어요. 아래에서 다른 혜택을 볼 수 있어요.</Sentences>
           ) : (
-            <ul className="bn-list">{view.matched.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} showTag />)}</ul>
+            <ul key={view.matched.map((b) => b.id).join()} className="bn-list">{view.matched.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} showTag />)}</ul>
           )}
           {view.groups.length > 0 && (
             <button type="button" className="pg-wide" aria-expanded={showRest || view.matched.length === 0} onClick={() => setShowRest((v) => !v)}>

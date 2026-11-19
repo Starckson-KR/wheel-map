@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { AnimatePresence, m } from 'motion/react'
 import Icon from './Icon'
 import { TO, go } from '../lib/nav'
 import { AI_INTENT_URL } from '../lib/config'
@@ -21,7 +22,12 @@ const EXAMPLES = ['경사로가 막혔어요', '가까운 저상버스', '내 �
 export const ROTATE_MS = 3000
 const PLACEHOLDERS = ['예: 경사로가 막혔어요', '예: 가까운 저상버스 언제 와요?', '예: 전남대까지 휠체어 길', '예: 내 접수번호 찾기']
 
-/** 멈춤(입력 중·포커스 중)이거나 움직임 줄이기면 첫 문구에 고정한다. 문구가 바뀌어도 스크린리더에는 알리지 않는다(placeholder라 aria-live 없음). */
+// 예시 문구 교차 페이드: 이전 문구는 위로 올라가며 사라지고, 새 문구는 아래에서 올라온다(transform·opacity만)
+const PH_SHIFT = 7
+const PH_IN = { duration: 0.28, ease: [0.23, 1, 0.32, 1] } as const
+const PH_OUT = { duration: 0.2, ease: [0.4, 0, 1, 1] } as const
+
+/** 멈춤(입력 중·포커스 중)이거나 움직임 줄이기면 첫 문구에 고정한다. 문구는 aria-hidden 겹침 글자로만 보이고 스크린리더에는 알리지 않는다(aria-live 없음). */
 function useRotatingPlaceholder(list: readonly string[], paused: boolean): string {
   const [i, setI] = useState(0)
   useEffect(() => {
@@ -126,6 +132,7 @@ export default function AiSearch({ onHelp, home = false }: { onHelp: () => void;
           void run(q)
         }}
       >
+        <span className="hp-ask-field">
         <input
           id={inputId}
           type="text"
@@ -136,11 +143,27 @@ export default function AiSearch({ onHelp, home = false }: { onHelp: () => void;
           autoComplete="off"
           aria-label="질문 입력"
           aria-describedby={personal ? hintId : undefined}
-          placeholder={home ? rotating : '무엇이든 물어보세요'}
+          placeholder={home ? (focused ? rotating : undefined) : '무엇이든 물어보세요'}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
         />
+        {/* 홈: 돌아가는 예시 문구. 포커스·입력 중에는 숨기고(포커스 중에는 같은 자리에 placeholder가 멈춰 보인다) 화면 읽기에는 읽히지 않는다 */}
+        {home && !focused && q === '' && (
+          <span className="hp-ask-ph" aria-hidden="true">
+            <AnimatePresence initial={false}>
+              <m.span
+                key={rotating}
+                initial={{ opacity: 0, y: PH_SHIFT }}
+                animate={{ opacity: 1, y: 0, transition: PH_IN }}
+                exit={{ opacity: 0, y: -PH_SHIFT, transition: PH_OUT }}
+              >
+                {rotating}
+              </m.span>
+            </AnimatePresence>
+          </span>
+        )}
+        </span>
         {!home && (
           <button type="button" className="hp-ask-btn" aria-label="휠체어 길찾기 바로 열기" onClick={() => go(TO.route)}>
             <Icon name="route" size={22} />

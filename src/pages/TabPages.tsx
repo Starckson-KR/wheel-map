@@ -247,7 +247,7 @@ export function AlertsTab({ query = '' }: { query?: string }) {
           ))}
         </div>
         {shown.length === 0 ? (
-          <div className="al-empty">
+          <div key={filter} className="al-empty">
             <Sentences as="p" className="bm-meta">{filter === 'points'
                 ? '아직 받은 참여 점수가 없어요.'
                 : filter === 'report'
@@ -260,7 +260,7 @@ export function AlertsTab({ query = '' }: { query?: string }) {
             </div>
           </div>
         ) : (
-          <ul className="pg-lines">
+          <ul key={filter} className="pg-lines">
             {shown.map((c, i) => (
               <RiseLi key={c.key} first={riseAlerts} i={i}>
                 <button type="button" className="pg-line al-item" onClick={() => go(c.to)}>

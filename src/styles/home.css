@@ -464,6 +464,28 @@ html[data-page-hidden] .hp-ask::before { animation-play-state: paused; }
   font-weight: 400;
 }
 .bm .hp-ask .hp-ask-in::placeholder { color: var(--text-sub); opacity: 1; }
+/* 입력칸 + 돌아가는 예시 문구(겹침 글자). 글자 크기·굵기·색은 placeholder와 같게 맞춘다(포커스하면 같은 자리에 placeholder가 보인다) */
+.hp-ask-field { position: relative; display: flex; flex: 1; min-width: 0; align-items: center; }
+.hp-ask-ph {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--text-sub);
+  font-size: 1rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.hp-ask-ph > span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  will-change: transform, opacity;
+}
+.hp-ask-big .hp-ask-ph { font-size: 1.0625rem; }
 .bm button.hp-ask-btn {
   display: grid;
   place-items: center;
@@ -779,7 +801,7 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 
 @keyframes hp-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media all {
-  html.motion-reduce .hp > * { animation: none; }
+  html.motion-reduce .hp > *, html.motion-reduce .hp-rest > * { animation: none; }
 }
 
 /* 혜택알림·내 정보(시안 C 다듬기): 제목을 크게, 카드가 차례로 떠오름 */
@@ -794,9 +816,14 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 }
 
 /* ───── 홈 D안: 질문 · 내 제보 · 자주 쓰는 서비스 ───── */
-.hp > .hp-ask-wrap, .hp > .hp-mine, .hp > .hp-svc { animation: hp-rise 0.5s var(--ease-out) both; }
-.hp > .hp-mine { animation-delay: 0.06s; }
-.hp > .hp-svc { animation-delay: 0.12s; }
+/* .hp-rest: 검색·내 제보·자주 쓰는 서비스를 묶는다(「처음이세요?」 카드가 닫히면 motion이 이 묶음을 미끄러뜨린다). 간격은 .hp와 같다 */
+.hp { position: relative; }
+.hp-rest { display: flex; flex-direction: column; gap: 28px; }
+.hp-rest > .hp-ask-wrap, .hp-rest > .hp-mine, .hp-rest > .hp-svc { animation: hp-rise 0.5s var(--ease-out) both; }
+.hp-rest > .hp-mine { animation-delay: 0.06s; }
+.hp-rest > .hp-svc { animation-delay: 0.12s; }
+.hp-tile-slot { position: relative; }
+.hp-tile-swap { display: block; }
 .hp-ask-wrap { display: grid; gap: var(--s-4); }
 .hp-q { font-size: 1.75rem; font-weight: 800; line-height: 1.3; letter-spacing: -0.02em; color: var(--text-strong); word-break: keep-all; }
 .hp-ask.hp-ask-big { min-height: 68px; padding: 0 8px 0 var(--s-6); }

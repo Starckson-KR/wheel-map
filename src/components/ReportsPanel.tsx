@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { go, TO } from '../lib/nav'
 import { ReportThumb } from './ReportPhotos'
 import { RiseLi, SegBg } from './motionKit'
@@ -79,7 +79,7 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
       </div>
 
       {section === 'mine' ? (
-        <>
+        <Fragment key="mine">
           <div className="rp-tabs rp-tabs--chips" role="tablist" aria-label="상태 필터">
             {TABS.map((t) => (
               <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}>
@@ -88,7 +88,7 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
             ))}
           </div>
           {shown.length === 0 ? (
-            <div className="rp-empty">
+            <div key={tab} className="rp-empty">
               <p>
                 {tab === 'all' ? '아직 올린 제보가 없어요.' : '이 상태의 제보가 없어요.'}
                 <br />
@@ -101,11 +101,11 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
               )}
             </div>
           ) : (
-            <ul className="rp-list">{shown.map(row)}</ul>
+            <ul key={tab} className="rp-list">{shown.map(row)}</ul>
           )}
-        </>
+        </Fragment>
       ) : (
-        <>
+        <Fragment key="todo">
           {todo.length === 0 ? (
             <div className="rp-empty">
               <p>검증을 기다리는 제보가 없어요.</p>
@@ -119,7 +119,7 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
               <ul className="rp-list">{todo.map(row)}</ul>
             </>
           )}
-        </>
+        </Fragment>
       )}
     </div>
   )

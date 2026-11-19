@@ -93,7 +93,7 @@ export default function ParticipationRanking() {
           </button>
         ))}
       </div>
-      <div id="rk-panel" role="tabpanel" aria-labelledby={`rk-tab-${period}`} className="rk-panel">
+      <div key={period} id="rk-panel" role="tabpanel" aria-labelledby={`rk-tab-${period}`} className="rk-panel">
         <p className="bm-meta">{res.range.label}</p>
         {top.length === 0 ? (
           <Sentences as="p" className="bm-meta rk-empty">{`${def.idle}.`}</Sentences>

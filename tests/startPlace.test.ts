@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { resolveStart, startPlan } from '../src/lib/routing/startPlace.ts'
+import { readFileSync } from 'node:fs'
+import { demoStartOf, pickStart, resolveStart, startPlan } from '../src/lib/routing/startPlace.ts'
 import { nearWalkNet } from '../src/lib/routing/walkRoute.ts'
 import { WALK_CFG } from '../src/lib/config.ts'
 import { buildWalkGraph, loadWalkGraph, type OsmEl } from '../src/lib/routing/walkGraph.ts'
@@ -26,6 +27,30 @@ test('시범 지역 안이면 내 위치, 밖이거나 못 얻었으면 비운�
   assert.equal(resolveStart({ lat: 35.17, lng: 126.9 }, false).ok, false)
   assert.equal(resolveStart(null, true).ok, false)
   assert.equal(resolveStart({ lat: NaN, lng: 126.9 }, true).ok, false)
+})
+
+test('시연 출발점은 추천 경로 「전남대 → 용봉2휴먼시아아파트」의 출발과 같은 좌표', () => {
+  const DEMO_PAIRS = (JSON.parse(readFileSync(new URL('../data/routes/demoPairs.json', import.meta.url), 'utf8')) as { pairs: Parameters<typeof demoStartOf>[0] }).pairs
+  const d = demoStartOf(DEMO_PAIRS)
+  const p = DEMO_PAIRS.find((x) => x.fromName === '전남대' && x.toName.startsWith('용봉2휴먼시아'))
+  assert.ok(d && p)
+  assert.equal(d.lat, p.from.lat)
+  assert.equal(d.lng, p.from.lng)
+  assert.equal(d.id, p.from.stopId)
+  assert.equal(d.name, '전남대(시연 출발점)')
+  assert.equal(demoStartOf([]), null)
+})
+
+test('내 위치를 쓸 수 있고 시범 지역 안이면 내 위치, 그 밖은 모두 시연 출발점', () => {
+  const demo = { id: 'X', name: '전남대(시연 출발점)', lat: 35.17, lng: 126.9 }
+  const my = { lat: 35.18, lng: 126.91 }
+  const a = pickStart(my, true, demo)
+  assert.ok(a && !a.demo && a.place.name === '내 위치')
+  for (const [pos, inside] of [[my, false], [null, true], [null, false], [{ lat: NaN, lng: 1 }, true]] as const) {
+    const b = pickStart(pos, inside, demo)
+    assert.ok(b && b.demo && b.place === demo)
+  }
+  assert.equal(pickStart(null, false, null), null)
 })
 
 test('보행망 150m 안인지 판정한다(길찾기의 밖 판정과 같은 조건)', () => {

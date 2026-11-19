@@ -13,7 +13,7 @@ import { busCardState, cardOrder, initialCard, settledCard, stepCard, type CardI
 import { hasStoredTransit, storedTransitSummary, TRANSIT_FREE_SEARCH } from '../lib/transit/provider.ts'
 import { getWalkGraph } from '../lib/routing/walkData.ts'
 import { nearWalkNet, type OwnRoute } from '../lib/routing/walkRoute.ts'
-import { resolveStart, startPlan, START_HINT } from '../lib/routing/startPlace.ts'
+import { demoStartOf, pickStart, resolveStart, startPlan, START_HINT } from '../lib/routing/startPlace.ts'
 import { hasGeo, locateOnce, readGeoPermission } from '../lib/routing/locateOnce.ts'
 import { crosswalksOnRoute, loadExtras, type Extras } from '../lib/routing/extras.ts'
 import { recordNoAlt } from '../lib/routing/noAlt.ts'
@@ -303,8 +303,17 @@ export default function RoutePanel(props: Props) {
       const perm = await readGeoPermission()
       if (dead) return
       const plan = startPlan(perm, { hasPreset: false, hasFrom: false, hasGeo: hasGeo() })
-      const f = plan === 'none' ? null : await fillFromHere()
+      let f = plan === 'none' ? null : await fillFromHere()
       if (dead) return
+      // 위치를 못 쓰거나 시범 지역 밖이면 패널을 띄우지 않고 시연 출발점에서 바로 구한다
+      if (!f) {
+        const d = pickStart(null, false, demoStartOf(DEMO_PAIRS))
+        if (d) {
+          f = d.place
+          setFrom(d.place)
+          setAutoFrom('idle')
+        }
+      }
       setBoot(false)
       if (f) void run(f, t, null, `${f.name} → ${t.name}`)
       else {

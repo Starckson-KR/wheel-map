@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { go, TO } from '../lib/nav'
 import CountUp from './CountUp'
 import RewardEmblem from './RewardEmblem'
+import { SegBg } from './motionKit'
 import { DEMO_USERS, useReports, userName } from '../lib/reportStore'
 import { REWARD_DAILY_CAP } from '../lib/config'
 import { GRADE_EMBLEMS, SPECIAL_EMBLEM, TYPE_EMBLEMS, changedRoads, computeRewards, type PointEvent } from '../lib/rewards'
@@ -71,6 +72,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
       <div className="rf-seg" role="tablist" aria-label="내 기여 보기">
         {TABS.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}>
+            {tab === t.id && <SegBg group="seg-rewards" />}
             {t.label}
           </button>
         ))}

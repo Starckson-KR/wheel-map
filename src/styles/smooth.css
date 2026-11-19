@@ -1,0 +1,82 @@
+/* 내용이 바뀌는 자리를 부드럽게: 새로 나타나는 조각은 살짝 올라오며 또렷해진다(transform·opacity만).
+   React가 새로 그린 요소와 hidden이 풀린 요소에서 한 번씩만 재생된다. 나가는 움직임이 필요한 곳은 motion(AnimatePresence)이 맡는다.
+   움직임 줄이기는 html.motion-reduce 기준(기기 설정과 상관없음). 맨 아래에서 한꺼번에 끈다. */
+
+@keyframes fx-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+@keyframes fx-fade {
+  from { opacity: 0; }
+}
+
+/* ───── 올라오며 나타남 ───── */
+:is(
+  /* 혜택알림 */
+  .bn-detail:not([hidden]),
+  .bn-panel,
+  .bn-list,
+  .al-empty,
+  .pg-lines,
+  /* 제보 현황·내 기여·랭킹 */
+  .rp-list,
+  .rp-empty,
+  .rp-tabs--chips,
+  .rw section:not(.rw-hero),
+  .rk-panel,
+  .pg-agencies > li:nth-child(n + 6),
+  /* 지도: 장소 검색 결과, 레이어 패널에서 켜면 나오는 줄, 버스 도착 */
+  [id='map-search-results'] > *,
+  .lp-filter,
+  .lp-check,
+  .bus-none,
+  .bus-mode,
+  .bus-list,
+  /* 홈 */
+  .hp-ai-card,
+  .hp-ai-hint,
+  .hp-mine-s
+) {
+  animation: fx-in 220ms var(--ease-out) backwards;
+}
+
+/* ───── 제자리에서 또렷해짐(위치를 따로 잡는 요소, 글줄 안 요소) ───── */
+:is(
+  .bn-fold-body:not([hidden]),
+  .hp-trial-msg,
+  .rf-err,
+  .rf-warn,
+  .rf-check,
+  .rf-photo,
+  .hm-focus,
+  .hm-note,
+  .hm-eyebrow,
+  .hm-search-x,
+  [id='map-search-results'],
+  .hm-legend:not(.hm-legend--shut)
+) {
+  animation: fx-fade 200ms var(--ease-out) backwards;
+}
+
+/* ───── 제보 흐름: 단계가 바뀌면 그 단계의 내용이 차례로 올라온다. 아래 버튼 줄은 자리를 지키고 또렷해지기만 한다 ───── */
+.rf > .rf-body > :not(.rf-actions):not(.rf-done) {
+  animation: fx-in 260ms var(--ease-out) backwards;
+}
+.rf > .rf-body > :nth-child(2):not(.rf-actions):not(.rf-done) { animation-delay: 40ms; }
+.rf > .rf-body > :nth-child(3):not(.rf-actions):not(.rf-done) { animation-delay: 80ms; }
+.rf > .rf-body > :nth-child(n + 4):not(.rf-actions):not(.rf-done) { animation-delay: 120ms; }
+.rf > .rf-body > .rf-actions { animation: fx-fade 200ms var(--ease-out) backwards; }
+
+/* ───── 펼침 화살표: 펼치면 아래를 본다 ───── */
+.hp-nchev { display: inline-flex; transition: transform 200ms var(--ease-out); }
+.hp-nchev.on { transform: rotate(90deg); }
+
+/* ───── 움직임 줄이기 ───── */
+html.motion-reduce :is(
+  .bn-detail, .bn-panel, .bn-list, .al-empty, .pg-lines, .rp-list, .rp-empty, .rp-tabs--chips, .rw section, .rk-panel,
+  [id='map-search-results'], [id='map-search-results'] > *, .lp-filter, .lp-check, .bus-none, .bus-mode, .bus-list,
+  .hp-ai-card, .hp-ai-hint, .hp-mine-s, .bn-fold-body, .hp-trial-msg, .rf-err, .rf-warn, .rf-check, .rf-photo,
+  .hm-focus, .hm-note, .hm-eyebrow, .hm-search-x, .hm-legend, .rf > .rf-body > *, .pg-agencies > li
+) {
+  animation: none;
+}
+html.motion-reduce .hp-nchev { transition: none; }

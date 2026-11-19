@@ -252,8 +252,10 @@ export default function HomePage() {
             </div>
           </header>
 
+          {/* 「처음이세요?」 카드가 닫힐 때: 카드는 흐려지며 빠지고, 아래 내용(.hp-rest)은 제자리로 미끄러져 올라온다 */}
+          <AnimatePresence mode="popLayout" initial={false}>
           {needTrial && (
-            <section className="hp-trial" aria-labelledby="h-trial">
+            <m.section key="trial" className="hp-trial" aria-labelledby="h-trial" exit={{ opacity: 0, scale: 0.97, transition: FADE_OUT }}>
               <h2 id="h-trial">처음이세요?</h2>
               <Sentences as="p">체험 데이터를 채우면 지도와 랭킹이 채워져요. 모두 가상이고, 제보는 실제로 접수되지 않아요.</Sentences>
               <div className="hp-trial-act">
@@ -261,8 +263,11 @@ export default function HomePage() {
                 <button type="button" disabled={filling} onClick={() => setSkipTrial(true)}>그냥 둘러보기</button>
               </div>
               {fillMsg && <Sentences as="p" className="hp-trial-msg" role="status">{fillMsg}</Sentences>}
-            </section>
+            </m.section>
           )}
+          </AnimatePresence>
+
+          <m.div className="hp-rest" layout="position" transition={SPRING.screen}>
 
           <section className="hp-ask-wrap" aria-labelledby="h-q">
             <h2 id="h-q" className="hp-q">어디가 불편하세요?</h2>
@@ -293,21 +298,33 @@ export default function HomePage() {
                   </PressButton>
                 </RiseLi>
               ))}
-              <RiseLi key={(extra?.id ?? 'add') + tick} first={riseTiles || tick > 0} i={FIXED_TILES.length}>
-                {extra ? (
-                  <PressButton type="button" className="hp-tile" onClick={() => openTile(extra.to)}>
-                    <span className="hp-tile-ic"><Icon name={extra.icon} size={26} /></span>
-                    <span className="hp-tile-t">{extra.label}</span>
-                  </PressButton>
-                ) : (
-                  <PressButton type="button" className="hp-tile hp-tile-add" aria-haspopup="dialog" onClick={() => setPicker(true)}>
-                    <span className="hp-tile-ic"><Icon name="plus" size={26} /></span>
-                    <span className="hp-tile-t">추가</span>
-                  </PressButton>
-                )}
+              {/* 여섯 번째 칸: 고르거나 비우면 이전 칸은 작아지며 사라지고 새 칸이 살짝 커지며 나타난다 */}
+              <RiseLi key={'extra' + tick} className="hp-tile-slot" first={riseTiles || tick > 0} i={FIXED_TILES.length}>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <m.div
+                    key={extra?.id ?? 'add'}
+                    className="hp-tile-swap"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1, transition: { scale: SPRING.screen, opacity: FADE } }}
+                    exit={{ opacity: 0, scale: 0.94, transition: FADE_OUT }}
+                  >
+                    {extra ? (
+                      <PressButton type="button" className="hp-tile" onClick={() => openTile(extra.to)}>
+                        <span className="hp-tile-ic"><Icon name={extra.icon} size={26} /></span>
+                        <span className="hp-tile-t">{extra.label}</span>
+                      </PressButton>
+                    ) : (
+                      <PressButton type="button" className="hp-tile hp-tile-add" aria-haspopup="dialog" onClick={() => setPicker(true)}>
+                        <span className="hp-tile-ic"><Icon name="plus" size={26} /></span>
+                        <span className="hp-tile-t">추가</span>
+                      </PressButton>
+                    )}
+                  </m.div>
+                </AnimatePresence>
               </RiseLi>
             </ul>
           </section>
+          </m.div>
         </div>
       </div>
       <AnimatePresence>

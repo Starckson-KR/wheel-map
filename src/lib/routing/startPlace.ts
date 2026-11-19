@@ -27,5 +27,22 @@ export function resolveStart(pos: StartPos | null | undefined, inPilot: boolean)
   return { ok: true, place: { name: '내 위치', lat: pos.lat, lng: pos.lng } }
 }
 
+export type DemoStartSrc = { fromName: string; from: { stopId: string; lat: number; lng: number } }
+export type StartPick = { place: { id?: string; name: string; lat: number; lng: number }; demo: boolean }
+
+/** 시연 출발점: 추천 경로 「전남대 → 용봉2휴먼시아아파트」의 출발 「전남대」와 같은 정류장·좌표 */
+export const DEMO_START_LABEL = '(시연 출발점)'
+export function demoStartOf(pairs: (DemoStartSrc & { toName: string })[]): StartPick['place'] | null {
+  const p = pairs.find((x) => x.fromName === '전남대' && x.toName.startsWith('용봉2휴먼시아'))
+  return p ? { id: p.from.stopId, name: `${p.fromName}${DEMO_START_LABEL}`, lat: p.from.lat, lng: p.from.lng } : null
+}
+
+/** 검색바에서 도착지를 골랐을 때 출발지: 위치를 쓸 수 있고 시범 지역 안이면 '내 위치', 아니면 시연 출발점 */
+export function pickStart(pos: StartPos | null | undefined, inPilot: boolean, demo: StartPick['place'] | null): StartPick | null {
+  const r = resolveStart(pos, inPilot)
+  if (r.ok) return { place: r.place, demo: false }
+  return demo ? { place: demo, demo: true } : null
+}
+
 /** 비운 이유를 알리는 짧은 한 줄 */
 export const START_HINT = '출발지를 골라 주세요.'

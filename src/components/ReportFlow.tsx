@@ -386,7 +386,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
         </div>
       ) : (
         <div className="rf-body">
-          <div>
+          <div key={step}>
             <h2 className="rf-q">{q.q}</h2>
             {q.sub && <p className="rf-q-sub">{q.sub}</p>}
           </div>

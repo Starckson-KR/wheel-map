@@ -4,25 +4,25 @@ import Icon from '../components/Icon'
 import { RiseLi, SegBg } from '../components/motionKit'
 import { useRiseOnce } from '../lib/useRiseOnce'
 import { FADE, FADE_OUT } from '../lib/motionTokens'
-import CountUp from '../components/CountUp'
 import { MockStrip } from '../components/DemoTools'
 import ReportsPanel from '../components/ReportsPanel'
 import MyRewards from '../components/MyRewards'
 import ParticipationRanking from '../components/ParticipationRanking'
 import ParticipationChallenge from '../components/ParticipationChallenge'
 import ReceiptLookup from '../components/ReceiptLookup'
+import VerifyDeck from '../components/VerifyDeck'
 import MyBenefits from '../components/MyBenefits'
 import { listAgencies } from '../lib/agencyGuide'
 import { TO, go } from '../lib/nav'
 import { computeRewards } from '../lib/rewards'
-import { nowMs, useReports, userName } from '../lib/reportStore'
+import { nowMs, useReports } from '../lib/reportStore'
 import type { ReportStatus } from '../types'
 import { loadBarriers } from '../lib/seed'
 import AccountCard from '../components/onboarding/AccountCard'
 import { Sentences } from '../components/Sentences'
+import { openGuide } from '../lib/usageGuide'
 import { Wordmark } from '../components/Wordmark'
 import { isMockReport } from '../lib/realFirst'
-import { nextGradeRatio } from '../lib/homeSummary'
 
 const BARRIERS = loadBarriers()
 
@@ -71,33 +71,34 @@ export function ReportTab({ query }: { query: string }) {
   const agencies = useMemo(() => listAgencies().filter((a) => a.verified), [])
   const [allAg, setAllAg] = useState(false)
   useEffect(() => {
-    // 구역 이동: agency(담당 기관 안내), receipt(접수번호로 찾기), mine(내 민원 진행 상황). AI 검색창이 이 주소로 안내한다.
-    const id = ({ agency: 'pg-agency', receipt: 'pg-receipt', mine: 'pg-mine' } as Record<string, string>)[new URLSearchParams(query).get('section') ?? '']
+    // 구역 이동: agency(담당 기관 안내), receipt(접수번호로 찾기), mine(내 제보 진행 상황), verify(이웃 제보 확인). AI 검색창이 이 주소로 안내한다.
+    const id = ({ agency: 'pg-agency', receipt: 'pg-receipt', mine: 'pg-mine', verify: 'pg-verify' } as Record<string, string>)[new URLSearchParams(query).get('section') ?? '']
     if (!id) return
     const el = document.getElementById(id)
     el?.scrollIntoView({ block: 'start' })
     if (id === 'pg-receipt') document.getElementById('rl-q')?.focus({ preventScroll: true })
   }, [query])
   return (
-    <Page title="민원신고">
+    <Page title="제보">
       <section className="pg-card">
-        <h2>문제 신고하기</h2>
-        <p className="bm-meta">길에서 만난 불편을 위치와 사진과 함께 남겨요.</p>
+        <h2>길에서 만난 불편</h2>
+        <p className="bm-meta">위치와 사진을 함께 남겨요.</p>
         <button type="button" className="rf-primary pg-wide" onClick={() => go(TO.newReport)}>
-          문제 신고하기
+          문제 제보하기
         </button>
       </section>
+      <VerifyDeck />
       <section className="pg-card" id="pg-receipt">
         <h2>접수번호로 찾기</h2>
         <ReceiptLookup onOpen={(id) => go(TO.openReport(id))} />
       </section>
       <section className="pg-card" id="pg-mine">
-        <h2>내 민원 진행 상황</h2>
+        <h2>내 제보 진행 상황</h2>
         <ReportsPanel embedded onOpen={(id) => go(TO.openReport(id))} />
       </section>
       <section className="pg-card" id="pg-agency" tabIndex={-1}>
         <h2>담당 기관 안내</h2>
-        <Sentences as="p" className="bm-meta">신고를 남기면 내 민원 상세에서 담당 기관과 접수 방법을 볼 수 있어요.</Sentences>
+        <Sentences as="p" className="bm-meta">제보를 남기면 내 제보 상세에서 담당 기관과 접수 방법을 볼 수 있어요.</Sentences>
         <ul className="pg-agencies">
           {(allAg ? agencies : agencies.slice(0, 5)).map((a) => (
             <li key={a.id}>
@@ -124,14 +125,28 @@ export function MeTab() {
         <h2>내 기여</h2>
         <MyRewards embedded barriers={BARRIERS} onOpenReports={() => go(TO.report)} onOpenReport={(id) => go(TO.openReport(id))} />
       </section>
+      <section className="pg-card" aria-label="이용 안내">
+        <ul className="pg-lines">
+          <li>
+            <button type="button" className="pg-line" aria-haspopup="dialog" onClick={openGuide}>
+              <Icon name="help" size={20} />
+              <span className="pg-line-t">
+                <strong>이용 안내</strong>
+                <span>이렇게 해 보세요</span>
+              </span>
+              <Icon name="chev" size={16} />
+            </button>
+          </li>
+        </ul>
+      </section>
     </Page>
   )
 }
 
 type AlertsTabId = 'alerts' | 'benefits' | 'ranking'
 const ALERT_TABS: { id: AlertsTabId; label: string }[] = [
-  { id: 'alerts', label: '알림' },
   { id: 'benefits', label: '혜택' },
+  { id: 'alerts', label: '알림' },
   { id: 'ranking', label: '랭킹·챌린지' },
 ]
 
@@ -139,7 +154,7 @@ type Alert = { key: string; at: string; kind: 'report' | 'points'; icon: string;
 type AlertFilter = 'all' | 'report' | 'points'
 const FILTERS: { id: AlertFilter; label: string }[] = [
   { id: 'all', label: '전체' },
-  { id: 'report', label: '민원' },
+  { id: 'report', label: '제보' },
   { id: 'points', label: '참여 점수' },
 ]
 
@@ -147,8 +162,8 @@ const FILTERS: { id: AlertFilter; label: string }[] = [
 const STATUS_TEXT: Partial<Record<ReportStatus, { icon: string; text: (t: string) => string }>> = {
   pending: { icon: 'clock', text: (t) => `${t} 제보가 검증을 기다리고 있어요` },
   verified: { icon: 'check', text: (t) => `${t} 제보가 검증됐어요` },
-  filed: { icon: 'report', text: (t) => `${t} 민원이 접수됐어요` },
-  assigned: { icon: 'building', text: (t) => `${t} 민원이 담당 기관에 배정됐어요` },
+  filed: { icon: 'report', text: (t) => `${t} 제보가 접수됐어요` },
+  assigned: { icon: 'building', text: (t) => `${t} 제보가 담당 기관에 배정됐어요` },
   in_progress: { icon: 'route', text: (t) => `${t} 문제를 조치하고 있어요` },
   resolved: { icon: 'check', text: (t) => `${t} 문제가 해결됐어요. 재확인을 기다려요` },
   rechecked: { icon: 'check', text: (t) => `${t} 조치 결과를 재확인했어요` },
@@ -193,34 +208,16 @@ export function AlertsTab({ query = '' }: { query?: string }) {
     return out.sort((a, b) => Number(!!a.mock) - Number(!!b.mock) || b.at.localeCompare(a.at)) // 실제 제보 알림이 체험 제보 알림보다 먼저
   }, [reports, userId, rw])
   const shown = items.filter((x) => filter === 'all' || x.kind === filter).slice(0, 40)
-  // 한 화면에 한 구역: 알림 · 혜택 · 랭킹·챌린지. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
+  // 한 화면에 한 구역: 혜택(기본) · 알림 · 랭킹·챌린지. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
   const qs = new URLSearchParams(query)
-  const tab: AlertsTabId = ALERT_TABS.find((t) => t.id === qs.get('tab'))?.id ?? (qs.get('section') === 'benefits' ? 'benefits' : 'alerts')
+  const tab: AlertsTabId = ALERT_TABS.find((t) => t.id === qs.get('tab'))?.id ?? 'benefits'
   const riseAlerts = useRiseOnce('alerts-list')
   const pickTab = (id: AlertsTabId) => {
-    go(id === 'alerts' ? TO.alerts : `#/alerts?tab=${id}`)
+    go(id === 'benefits' ? TO.alerts : `#/alerts?tab=${id}`)
   }
 
   return (
     <Page title="혜택알림">
-      <section className="pg-card al-sum" aria-label="참여 점수 요약">
-        <div className="al-sum-main">
-          <span className="al-sum-ic" aria-hidden="true"><Icon name="star" size={24} /></span>
-          <div>
-            <p className="bm-meta">{userName(userId)}의 참여 점수</p>
-            <p className="pg-score"><b><CountUp value={rw.total} /></b>점 · {rw.title || '아직 칭호가 없어요'}</p>
-          </div>
-        </div>
-        {rw.next && (
-          <>
-            <div className="hp-bar" role="progressbar" aria-label={`다음 칭호 ${rw.next.name}까지`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(nextGradeRatio(rw.next) * 100)}>
-              <i style={{ transform: `scaleX(${nextGradeRatio(rw.next)})` }} />
-            </div>
-            <p className="bm-meta">다음 칭호 &apos;{rw.next.name}&apos;: {rw.next.how}</p>
-          </>
-        )}
-        <button type="button" className="pg-wide" onClick={() => go(TO.me)}>내 기여 자세히 보기</button>
-      </section>
       <div className="rf-seg al-seg" role="tablist" aria-label="혜택알림 구역">
         {ALERT_TABS.map((t) => (
           <button key={t.id} type="button" role="tab" id={`al-tab-${t.id}`} aria-selected={tab === t.id} aria-controls="al-panel" className={tab === t.id ? 'on' : ''} onClick={() => pickTab(t.id)}>
@@ -254,11 +251,11 @@ export function AlertsTab({ query = '' }: { query?: string }) {
             <Sentences as="p" className="bm-meta">{filter === 'points'
                 ? '아직 받은 참여 점수가 없어요.'
                 : filter === 'report'
-                  ? '아직 민원 알림이 없어요.'
+                  ? '아직 제보 알림이 없어요.'
                   : '아직 받은 알림이 없어요.'}</Sentences>
             <div className="empty-act">
-              <button type="button" className="rf-primary" onClick={() => go(filter === 'points' ? TO.map : TO.newReport)}>
-                {filter === 'points' ? '지도 보기' : '문제 신고하러 가기'}
+              <button type="button" className="pg-wide" onClick={() => go(filter === 'points' ? TO.map : TO.newReport)}>
+                {filter === 'points' ? '지도 보기' : '문제 제보하러 가기'}
               </button>
             </div>
           </div>

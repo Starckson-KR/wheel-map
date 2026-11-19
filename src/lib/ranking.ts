@@ -32,7 +32,7 @@ export const inRange = (iso: string, r: PeriodRange) => {
 
 // 랭킹 화면에 보여 줄 점수 종류 이름(어떤 활동이 점수가 됐는지)
 export const KIND_LABEL: Record<PointKind, string> = {
-  verified: '신규 신고 검증',
+  verified: '신규 제보 검증',
   evidence: '실측·사진 보강',
   ledToAction: '조치로 이어짐',
   voteMatch: '확인 투표',

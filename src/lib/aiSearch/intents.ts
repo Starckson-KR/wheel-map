@@ -30,9 +30,9 @@ export const SLOT_KEYS: Record<AiIntent, readonly SlotKey[]> = {
 
 // 화면에 보이는 고정 문구(해요체). 모델이 만든 문장은 화면에 쓰지 않는다.
 export const INTENT_LABEL: Record<MovableIntent, string> = {
-  report_new: '문제 신고하기',
-  receipt_lookup: '접수번호로 민원 찾기',
-  my_reports: '내 민원 진행 상황',
+  report_new: '문제 제보하기',
+  receipt_lookup: '접수번호로 제보 찾기',
+  my_reports: '내 제보 진행 상황',
   route: '휠체어 길찾기',
   bus: '저상버스 도착',
   progress: '개선 현황',
@@ -54,7 +54,7 @@ const HASH: Record<MovableIntent, string | null> = {
   progress: TO.progress,
   my_score: TO.me,
   agency: TO.agency,
-  alerts: TO.alerts,
+  alerts: '#/alerts?tab=alerts', // 알림 탭(기본은 혜택)
   help: null,
   toilet_find: TO.map, // 지도의 장애인화장실 레이어는 기본으로 켜져 있다
 }
@@ -91,7 +91,7 @@ export function noteFor(intent: MovableIntent, slots: Slots = {}): string | unde
   if (intent === 'toilet_find') return '장애인화장실이 표시된 지도를 열어요'
   if (intent === 'report_new') {
     const t = typeFromQuery(slots.type)
-    return t ? `${t} 유형으로 신고 화면을 열어요` : undefined
+    return t ? `${t} 유형으로 제보 화면을 열어요` : undefined
   }
   if (intent === 'route') {
     const from = placeFromQuery(slots.from)
@@ -106,6 +106,6 @@ export function noteFor(intent: MovableIntent, slots: Slots = {}): string | unde
 
 // 점수 중에서도 순위·등수를 묻는 말은 랭킹이 있는 혜택알림 탭으로 보낸다.
 export function targetFor(intent: MovableIntent, question = '', slots: Slots = {}): Target {
-  if (intent === 'my_score' && RANK_RE.test(question)) return { intent, label: '참여 랭킹', hash: TO.alerts }
+  if (intent === 'my_score' && RANK_RE.test(question)) return { intent, label: '참여 랭킹', hash: '#/alerts?tab=ranking' }
   return { intent, label: INTENT_LABEL[intent], hash: buildHash(intent, slots), note: noteFor(intent, slots) }
 }

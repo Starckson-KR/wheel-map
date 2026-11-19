@@ -23,6 +23,7 @@ const P: Record<string, string> = {
   star: 'M12 3.5l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6-4.5-4.2 6.1-.8z',
   clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2',
   close: 'M6 6l12 12M18 6L6 18',
+  refresh: 'M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5',
 }
 export default function Icon({ name, size = 24 }: { name: string; size?: number }) {
   return (

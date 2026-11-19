@@ -530,8 +530,8 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
           <ul className="ob-feats">
             {[
               ['map', '지도에서 다니기 어려운 곳 보기', '경사로·턱·엘리베이터를 미리 알아봐요'],
-              ['report', '문제 신고하기', '불편한 곳을 사진과 함께 알려요'],
-              ['bell', '처리 결과 받아보기', '신고가 어디까지 처리됐는지 확인해요'],
+              ['report', '문제 제보하기', '불편한 곳을 사진과 함께 알려요'],
+              ['bell', '처리 결과 받아보기', '제보가 어디까지 처리됐는지 확인해요'],
             ].map(([ic, t1, t2], i) => (
               <li key={t1} className="ob-feat" style={{ animationDelay: `${160 + i * 90}ms` }}>
                 <span className="ob-feat-ic"><Icon name={ic} size={22} /></span>

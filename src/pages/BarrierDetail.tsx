@@ -132,7 +132,7 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
           {flowReport ? (
             <>
               <p>
-                <span className="sent">이 지점은 민원이 진행 중이에요.</span> <span className="sent">지금은 <b>{STATUS_LABEL[flowReport.status]}</b> 단계예요.</span>
+                <span className="sent">이 지점은 제보가 진행 중이에요.</span> <span className="sent">지금은 <b>{STATUS_LABEL[flowReport.status]}</b> 단계예요.</span>
               </p>
               <button type="button" className="rf-primary" onClick={() => onOpenReport?.(flowReport.id)}>
                 진행 상황 보기
@@ -159,7 +159,7 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
                 </select>
               </label>
               <button type="button" className="rf-primary" disabled={!flowType || !flowKind} onClick={() => onStartFlow(flowType, flowKind)}>
-                이 지점 민원 시작하기
+                이 지점 제보 시작하기
               </button>
             </>
           )}

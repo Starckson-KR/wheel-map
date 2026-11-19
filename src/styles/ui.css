@@ -8,7 +8,7 @@
   padding: var(--s-6) var(--s-5) var(--s-5);
   border-radius: var(--r-xl) var(--r-xl) 0 0; background: var(--bg); box-shadow: var(--shadow-sheet);
 }
-.cs-sheet h2 { margin: 0; color: var(--text-strong); font-size: var(--fs-head); font-weight: 800; line-height: 1.35; }
+.cs-sheet h2 { margin: 0; color: var(--text-strong); font-size: var(--fs-head); font-weight: 700; line-height: 1.35; }
 .cs-sheet p { margin: var(--s-2) 0 0; color: var(--text-sub); font-size: var(--fs-body); line-height: 1.5; }
 .cs-actions { display: flex; gap: var(--s-2); margin-top: var(--s-5); }
 .cs-actions button {
@@ -19,7 +19,9 @@
 .cs-actions button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .cs-cancel { background: var(--grey-100); color: var(--text); }
 .cs-ok { background: var(--blue-600); color: var(--on-primary); }
-.cs-ok.danger { background: var(--danger); }
+.cs-ok.danger { background: var(--red-50); color: var(--red-700); }
+/* 되돌릴 수 없는 확인에서는 안전한 쪽(계속·취소)이 주 버튼이다. 빨강은 연하게 글자로만 */
+.cs-actions:has(.cs-ok.danger) .cs-cancel { background: var(--blue-600); color: var(--on-primary); }
 
 /* ───── 토스트(2초)·스낵바(되돌리기) ───── */
 .nt-lane {
@@ -35,7 +37,7 @@
 .nt-item button {
   flex: none; min-width: 44px; min-height: 44px; margin: 0 calc(var(--s-2) * -1) 0 0; padding: 0 var(--s-3);
   border: 0; border-radius: var(--r-md); background: none; color: #8ec1ff;
-  font: inherit; font-size: var(--fs-small); font-weight: 800; cursor: pointer;
+  font: inherit; font-size: var(--fs-small); font-weight: 700; cursor: pointer;
 }
 .nt-item button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(142 193 255 / 0.6); }
 
@@ -52,7 +54,7 @@
 
 /* ───── 인라인 오류·진행 표시·비활성 사유 ───── */
 .rf-err { margin: 0; color: var(--red-700); font-size: var(--fs-small); font-weight: 600; line-height: 1.45; }
-.rf-err::before { content: '! '; font-weight: 800; }
+.rf-err::before { content: '! '; font-weight: 700; }
 .bm [aria-invalid='true'] { border-color: var(--danger) !important; box-shadow: 0 0 0 1px var(--danger); }
 .bm [aria-invalid='true']:focus-visible { box-shadow: 0 0 0 1px var(--danger), var(--focus-ring); }
 .rf-why { margin: 0; text-align: center; }

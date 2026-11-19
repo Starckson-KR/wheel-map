@@ -162,7 +162,7 @@
 .row-tag {
   flex: none;
   color: var(--text-sub);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
 }
 
 .badge {
@@ -171,7 +171,7 @@
   border-radius: 10px;
   background: var(--grey-200);
   color: var(--text-sub);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
 }
 
 .badge.done {

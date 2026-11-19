@@ -118,7 +118,7 @@ test('키워드 폴백: 칭호·등수·순위 계열은 my_score, 내 신고 �
 })
 
 test('이동 대상: 순위를 묻는 점수 질문은 랭킹 탭, 나머지는 고정 주소', () => {
-  assert.equal(targetFor('my_score', '몇 등이에요').hash, '#/alerts')
+  assert.equal(targetFor('my_score', '몇 등이에요').hash, '#/alerts?tab=ranking')
   assert.equal(targetFor('my_score', '내 포인트').hash, '#/me')
   assert.equal(targetFor('report_new').hash, '#/map?go=report')
   assert.equal(targetFor('help').hash, null)
@@ -264,7 +264,7 @@ test('buildHash: 길찾기는 출발·도착을 붙이고 같은 말·잘못된 
 })
 
 test('고정 문구', () => {
-  assert.equal(noteFor('report_new', { type: '급경사' }), '급경사 유형으로 신고 화면을 열어요')
+  assert.equal(noteFor('report_new', { type: '급경사' }), '급경사 유형으로 제보 화면을 열어요')
   assert.equal(noteFor('route', { from: '후문', to: '정류장' }), '출발 후문 · 도착 정류장으로 길찾기를 열어요')
   assert.equal(noteFor('report_new', {}), undefined)
   assert.equal(targetFor('route', '', { from: '후문', to: '정류장' }).note, '출발 후문 · 도착 정류장으로 길찾기를 열어요')

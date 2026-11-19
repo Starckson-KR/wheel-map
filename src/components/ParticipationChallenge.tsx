@@ -81,7 +81,7 @@ export default function ParticipationChallenge() {
           )}
         </Row>
         <Row c={get('newReport')}>
-          <button type="button" className="ch-go" onClick={() => go(TO.newReport)}>문제 신고하기</button>
+          <button type="button" className="ch-go" onClick={() => go(TO.newReport)}>문제 제보하기</button>
         </Row>
       </ul>
     </section>

@@ -96,7 +96,7 @@ export default function ReportsPanel({ onOpen, onClose, embedded = false }: Prop
               </p>
               {tab === 'all' && (
                 <div className="empty-act">
-                  <button type="button" className="rf-primary" onClick={() => go(TO.newReport)}>문제 신고하러 가기</button>
+                  <button type="button" className="rf-primary" onClick={() => go(TO.newReport)}>문제 제보하러 가기</button>
                 </div>
               )}
             </div>

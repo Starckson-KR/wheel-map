@@ -1,11 +1,11 @@
 /* 개발자 관리: 사용자 상세(기기·접속 기록·오류) */
 .dv-act-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
-.dv-act-head h3 { margin: 0; min-width: 0; flex: 1; text-align: center; color: var(--text-strong); font-size: var(--fs-sub); font-weight: 800; overflow-wrap: anywhere; }
+.dv-act-head h3 { margin: 0; min-width: 0; flex: 1; text-align: center; color: var(--text-strong); font-size: var(--fs-sub); font-weight: 700; overflow-wrap: anywhere; }
 .bm .dv-back { flex: none; min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-sm); background: none; color: var(--primary); font-weight: 700; white-space: nowrap; }
 .dv-live { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--grey-100); color: var(--text-sub); font-size: var(--fs-small); font-weight: 700; text-align: center; }
 .dv-live.on { background: var(--primary-weak); color: var(--primary); }
-.dv-sec { margin: var(--s-4) 0 0; color: var(--text-strong); font-size: var(--fs-small); font-weight: 800; }
+.dv-sec { margin: var(--s-4) 0 0; color: var(--text-strong); font-size: var(--fs-small); font-weight: 700; }
 .dv-list > li.dv-act-row { align-items: flex-start; }
-.dv-old { margin-left: var(--s-2); padding: 1px 6px; border-radius: var(--r-sm); background: var(--danger); color: #fff; font-size: var(--fs-caption); font-weight: 800; white-space: nowrap; }
+.dv-old { margin-left: var(--s-2); padding: 1px 6px; border-radius: var(--r-sm); background: var(--danger); color: #fff; font-size: var(--fs-caption); font-weight: 700; white-space: nowrap; }
 .bm .dv-open.dv-err { align-items: flex-start; }
 .dv-err .dv-main strong { font-weight: 700; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

@@ -81,7 +81,7 @@
   white-space: nowrap;
   color: var(--text-strong);
   font-size: var(--fs-head);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 
@@ -119,7 +119,8 @@
   color: var(--grey-800);
 }
 
-.bm button.hm-search {
+.bm .hm-search {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -140,7 +141,7 @@
   text-overflow: ellipsis;
 }
 
-.bm button.hm-search::before {
+.bm .hm-search::before {
   content: '';
   flex: none;
   width: 20px;
@@ -193,7 +194,7 @@
   border-radius: var(--r-full);
   background: var(--grey-100);
   color: var(--text-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -211,7 +212,7 @@
   color: #fff;
   font-size: 0.75rem;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -251,7 +252,7 @@
   border-radius: var(--r-full);
   background: var(--purple-700);
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.4;
   text-align: center;
@@ -316,7 +317,7 @@
   background: #fff;
   color: #333d4b;
   font-size: 0.6875rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .bm-pin-n {
@@ -492,7 +493,7 @@
 .bm-pin-cnt {
   padding: 0 2px 0 0;
   font-size: 0.6875rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .bm-cluster--cit {
@@ -509,7 +510,7 @@
   border-radius: 8px;
   color: #fff;
   font-size: 0.6875rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 22px;
   text-align: center;
   white-space: nowrap;
@@ -549,9 +550,9 @@
   box-sizing: border-box;
   border-radius: 6px;
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 20px;
   text-align: center;
   vertical-align: middle;
@@ -638,7 +639,7 @@
   overflow: hidden;
   color: var(--text-strong);
   font-size: var(--fs-body);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.03em;
   text-overflow: ellipsis;
@@ -697,12 +698,6 @@
   padding-top: 12px; /* 손잡이 막대 자리 */
 }
 
-.bm button.hm-cta-main::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-}
-
 .hm-s-mid {
   flex: none;
   display: flex;
@@ -713,70 +708,6 @@
 
 .hm-s-mid .hm-eyebrow {
   margin: 0;
-}
-
-/* 기본 단계의 핵심 3칸 + 더 보기 */
-.hm-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hm-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  padding: 8px 8px 8px 10px;
-  border-radius: var(--r-md);
-  background: var(--grey-100);
-}
-
-.hm-stat-n {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-strong);
-  font-size: 1.125rem;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.hm-stat-n .hm-cat {
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  min-width: 20px;
-  height: 20px;
-  border-radius: var(--r-full);
-  font-size: 0.75rem;
-  font-style: normal;
-  line-height: 1;
-}
-
-.hm-stat-l {
-  color: var(--text-sub);
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.hm-stat-more {
-  display: flex;
-}
-
-.bm .hm-stat-more button {
-  width: 100%;
-  min-height: 44px;
-  padding: 0 var(--s-1);
-  border-radius: var(--r-md);
-  background: none;
-  color: var(--blue-700);
-  font-size: var(--fs-caption);
-  font-weight: 700;
 }
 
 .hm-counts {
@@ -799,16 +730,6 @@
   color: var(--text-strong);
   font-size: var(--fs-small);
   font-weight: 700;
-}
-
-.bm button.hm-cta-main {
-  position: relative;
-  flex: none;
-  min-height: 36px;
-  padding: 0 var(--s-4);
-  border-radius: var(--r-full);
-  font-size: var(--fs-small);
-  white-space: nowrap;
 }
 
 .bm button.hm-cta-sub {
@@ -1006,7 +927,7 @@
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-head);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.03em;
 }
@@ -1083,7 +1004,7 @@
 .pc h2 {
   margin: 0;
   font-size: var(--fs-sub);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .pc-addr {
@@ -1177,7 +1098,7 @@
 .ms-head h2 {
   margin: 0;
   font-size: var(--fs-head);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .ms-sub {
@@ -1223,7 +1144,7 @@
 }
 
 .bm button.lp-card.on {
-  background: var(--blue-50);
+  background: var(--grey-100);
 }
 
 .lp-icon {
@@ -1235,6 +1156,7 @@
   border-radius: var(--r-md);
   background: var(--bg);
   font-size: 1.375rem;
+  color: var(--primary);
 }
 
 .lp-text {
@@ -1674,7 +1596,7 @@ html[data-text='large'] .ms .rf-actions button {
   min-width: 24px;
   height: 24px;
   border-radius: var(--r-full);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-style: normal;
 }
 
@@ -1685,7 +1607,7 @@ html[data-text='large'] .ms .rf-actions button {
   background: #fff;
   color: #4e5968;
   font-size: 0.625rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 14px;
 }
 
@@ -1701,7 +1623,7 @@ html[data-text='large'] .ms .rf-actions button {
 .hm-prov-note {
   margin: 6px 0 0;
   color: var(--text-sub, #6b7684);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -1809,7 +1731,7 @@ html[data-text='large'] .ms .rf-actions button {
 }
 
 .pgp-rate small {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 
@@ -1852,7 +1774,7 @@ html[data-text='large'] .ms .rf-actions button {
   color: #fff;
   font-size: 0.75rem;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -1861,7 +1783,7 @@ html[data-text='large'] .ms .rf-actions button {
   height: 28px;
   padding: 0 10px 0 4px;
   border-radius: var(--r-full);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .bm .pgp-chip.pg-intake,
@@ -2026,8 +1948,7 @@ html[data-text='large'] .ms .rf-actions button {
   }
 
   :root:not([data-view='mobile']) .hm-legend-toggle,
-  :root:not([data-view='mobile']) .hm-grip-btn,
-  :root:not([data-view='mobile']) .hm-stats {
+  :root:not([data-view='mobile']) .hm-grip-btn {
     display: none;
   }
 
@@ -2051,8 +1972,7 @@ html[data-text='large'] .ms .rf-actions button {
   clip: auto;
 }
 :root[data-view='desktop'] .hm-legend-toggle,
-:root[data-view='desktop'] .hm-grip-btn,
-:root[data-view='desktop'] .hm-stats {
+:root[data-view='desktop'] .hm-grip-btn {
   display: none;
 }
 :root[data-view='desktop'] .hm-grip {
@@ -2095,8 +2015,9 @@ html[data-text='large'] .ms .rf-actions button {
 }
 
 .bm button.lp-chip[aria-pressed='true'] {
-  background: var(--primary-weak);
-  color: var(--primary);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 2px var(--primary);
+  color: var(--blue-700);
 }
 
 .bm button.lp-reset {
@@ -2137,13 +2058,13 @@ html[data-text='large'] .ms .rf-actions button {
 /* ───── PC 보기(왼쪽 패널): 위쪽 줄은 예전 모양(회색 입력, 한 칸 위 표시 칩) ───── */
 @media (min-width: 768px) {
   :root:not([data-view='mobile']) .hm-chips { order: -1; max-width: none; }
-  :root:not([data-view='mobile']) .bm button.hm-search { height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
+  :root:not([data-view='mobile']) .bm .hm-search { height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
   :root:not([data-view='mobile']) .bm button.hm-iconbtn { width: 48px; height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
   :root:not([data-view='mobile']) .hm-panel .hm-legend { top: auto; left: auto; max-height: none; --cols: 3; }
   :root:not([data-view='mobile']) .hm-focus { max-width: none; }
 }
 :root[data-view='desktop'] .hm-chips { order: -1; max-width: none; }
-:root[data-view='desktop'] .bm button.hm-search { height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
+:root[data-view='desktop'] .bm .hm-search { height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
 :root[data-view='desktop'] .bm button.hm-iconbtn { width: 48px; height: 48px; min-height: 48px; border-radius: var(--r-lg); background: var(--grey-100); box-shadow: none; }
 :root[data-view='desktop'] .hm-panel .hm-legend { top: auto; left: auto; max-height: none; }
 :root[data-view='desktop'] .hm-focus { max-width: none; }
@@ -2151,4 +2072,117 @@ html[data-text='large'] .ms .rf-actions button {
 /* 터치 기기(휴대폰·태블릿)에서만 보기 방식(자동·모바일·PC) 묶음을 숨긴다. PC는 창이 좁아도 보인다. */
 @media (hover: none) and (pointer: coarse) {
   :root:not([data-view='desktop']) .ms-view { display: none; }
+}
+.hm-s-mid:empty { padding-bottom: 0; }
+
+/* ───── 위쪽 검색바가 입력칸: 누르면 그 자리에서 키보드, 아래에 장소 검색 결과(카카오맵·네이버지도 방식) ───── */
+.bm .hm-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 1rem; /* 16px 미만이면 아이폰이 입력칸을 확대한다 */
+  font-weight: 500;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.bm .hm-search-input::placeholder {
+  color: var(--text-sub);
+}
+.bm .hm-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+.bm .hm-search.on {
+  box-shadow: 0 0 0 2px var(--primary), var(--shadow-2);
+}
+.bm button.hm-search-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin-right: -10px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-sub);
+}
+/* 검색 중에는 시트·칩·범례 버튼 대신 결과 목록이 화면을 덮는다 */
+.hm-top--search {
+  z-index: var(--z-detail);
+}
+.hm-top--search .hm-chips,
+.hm-top--search .hm-legend-toggle {
+  display: none;
+}
+.hm-panel:has(.hm-top--search) .hm-sheet {
+  display: none;
+}
+.ps {
+  max-height: calc(100dvh - var(--safe-top) - 84px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-2), 0 0 0 1px rgb(25 31 40 / 0.06);
+  padding: var(--s-2) 0;
+}
+.ps-h {
+  margin: 0;
+  padding: var(--s-2) var(--s-4);
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.ps-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bm button.ps-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 52px;
+  padding: var(--s-2) var(--s-4);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-strong);
+  text-align: left;
+}
+.ps-name {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.ps-addr {
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+.ps-note {
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+}
+@media (hover: hover) and (pointer: fine) {
+  .bm button.ps-row:hover:not(:disabled) {
+    background: var(--grey-100);
+  }
 }

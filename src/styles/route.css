@@ -129,6 +129,12 @@
 /* 검색 카드: 도착 → 출발 순서. 추천 경로는 입력이 비어 있을 때만 그 아래에 작게 */
 .rt-search {
   gap: var(--s-2);
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.rt-search[hidden] {
+  display: none;
 }
 .rt-recommend h3 {
   color: var(--text-sub);
@@ -143,15 +149,24 @@
   display: grid;
   gap: 6px;
   margin: 0;
-  padding: var(--s-3) var(--s-4);
+  padding: var(--s-3) var(--s-4) var(--s-4);
   border: 0;
-  border-radius: var(--r-md);
-  background: var(--bg);
+  border-radius: var(--r-lg);
+  background: var(--grey-100);
 }
 
+/* legend는 기본 모양이면 테두리 위에 걸쳐 그려진다. 일반 줄처럼 안쪽 맨 위에 둔다 */
 .rt-place legend {
-  padding: 0 4px;
+  float: left;
+  width: 100%;
+  margin: 0 0 var(--s-1);
+  padding: 0;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
   font-weight: 700;
+}
+.rt-place legend + * {
+  clear: both;
 }
 
 .rt-val {
@@ -164,9 +179,13 @@
   flex-wrap: wrap;
 }
 
-.rt-row input {
+.bm .rt-row input[type="search"] {
   flex: 1 1 140px;
   width: auto;
+  background: var(--bg);
+}
+.bm .rt-place .rt-row button:not(.on) {
+  background: var(--bg);
 }
 
 .bm .rt-row button.on {
@@ -242,7 +261,7 @@
   position: absolute;
   top: 36px;
   color: var(--text-sub);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
@@ -266,7 +285,7 @@
   border-radius: 50%;
   color: #fff;
   font-size: 0.8125rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
   box-shadow: 0 1px 4px rgb(25 31 40 / 0.35);
 }
@@ -428,9 +447,8 @@
 
 /* 카드 전체가 하나의 면이다: 올리면 아주 연한 배경, 누르면 조금 더 짙게, 고르면 파란 테두리 */
 .rc {
-  border-radius: var(--r-lg);
-  background: var(--bg);
-  box-shadow: inset 0 0 0 1px var(--line);
+  border-radius: var(--card-radius);
+  background: var(--grey-100);
   transition:
     background-color var(--t-fast) var(--ease-out),
     box-shadow var(--t-fast) var(--ease-out);
@@ -442,12 +460,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .rc:hover {
-    background: var(--bg-sub);
+    background: var(--grey-200);
   }
 }
 
 .rc:has(.rc-btn:active) {
-  background: var(--bg-page);
+  background: var(--grey-200);
 }
 
 .bm button.rc-btn,
@@ -482,7 +500,7 @@
 .rc-time {
   color: var(--text-strong);
   font-size: 1.375rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -511,7 +529,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -580,13 +598,13 @@
   min-width: 0;
   color: var(--text-strong);
   font-size: var(--fs-sub);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .bm .rt-pair-sum button {
   flex: none;
-  min-height: 36px;
+  min-height: var(--touch);
   padding: 0 var(--s-3);
   border-radius: var(--r-full);
   font-size: var(--fs-small);
@@ -663,7 +681,7 @@
   box-shadow: 0 0 0 3px var(--bg);
   font-size: 0.6875rem;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .tl-title {
@@ -763,7 +781,7 @@
   border-radius: var(--r-full);
   background: var(--bg-page);
   color: var(--text-sub);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -872,7 +890,7 @@ details.rt-more > summary {
   display: inline-block;
   min-width: 1.2em;
   color: var(--primary);
-  font-weight: 800;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -929,7 +947,7 @@ details.rt-more > summary {
   background: var(--primary-weak);
   color: var(--primary);
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .rt-g-text {
@@ -941,7 +959,7 @@ details.rt-more > summary {
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-body);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
 }
 
@@ -996,7 +1014,7 @@ details.rt-more > summary {
   background: none;
   color: var(--primary);
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -1080,7 +1098,7 @@ details.rt-more > summary {
 .bm button.rf-recenter {
   background: var(--primary-weak);
   color: var(--primary);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 @media all {
@@ -1170,4 +1188,48 @@ details.rt-more > summary {
 
 .gl-attr a {
   color: inherit;
+}
+
+/* ───── 경로 카드: 옆으로 넘겨 고른다(scroll-snap). 옆 카드가 살짝 보여 넘길 수 있다는 단서가 된다 ───── */
+.rc-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0 calc(-1 * var(--s-4));
+}
+.rc-list.rc-snap {
+  flex-direction: row;
+  gap: var(--s-2);
+  padding: 2px var(--s-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 var(--s-4);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.rc-list.rc-snap::-webkit-scrollbar {
+  display: none;
+}
+.rc-list.rc-snap > .rc {
+  flex: 0 0 78%;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+.rc.off {
+  opacity: 0.6;
+}
+.bm button.rc-btn:disabled {
+  cursor: default;
+}
+.rc-hint {
+  margin: 0;
+  padding: 0 var(--s-4);
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  text-align: center;
+}
+html.motion-reduce .rc-list.rc-snap {
+  scroll-behavior: auto;
 }

@@ -366,3 +366,9 @@ export function findWalkRoute(g: WalkGraph, from: Pt, to: Pt, cfg: WalkCfg, opts
   while (seg.length < coords.length - 1) seg.push(0)
   return { route: { distance: Math.round(distance), time: Math.round(distance / cfg.walkSpeedMs), coords, seg, stepsM: Math.round(stepsM), kerbCount } }
 }
+
+/** 이 지점이 보행망에서 maxM 안에 있는가(길을 찾을 수 있는 시범 지역 안인가). findWalkRoute의 '밖' 판정과 같은 조건 */
+export function nearWalkNet(g: WalkGraph, p: Pt, maxM: number): boolean {
+  const [x, y] = projOf(g.ref).fwd(p[0], p[1])
+  return snapTo(g, x, y, maxM) !== null
+}

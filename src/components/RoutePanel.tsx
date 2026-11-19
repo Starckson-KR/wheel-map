@@ -9,8 +9,12 @@ import { buildSteps, stepText, type Step, type Turn } from '../lib/routing/guide
 import { autoStep } from '../lib/routing/followNav.ts'
 import { searchOwn, type OwnSearch } from '../lib/routing/ownSearch.ts'
 import { searchDelay, showRecommended } from '../lib/routing/searchUi.ts'
+import { busCardState, cardOrder, initialCard, settledCard, stepCard, type CardId } from '../lib/routing/cards.ts'
+import { hasStoredTransit, storedTransitSummary, TRANSIT_FREE_SEARCH } from '../lib/transit/provider.ts'
 import { getWalkGraph } from '../lib/routing/walkData.ts'
-import type { OwnRoute } from '../lib/routing/walkRoute.ts'
+import { nearWalkNet, type OwnRoute } from '../lib/routing/walkRoute.ts'
+import { resolveStart, startPlan, START_HINT } from '../lib/routing/startPlace.ts'
+import { hasGeo, locateOnce, readGeoPermission } from '../lib/routing/locateOnce.ts'
 import { crosswalksOnRoute, loadExtras, type Extras } from '../lib/routing/extras.ts'
 import { recordNoAlt } from '../lib/routing/noAlt.ts'
 import { buildObstacles } from '../lib/routing/obstacles.ts'
@@ -24,6 +28,7 @@ import TransitView from './TransitView'
 import { Sentences } from './Sentences'
 import { Badge, RouteCard, Tl, TlHit, TlStep, VerdictBadge } from './RouteUi'
 import { fmtDist, fmtMin, WALK_COLOR } from './routeFmt'
+import { prefersCalm } from '../lib/viewPrefs'
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
@@ -42,6 +47,10 @@ type Props = {
   initialMode?: 'walk' | 'bus'
   presetFrom?: string | null
   presetTo?: string | null
+  /** 위쪽 검색바에서 고른 도착지: 출발지는 '내 위치'로 정해 바로 경로를 구한다 */
+  startTo?: Place | null
+  /** 위쪽 검색바에서 고른 추천 경로(시연 경로) */
+  startPair?: DemoPair | null
   /** 내 위치 버튼(시트 위로 올려 둔다) */
   onLocate?: () => void
   locMode?: 'off' | 'follow' | 'free'
@@ -85,8 +94,13 @@ function PlacePicker(props: {
   which: 'from' | 'to'
   /** 입력한 말이 바뀔 때 알린다(비어 있는지에 따라 추천 경로를 보이거나 숨긴다) */
   onQuery?: (q: string) => void
+  /** 값이 비어 있을 때 대신 보이는 이름(내 위치를 기다리는 중)과 곁글 */
+  pendingName?: string
+  pendingNote?: string
+  /** 값이 비어 있을 때 '아직 정하지 않았어요.' 대신 보이는 한 줄 */
+  emptyText?: string
 }) {
-  const { label, value, k, allowCurrent, active, onChange, onPickMap, preset, which, onQuery } = props
+  const { label, value, k, allowCurrent, active, onChange, onPickMap, preset, which, onQuery, pendingName, pendingNote, emptyText } = props
   const [q, setQ] = useState(preset ?? '')
   const first = useRef(!!preset) // 홈 검색에서 가져온 말만 기다리지 않고 바로 찾는다
   const reqId = useRef(0)
@@ -142,7 +156,7 @@ function PlacePicker(props: {
   return (
     <fieldset className="rt-place">
       <legend>{label}</legend>
-      <p className="rt-val">{value ? <strong>{value.name}</strong> : <span className="bm-meta">아직 정하지 않았어요.</span>}</p>
+      <p className="rt-val">{value ? <strong>{value.name}</strong> : pendingName ? <><strong>{pendingName}</strong>{pendingNote && <span className="bm-meta"> {pendingNote}</span>}</> : <span className="bm-meta">{emptyText ?? '아직 정하지 않았어요.'}</span>}</p>
       <div className="rt-row">
         <input
           type="search"
@@ -196,22 +210,31 @@ function PlacePicker(props: {
 export default function RoutePanel(props: Props) {
   const { k, barriers, seedRatings, reports, picked, picking, onPickRequest, onOverlay, onOpenSeed, onOpenReport, onClose } = props
   const [from, setFrom] = useState<Place | null>(null)
-  const [to, setTo] = useState<Place | null>(null)
+  const [to, setTo] = useState<Place | null>(props.startTo ?? null)
   const [pairId, setPairId] = useState<string | null>(null)
+  // 출발지 '내 위치' 자동 채우기: pending=도착지를 고르는 순간에 위치를 묻는다 / asking=위치 확인 중 / failed=못 채움(비움)
+  const [autoFrom, setAutoFrom] = useState<'idle' | 'pending' | 'asking' | 'failed'>('idle')
+  const autoId = useRef(0)
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [error, setError] = useState('')
   const [result, setResult] = useState<Result | null>(null)
   const [active, setActive] = useState<'base' | 'detour'>('base')
   const [focus, setFocus] = useState<string | null>(null)
-  const [chosen, setChosen] = useState(false) // 경로 카드를 골랐는가(고르면 그 경로만 보이고 단계별 안내가 나온다)
   const [fitN, setFitN] = useState(0)
   const [pairsOpen, setPairsOpen] = useState(false)
+  // 결과가 나오면 입력 칸은 한 줄 요약으로 접는다(칸은 지우지 않고 숨기기만 해서 입력한 값은 그대로다)
+  const [formOpen, setFormOpen] = useState(!props.startTo)
+  const [boot, setBoot] = useState(!!props.startTo) // 검색에서 고른 도착지: 출발지(내 위치)를 정하는 동안
+  useEffect(() => {
+    if (result) setFormOpen(false)
+  }, [result])
+  const formHidden = !boot && !formOpen && !pairsOpen && !!from && !!to
   const [destQ, setDestQ] = useState(props.presetTo ?? '') // 도착 입력칸에 쓴 말(비어 있을 때만 추천 경로를 보인다)
   const typingOff = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [typing, setTyping] = useState(false) // 입력칸에 커서가 있는 동안: 휴대폰에서는 시트를 키워 키보드에 가려지지 않게 한다
   const topRef = useRef<HTMLDivElement>(null)
   const [collapsed, setCollapsed] = useState(false)
-  const [mode, setMode] = useState<'walk' | 'bus'>(props.initialMode ?? 'walk') // 걸어서 / 버스 타고(7단계)
+  const [mode, setMode] = useState<'walk' | 'bus'>('walk') // 고른 카드가 버스 타고이면 'bus'
   const [transitOv, setTransitOv] = useState<RouteOverlay | null>(null)
   const [openStop, setOpenStop] = useState<string | null>(null)
   const runId = useRef(0)
@@ -225,15 +248,93 @@ export default function RoutePanel(props: Props) {
     [barriers, seedRatings, reports],
   )
 
+  const autoFromRef = useRef(autoFrom)
+  autoFromRef.current = autoFrom
+  const myPosRef = useRef(props.myPos)
+  myPosRef.current = props.myPos
+  // 이용자가 출발지를 직접 만지면 자동 채우기를 멈춘다(직접 고른 값을 존중)
+  const cancelAuto = () => {
+    autoId.current++
+    if (autoFromRef.current !== 'idle') setAutoFrom('idle')
+  }
+  // 내 위치를 받아 시범 지역(보행망 150m) 안이면 출발지로 넣고, 아니면 비운 채 한 줄만 알린다
+  const fillFromHere = async () => {
+    const my = ++autoId.current
+    setAutoFrom('asking')
+    const pos = myPosRef.current ?? (await locateOnce(5000))
+    const wg = pos ? await getWalkGraph() : null
+    if (my !== autoId.current) return null
+    const r = resolveStart(pos, !!pos && !!wg && nearWalkNet(wg, [pos.lat, pos.lng], WALK_CFG.snapMaxM))
+    if (r.ok) {
+      setFrom((prev) => prev ?? r.place)
+      setAutoFrom('idle')
+      return r.place
+    }
+    setAutoFrom('failed')
+    return null
+  }
+  // 처음 열 때: 이미 허용돼 있으면 조용히 채우고(권한 창이 도착 칸 커서·키보드를 빼앗지 않는다), 아직 안 물었으면 '내 위치'만 보여 두었다가 도착지를 고를 때 묻는다
+  useEffect(() => {
+    if (props.startTo || props.startPair) return // 검색에서 온 경우는 아래 효과가 맡는다
+    let dead = false
+    void (async () => {
+      const perm = await readGeoPermission()
+      if (dead) return
+      const plan = startPlan(perm, { hasPreset: !!props.presetFrom, hasFrom: false, hasGeo: hasGeo() })
+      if (plan === 'silent') void fillFromHere()
+      else if (plan === 'onPick') setAutoFrom('pending')
+      else if (perm === 'denied' && !props.presetFrom) setAutoFrom('failed')
+    })()
+    return () => {
+      dead = true
+      autoId.current++
+    }
+    // 처음 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 위쪽 검색바에서 도착지를 골라 왔을 때: 출발지를 '내 위치'로 정해 바로 경로를 구한다.
+  // 허용돼 있으면 조용히, 아직 안 물었으면 지금(고른 순간) 묻고, 거부·시범 지역 밖·시간 초과면 출발지를 고르게 한다.
+  useEffect(() => {
+    const t = props.startTo
+    if (!t) return
+    let dead = false
+    void (async () => {
+      const perm = await readGeoPermission()
+      if (dead) return
+      const plan = startPlan(perm, { hasPreset: false, hasFrom: false, hasGeo: hasGeo() })
+      const f = plan === 'none' ? null : await fillFromHere()
+      if (dead) return
+      setBoot(false)
+      if (f) void run(f, t, null, `${f.name} → ${t.name}`)
+      else {
+        setAutoFrom('failed')
+        setFormOpen(true)
+      }
+    })()
+    return () => {
+      dead = true
+      autoId.current++
+    }
+    // 처음 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // 지도에서 고른 위치 반영
   const lastPicked = useRef(0)
   useEffect(() => {
     if (!picked || picked.n === lastPicked.current) return
     lastPicked.current = picked.n
     setPairId(null)
-    if (picked.which === 'from') setFrom(picked.place)
-    else setTo(picked.place)
+    if (picked.which === 'from') {
+      cancelAuto()
+      setFrom(picked.place)
+    } else {
+      setTo(picked.place)
+      if (autoFromRef.current === 'pending') void fillFromHere()
+    }
     setCollapsed(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picked])
 
   const run = async (f: Place, t: Place, pid: string | null, pairLabel: string) => {
@@ -283,8 +384,9 @@ export default function RoutePanel(props: Props) {
       }
       if (my !== runId.current) return
       setResult({ res, pair: pairLabel, extras, extrasError, stats, own, fallback: !own && engineMode === 'own', start: f, end: t, fitKey: my })
-      setActive(res.detour ? 'detour' : 'base')
-      setChosen(!res.detour)
+      const pick = initialCard(!!res.detour, props.initialMode === 'bus', busCardState(hasStoredTransit(pid), TRANSIT_FREE_SEARCH))
+      setMode(pick === 'bus' ? 'bus' : 'walk')
+      setActive(pick === 'bus' ? (res.detour ? 'detour' : 'base') : pick)
       setFitN((n) => n + 1)
       setStatus('done')
     } catch {
@@ -300,13 +402,55 @@ export default function RoutePanel(props: Props) {
     setFitN((n) => n + 1)
   }, [collapsed])
 
-  const pick = (v: boolean) => {
-    setChosen(v)
+  // 카드를 고르면 그 경로가 지도에 그려지고 아래에 단계별 안내가 나온다
+  const railRef = useRef<HTMLUListElement>(null)
+  const progUntil = useRef(0)
+  const settleTimer = useRef<number | undefined>(undefined)
+  const onSettleRef = useRef<() => void>(() => {})
+  // 손으로 넘기다 멈추면 가운데에 온 카드를 고른다(scrollend가 없으면 scroll 멈춤 120ms 뒤)
+  onSettleRef.current = () => {
+    const rail = railRef.current
+    if (!rail || Date.now() < progUntil.current) return
+    const rr = rail.getBoundingClientRect()
+    const spots = Array.from(rail.querySelectorAll<HTMLElement>('[data-card]')).map((el) => {
+      const r = el.getBoundingClientRect()
+      return { id: el.dataset.card as CardId, center: r.left + r.width / 2, disabled: el.dataset.card === 'bus' && busState === 'none' }
+    })
+    const id = settledCard(rr.left + rr.width / 2, spots)
+    if (id && id !== sel) pickCard(id)
+  }
+  useEffect(() => {
+    const rail = railRef.current
+    if (!rail) return
+    const hasEnd = 'onscrollend' in window
+    const fire = () => onSettleRef.current()
+    const onScroll = () => {
+      window.clearTimeout(settleTimer.current)
+      settleTimer.current = window.setTimeout(fire, 120)
+    }
+    if (hasEnd) rail.addEventListener('scrollend', fire)
+    else rail.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.clearTimeout(settleTimer.current)
+      rail.removeEventListener('scrollend', fire)
+      rail.removeEventListener('scroll', onScroll)
+    }
+  }, [status, result, active, mode])
+  const pickCard = (id: CardId, focus = false) => {
+    if (id === 'bus') setMode('bus')
+    else {
+      setMode('walk')
+      setActive(id)
+    }
     setFitN((n) => n + 1)
-    requestAnimationFrame(() => topRef.current?.scrollIntoView({ block: 'start' }))
+    const el = railRef.current?.querySelector<HTMLElement>(`[data-card="${id}"]`)
+    progUntil.current = Date.now() + 700 // 이 사이에 생기는 스크롤 이벤트는 우리가 움직인 것이라 무시
+    el?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: prefersCalm() ? 'auto' : 'smooth' })
+    if (focus) el?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
   }
 
   const choosePair = (p: DemoPair) => {
+    cancelAuto() // 추천 경로는 출발·도착을 둘 다 채운다(내 위치가 덮어쓰지 않는다)
     setPairsOpen(false)
     const f: Place = { id: p.from.stopId, name: p.fromName, lat: p.from.lat, lng: p.from.lng }
     const t: Place = { id: p.to.stopId, name: p.toName, lat: p.to.lat, lng: p.to.lng }
@@ -316,11 +460,19 @@ export default function RoutePanel(props: Props) {
     void run(f, t, p.id, `${p.fromName} → ${p.toName}`)
   }
 
+  // 위쪽 검색바의 추천 경로로 열렸으면 그 경로를 바로 구한다
+  useEffect(() => {
+    if (props.startPair) choosePair(props.startPair)
+    // 처음 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const cards: Card[] = useMemo(() => {
     if (!result?.res.base) return []
     const r = result.res
-    const out: Card[] = [{ id: 'base', title: '가장 짧은 길', route: r.base as RouteData, hits: r.baseHits }]
+    const out: Card[] = []
     if (r.detour) out.push({ id: 'detour', title: result.own ? (r.unresolved.length > 0 ? '일부만 피해 가는 길' : '피해 가는 길') : r.unresolved.length + r.untested.length > 0 ? '일부만 돌아가는 길' : '돌아가는 길', route: r.detour, hits: r.detourHits })
+    out.push({ id: 'base', title: '가장 짧은 길', route: r.base as RouteData, hits: r.baseHits })
     return out
   }, [result])
 
@@ -386,6 +538,7 @@ export default function RoutePanel(props: Props) {
   const reroute = () => {
     if (!offRoute || !result) return
     const f: Place = { name: '현재 위치', lat: offRoute[0], lng: offRoute[1] }
+    cancelAuto()
     setFrom(f)
     setPairId(null)
     setCollapsed(false)
@@ -428,8 +581,8 @@ export default function RoutePanel(props: Props) {
     onOverlay({
       start: result.start,
       end: result.end,
-      base: chosen && active !== 'base' ? null : (result.res.base?.coords ?? null),
-      detour: chosen && active !== 'detour' ? null : (result.res.detour?.coords ?? null),
+      base: active !== 'base' ? null : (result.res.base?.coords ?? null),
+      detour: active !== 'detour' ? null : (result.res.detour?.coords ?? null),
       active: activeCard.id,
       hits: activeCard.hits,
       unresolvedIds: [...unresolvedIds],
@@ -443,7 +596,7 @@ export default function RoutePanel(props: Props) {
     })
     // onOverlay는 부모의 setState라 의존성에서 뺀다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result, activeCard, perRoute, focus, unresolvedIds, mode, transitOv, chosen, active, fitN, guide, steps])
+  }, [result, activeCard, perRoute, focus, unresolvedIds, mode, transitOv, active, fitN, guide, steps])
 
   useEffect(() => () => onOverlay(null), []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -460,6 +613,9 @@ export default function RoutePanel(props: Props) {
   const inkOf = (st: { color: string }) => (st as { ink?: string }).ink ?? '#fff'
   const WHERE: Record<'route' | 'start' | 'end', string> = { route: '경로 위', start: '출발 근처', end: '도착 근처' }
 
+  const railIds = cardOrder(!!result?.res.detour)
+  const sel: CardId = mode === 'bus' ? 'bus' : active
+  const busState = busCardState(hasStoredTransit(pairId), TRANSIT_FREE_SEARCH)
   const finalId: 'base' | 'detour' = result?.res.detour ? 'detour' : 'base'
   const finalSummary = result?.res.summary[finalId] ?? null
 
@@ -698,7 +854,18 @@ export default function RoutePanel(props: Props) {
         </span>
       </div>
 
-      <section className="rf-card rt-sec rt-search">
+      {boot && <p className="rf-notice" role="status">내 위치를 찾고 있어요…</p>}
+      {formHidden && !pairId && from && to && (
+        <div className="rt-pair-sum">
+          <span className="rt-pair-name">
+            {from.name} → {to.name}
+          </span>
+          <button type="button" onClick={() => setFormOpen(true)}>
+            바꾸기
+          </button>
+        </div>
+      )}
+      <section className="rf-card rt-sec rt-search" hidden={formHidden || boot}>
         {DEV_TOOLS && <div className="tr-tabs" role="group" aria-label="경로 방식">
           {(
             [
@@ -711,8 +878,8 @@ export default function RoutePanel(props: Props) {
             </button>
           ))}
         </div>}
-        <PlacePicker which="to" label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p))} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} onQuery={setDestQ} />
-        <PlacePicker which="from" label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), setFrom(p))} onPickMap={() => onPickRequest(picking === 'from' ? null : 'from')} preset={props.presetFrom ?? undefined} />
+        <PlacePicker which="to" label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p), autoFromRef.current === 'pending' && void fillFromHere())} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} onQuery={setDestQ} />
+        <PlacePicker which="from" label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), cancelAuto(), setFrom(p))} onPickMap={() => (cancelAuto(), onPickRequest(picking === 'from' ? null : 'from'))} preset={props.presetFrom ?? undefined} pendingName={autoFrom === 'pending' || autoFrom === 'asking' ? '내 위치' : undefined} pendingNote={autoFrom === 'asking' ? '찾는 중…' : undefined} emptyText={autoFrom === 'failed' ? START_HINT : undefined} />
         <button type="button" className="rf-primary" disabled={!canRun} onClick={() => from && to && run(from, to, pairId, `${from.name} → ${to.name}`)}>
           {status === 'loading' ? '찾고 있어요…' : '길찾기'}
         </button>
@@ -723,12 +890,12 @@ export default function RoutePanel(props: Props) {
           <span className="rt-pair-name">
             {from.name} → {to.name}
           </span>
-          <button type="button" onClick={() => setPairsOpen(true)}>
+          <button type="button" onClick={() => (setPairsOpen(true), setFormOpen(true))}>
             경로 바꾸기
           </button>
         </div>
       ) : (
-        showRecommended(destQ) && (
+        showRecommended(destQ) && !boot && (formOpen || (!result && status !== 'loading')) && (
           <section className="rt-sec rt-recommend">
             <h3>추천 경로</h3>
             <ul className="rt-pairs">
@@ -747,64 +914,75 @@ export default function RoutePanel(props: Props) {
         )
       )}
 
-      <div className="tr-tabs" role="tablist" aria-label="이동 방법">
-        {(
-          [
-            ['walk', '걸어서'],
-            ['bus', '버스 타고'],
-          ] as const
-        ).map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={mode === id} className={'tr-tab' + (mode === id ? ' on' : '')} onClick={() => setMode(id)}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {mode === 'bus' && <TransitView fitSeed={fitN} from={from} to={to} pairId={pairId} obstacles={obstaclesNow} onOverlay={setTransitOv} onOpenHit={openHit} />}
-
-      {mode === 'walk' && status === 'loading' && (
+      {status === 'loading' && (
         <p className="rf-notice" role="status">
           경로를 찾고 장애요소를 살펴보고 있어요…
         </p>
       )}
-      {mode === 'walk' && status === 'error' && (
+      {status === 'error' && (
         <Sentences as="p" className="rf-warn" role="alert">
           {error}
         </Sentences>
       )}
 
-      {mode === 'walk' && status === 'done' && result && activeCard && (
+      {status === 'done' && result && activeCard && (
         <div ref={topRef} className="rt-top" aria-live="polite">
-          {chosen && cards.length > 1 && (
-            <button type="button" className="rt-back" onClick={() => pick(false)}>
-              다른 경로 보기
-            </button>
-          )}
-          <ul className="rc-list">
-            {cards.map((c) => {
-              if (chosen && c.id !== active) return null
-              const sm = result.res.summary[c.id]
-              return (
-                <RouteCard
-                  key={c.id}
-                  on={chosen && active === c.id}
-                  onPick={() => {
-                    setActive(c.id)
-                    pick(true)
-                  }}
-                  time={fmtMin(c.route.time)}
-                  sub={`${fmtWalk(c.route.distance)} · ${c.title}`}
-                  badges={
-                    <>
-                      {cards.length > 1 && c.id === finalId && <Badge tone="blue">추천</Badge>}
-                      <VerdictBadge v={sm?.verdict ?? 'pass'} />
-                    </>
-                  }
-                />
-              )
-            })}
-          </ul>
+          <div className="rc-rail" role="group" aria-label="경로 고르기. 옆으로 넘기거나 좌우 화살표 키를 눌러요">
+            <ul
+              ref={railRef}
+              className="rc-list rc-snap"
+              onKeyDown={(e) => {
+                const nx = stepCard(railIds, sel, e.key)
+                if (!nx) return
+                e.preventDefault()
+                if (nx !== sel) pickCard(nx, true)
+              }}
+            >
+              {railIds.map((id) => {
+                if (id === 'bus') {
+                  const sm = storedTransitSummary(pairId)
+                  const ok = busState !== 'none'
+                  return (
+                    <RouteCard
+                      key="bus"
+                      id="bus"
+                      on={sel === 'bus'}
+                      disabled={!ok}
+                      onPick={() => pickCard('bus')}
+                      time={sm ? fmtMin(sm.time) : '버스 타고'}
+                      sub={sm ? '버스 타고' : ok ? '버스 경로 찾기' : '이 경로는 버스 길을 볼 수 없어요'}
+                    />
+                  )
+                }
+                const c = cards.find((x) => x.id === id)
+                if (!c) return null
+                const sm = result.res.summary[c.id]
+                return (
+                  <RouteCard
+                    key={c.id}
+                    id={c.id}
+                    on={sel === c.id}
+                    onPick={() => pickCard(c.id)}
+                    time={fmtMin(c.route.time)}
+                    sub={`${fmtWalk(c.route.distance)} · ${c.title}`}
+                    badges={
+                      <>
+                        {c.id === 'detour' && <Badge tone="blue">추천</Badge>}
+                        <VerdictBadge v={sm?.verdict ?? 'pass'} />
+                      </>
+                    }
+                  />
+                )
+              })}
+            </ul>
+            <p className="rc-hint" aria-hidden="true">
+              옆으로 넘겨 보세요 · {railIds.indexOf(sel) + 1}/{railIds.length}
+            </p>
+          </div>
+
+          {mode === 'bus' && <TransitView fitSeed={fitN} from={from} to={to} pairId={pairId} obstacles={obstaclesNow} onOverlay={setTransitOv} onOpenHit={openHit} />}
     
+          {mode === 'walk' && <>
           {result.fallback && <Sentences as="p" className="rf-warn">이 구간은 길 자료가 부족해서 다른 방식으로 찾았어요. 장애요소를 다 피하지 못할 수 있어요.</Sentences>}
           {avoidedNames.length > 0 && (
             <p className="rt-avoid" role="status">
@@ -831,7 +1009,7 @@ export default function RoutePanel(props: Props) {
           )}
           {result.res.untested.length > 0 && <p className="rf-warn">돌아갈 수 있는지 확인하지 못한 곳: {result.res.untested.map((h) => obstacleName(h.o)).join(', ')}</p>}
 
-          {chosen && (
+          {(
             <>
               {result.own && steps.length > 0 ? (
                 <>
@@ -943,6 +1121,7 @@ export default function RoutePanel(props: Props) {
               </details>
             </>
           )}
+          </>}
         </div>
       )}
     </div>

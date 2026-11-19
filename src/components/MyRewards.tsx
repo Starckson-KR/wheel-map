@@ -68,7 +68,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
       {role === 'officer' && <Sentences as="p" className="bm-meta">담당 공무원은 점수를 쌓지 않아요.</Sentences>}
       {rw.grade === 0 && role !== 'officer' && <Sentences as="p" className="rw-lead">검증된 제보가 생기면 첫 칭호를 받아요.</Sentences>}
 
-      <div className="rp-tabs" role="tablist" aria-label="내 기여 보기">
+      <div className="rf-seg" role="tablist" aria-label="내 기여 보기">
         {TABS.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}>
             {t.label}
@@ -131,7 +131,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
             </div>
             {g.other > 0 && <p className="bm-meta">합쳐지거나 반려된 제보 {g.other}건은 위 숫자에 넣지 않았어요.</p>}
             <button type="button" className="hm-cta-sub rw-link" onClick={onOpenReports}>
-              내 민원 현황
+              내 제보 현황
             </button>
           </section>
         </>
@@ -143,7 +143,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
             <div className="rp-empty">
               <p>아직 쌓인 점수가 없어요.<br />제보가 검증되거나 다른 분의 제보를 확인하면 점수가 쌓여요.</p>
               <div className="empty-act">
-                <button type="button" className="rf-primary" onClick={() => go(TO.newReport)}>문제 신고하러 가기</button>
+                <button type="button" className="rf-primary" onClick={() => go(TO.newReport)}>문제 제보하러 가기</button>
               </div>
             </div>
           ) : (

@@ -1,6 +1,5 @@
 import { facilityTitle } from '../lib/facilityName'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { CENTER_ADDRESS_CANDIDATES, geocode, loadKakao } from '../lib/kakao'
 import { loadBarriers } from '../lib/seed'
 import { NAV_STEP_NEAR_M, NAV_Z } from '../lib/config'
@@ -27,9 +26,10 @@ import MyRewards from '../components/MyRewards'
 import LayerPanel from '../components/LayerPanel'
 import PubCard from '../components/PubCard'
 import RoutePanel from '../components/RoutePanel'
+import PlaceSearchPanel from '../components/PlaceSearchPanel'
 import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import type { RouteOverlay } from '../lib/routing/overlay.ts'
-import type { Place } from '../lib/routing/provider.ts'
+import type { DemoPair, Place } from '../lib/routing/provider.ts'
 import { busColor } from '../lib/routing/busColor.ts'
 import { arrowSpots, makeNearRoute } from '../lib/routing/near.ts'
 import ProgressPanel from '../components/ProgressPanel'
@@ -55,6 +55,9 @@ import { Wordmark } from '../components/Wordmark'
 import { CENTER_DEADBAND_PX, centerDelta, compassHeading, easeOut, isStepNear, lerpLatLng, smoothHeading } from '../lib/routing/followNav.ts'
 import { prefersCalm } from '../lib/viewPrefs'
 import { isMockReport, realFirst } from '../lib/realFirst'
+import CenterPin from '../components/CenterPin'
+import { haptic } from '../lib/haptic'
+import { pinMoved } from '../lib/pinLift'
 
 const BARRIERS = loadBarriers()
 const BY_ID = new Map(BARRIERS.map((b) => [b.id, b]))
@@ -153,8 +156,8 @@ function saveSnap(s: Snap) {
 }
 // 손잡이 버튼 이름(누르면 다음 단계로: 최소 → 기본 → 펼침 → 최소, 순서는 useSheetSnap)
 const SNAP_BTN: Record<Snap, { label: string }> = {
-  0: { label: '요약 보기' },
-  1: { label: '제보 목록 보기' },
+  0: { label: '장애요소 목록 보기' },
+  1: { label: '장애요소 목록 보기' },
   2: { label: '지도 넓게 보기' },
 }
 
@@ -200,7 +203,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const lat = Number(q.get('lat'))
     const lng = Number(q.get('lng'))
     const at = q.get('lat') && q.get('lng') && lat > 33 && lat < 39 && lng > 124 && lng < 132 ? { lat, lng } : null // AI 카드가 정한 중심(한국 안의 값만)
-    return { go: q.get('go'), layer: q.get('layer'), at, type: typeFromQuery(q.get('type')), from: placeFromQuery(q.get('from')), to: placeFromQuery(q.get('to')), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
+    return { go: q.get('go'), layer: q.get('layer'), at, type: typeFromQuery(q.get('type')), skipType: q.get('step') === 'where', from: placeFromQuery(q.get('from')), to: placeFromQuery(q.get('to')), mode: q.get('mode') === 'bus' ? ('bus' as const) : ('walk' as const), report: rid ? (useReports.getState().reports.find((r) => r.id === rid) ?? null) : null }
   })
   const container = useRef<HTMLDivElement>(null)
   const kRef = useRef<typeof kakao | null>(null)
@@ -218,6 +221,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [flowOpen, setFlowOpen] = useState(start.go === 'report')
   const [picking, setPicking] = useState(false)
   const [draftPos, setDraftPos] = useState<Loc | null>(null)
+  const [pinLifted, setPinLifted] = useState(false) // 지도를 끄는 동안 중앙 핀이 떠 있다
+  const [pinLanded, setPinLanded] = useState(0) // 내려앉을 때마다 +1(바닥 물결 다시 재생)
   const pickBackup = useRef<Loc | null>(null) // 위치 고르기를 시작할 때의 위치(취소하면 되돌린다)
   const [panelOpen, setPanelOpen] = useState(start.go === 'reports')
   const [rewardsOpen, setRewardsOpen] = useState(start.go === 'rewards')
@@ -239,6 +244,13 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const [pubSel, setPubSel] = useState<{ layer: PubLayerId; item: PubItem } | null>(null)
   const [kObj, setKObj] = useState<typeof kakao | null>(null)
   const [routeOpen, setRouteOpen] = useState(start.go === 'route')
+  // 위쪽 검색바가 입력칸이다: 누르면 그 자리에서 키보드가 뜨고, 아래에 장소 검색 결과가 나온다
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQ, setSearchQ] = useState('')
+  const searchInput = useRef<HTMLInputElement>(null)
+  // 검색에서 고른 도착지(또는 추천 경로)로 길찾기를 연다. n이 바뀌면 길찾기 화면을 새로 연다
+  const [routeLaunch, setRouteLaunch] = useState<{ to?: Place; pair?: DemoPair; n: number } | null>(null)
+  const launchN = useRef(0)
   const [locMsg, setLocMsg] = useState('')
   const meRef = useRef<kakao.maps.CustomOverlay | null>(null)
   const accRef = useRef<kakao.maps.Circle | null>(null)
@@ -273,13 +285,15 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const pickN = useRef(0)
   const lastFit = useRef(0)
   const pickingRef = useRef(false)
+  const draftRef = useRef<Loc | null>(null)
   const keepRef = useRef<{ lat: number; lng: number; level: number } | null>(null)
   const fitRef = useRef<{ bounds: kakao.maps.LatLngBounds; top: number } | null>(null) // 마지막으로 화면에 맞춘 범위(시트 단계가 바뀔 때 다시 맞춘다)
   const movedRef = useRef(false) // 사용자가 직접 지도를 움직였는가(움직였으면 시트 변화만으로 지도를 옮기지 않는다)
   const drawnLevel = useRef<number | null>(null) // 직전에 핀을 그린 줌 단계(줌이 바뀐 때만 핀을 부드럽게 나타낸다)
   useEffect(() => {
     pickingRef.current = picking
-  }, [picking])
+    draftRef.current = draftPos
+  }, [picking, draftPos])
   useEffect(() => {
     routePickRef.current = routePick
   }, [routePick])
@@ -1133,13 +1147,43 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const k = kRef.current
     const map = mapRef.current
     if (!ready || !k || !map || !flowOpen || !draftPos) return
+    if (picking) return // 위치를 고르는 동안은 지도 한가운데 핀이 위치를 나타낸다
     const marker = new k.maps.Marker({ position: new k.maps.LatLng(draftPos.lat, draftPos.lng), map, draggable: true, title: '제보 위치' })
     k.maps.event.addListener(marker, 'dragend', () => {
       const p = marker.getPosition()
       setDraftPos({ lat: p.getLat(), lng: p.getLng() })
     })
     return () => marker.setMap(null)
-  }, [ready, flowOpen, draftPos])
+  }, [ready, flowOpen, draftPos, picking])
+
+  // 위치 고르기: 지도를 끌면 중앙 핀이 떠오르고, 놓으면 내려앉으며 그 자리가 제보 위치가 된다(지도 끌기·확대는 막지 않고 이벤트만 듣는다).
+  useEffect(() => {
+    const k = kRef.current
+    const map = mapRef.current
+    if (!ready || !k || !map || !picking) return
+    const c0 = map.getCenter()
+    if (draftPos) map.setCenter(new k.maps.LatLng(draftPos.lat, draftPos.lng))
+    else setDraftPos({ lat: c0.getLat(), lng: c0.getLng() })
+    const onStart = () => setPinLifted(true)
+    const onEnd = () => {
+      setPinLifted(false)
+      const c = map.getCenter()
+      const next = { lat: c.getLat(), lng: c.getLng() }
+      if (pinMoved(draftRef.current, next)) {
+        setDraftPos(next)
+        setPinLanded((n) => n + 1)
+        haptic('tick')
+      }
+    }
+    k.maps.event.addListener(map, 'dragstart', onStart)
+    k.maps.event.addListener(map, 'dragend', onEnd)
+    return () => {
+      k.maps.event.removeListener(map, 'dragstart', onStart)
+      k.maps.event.removeListener(map, 'dragend', onEnd)
+      setPinLifted(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, picking])
 
   // 위치가 바뀌면(현재 위치 등) 지도를 그쪽으로 옮긴다.
   useEffect(() => {
@@ -1210,6 +1254,30 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     setProgressMode(false)
     setProgressOpen(false)
   }
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setSearchQ('')
+    searchInput.current?.blur()
+  }
+  const openSearch = () => {
+    if (searchOpen) return
+    leaveProgress()
+    setSearchOpen(true)
+    if (routeOpen) {
+      setRouteOpen(false)
+      setRoutePick(null)
+      setOverlay(null)
+      setRouteLaunch(null)
+    }
+    setPanelOpen(false)
+    setRewardsOpen(false)
+  }
+  const launchRoute = (l: { to?: Place; pair?: DemoPair }) => {
+    closeSearch()
+    setRoutePick(null)
+    setRouteLaunch({ ...l, n: ++launchN.current })
+    setRouteOpen(true)
+  }
   const openReport = (id: string) => {
     setProgressOpen(false)
     setSelectedReportId(id)
@@ -1230,14 +1298,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     setSelectedReportId(null)
     setPanelOpen(false)
     setRewardsOpen(false)
-  }
-  const startReport = () => {
-    leaveProgress()
-    setFlowOpen(true)
-    setPanelOpen(false)
-    setRewardsOpen(false)
-    setSelectedId(null)
-    setSelectedReportId(null)
   }
   const closeFlow = () => {
     setFlowOpen(false)
@@ -1585,7 +1645,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         )}
 
         <div className="hm-panel">
-        <header className={'hm-top' + (routeOpen || behind ? ' hm-top--route' : '')}>
+        <header className={'hm-top' + (routeOpen || behind ? ' hm-top--route' : '') + (searchOpen ? ' hm-top--search' : '')}>
           <div className="hm-card">
             <div className="hm-bar hm-bar--desk">
               <h1 className="hm-brand">
@@ -1595,24 +1655,31 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               </h1>
             </div>
             <div className="hm-searchrow">
-              <button
-                type="button"
-                className="hm-search"
-                aria-expanded={routeOpen}
-                onClick={() => {
-                  // 아이폰 Safari는 누른 동작 안에서 focus()를 불러야 키보드가 올라온다: 길찾기 화면을 그 자리에서 그려 넣고 도착 입력칸에 바로 커서를 둔다
-                  flushSync(() => {
-                    leaveProgress()
-                    setRouteOpen(true)
-                    setRoutePick(null)
-                    setPanelOpen(false)
-                    setRewardsOpen(false)
-                  })
-                  document.querySelector<HTMLInputElement>('.bm .rt input[data-place="to"]')?.focus()
-                }}
-              >
-                어디로 가세요? 길찾기
-              </button>
+              <div className={'hm-search' + (searchOpen ? ' on' : '')}>
+                <input
+                  ref={searchInput}
+                  type="search"
+                  className="hm-search-input"
+                  value={searchQ}
+                  placeholder="어디로 가세요?"
+                  aria-label="장소 검색"
+                  aria-controls="map-search-results"
+                  aria-expanded={searchOpen}
+                  enterKeyHint="search"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  onFocus={openSearch}
+                  onChange={(e) => setSearchQ(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Escape' && closeSearch()}
+                />
+                {searchOpen && (
+                  <button type="button" className="hm-search-x" aria-label="검색 닫기" onClick={closeSearch}>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                      <path d="m4 4 10 10M14 4 4 14" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <button type="button" className="hm-iconbtn" onClick={() => setLayerOpen((v) => !v)} aria-expanded={layerOpen} aria-label="지도 레이어와 화면 설정" title="레이어·설정">
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M11 3 2.5 7.5 11 12l8.5-4.5L11 3Z" />
@@ -1621,8 +1688,9 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               </button>
             </div>
           </div>
+          {searchOpen && <PlaceSearchPanel k={kObj} query={searchQ} onPlace={(p) => launchRoute({ to: p })} onPair={(p) => launchRoute({ pair: p })} />}
           <div className="hm-chips">
-            <MockStrip hideLarge />
+            <MockStrip onMap />
           </div>
           <button type="button" className="hm-legend-toggle" aria-expanded={legendOpen} aria-label={legendOpen ? '범례 접기' : '범례 보기'} title="범례" onClick={() => setLegendOpen((v) => !v)}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1689,9 +1757,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 <h2 className="hm-title">
                   {!view ? '지도를 불러오고 있어요' : here.length > 0 ? `장애요소 ${here.length}곳` : '여기에는 등록된 장애요소가 없어요'}
                 </h2>
-                <button type="button" className="rf-primary hm-cta-main" onClick={startReport}>
-                  신고하기
-                </button>
               </div>
             </div>
             <button
@@ -1708,36 +1773,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 <Sentences as="p" className="hm-eyebrow" role="status">
                   {locMsg}
                 </Sentences>
-              )}
-              {here.length > 0 && (
-                <ul className="hm-stats" aria-label="핵심 분류별 개수">
-                  <li className="hm-stat">
-                    <span className="hm-stat-n">
-                      <i className="hm-cat hm-cat-hard">{CATEGORY_INFO.hard.glyph}</i>
-                      {hereCount('hard')}
-                    </span>
-                    <span className="hm-stat-l">어려운 곳</span>
-                  </li>
-                  <li className="hm-stat">
-                    <span className="hm-stat-n">
-                      <i className="hm-cat hm-cat-boarding">{CATEGORY_INFO.boarding.glyph}</i>
-                      {hereCount('boarding')}
-                    </span>
-                    <span className="hm-stat-l">버스 불편</span>
-                  </li>
-                  <li className="hm-stat">
-                    <span className="hm-stat-n">
-                      <i className="hm-cat hm-cat-caution">{CATEGORY_INFO.caution.glyph}</i>
-                      {hereCount('caution') + hereCount('zone')}
-                    </span>
-                    <span className="hm-stat-l">주의</span>
-                  </li>
-                  <li className="hm-stat-more">
-                    <button type="button" onClick={() => setSnap(2)}>
-                      더 보기
-                    </button>
-                  </li>
-                </ul>
               )}
             </div>
             <div className="hm-more">
@@ -1849,9 +1884,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         )}
 
 
+        {picking && <CenterPin lifted={pinLifted} landed={pinLanded} />}
         {picking && (
           <div className="rf-pick" role="status">
-            <Sentences as="span">지도를 눌러 위치를 정해 주세요. 마커를 끌어 옮길 수도 있어요.</Sentences>
+            <Sentences as="span">지도를 끌어 핀을 맞추거나, 눌러서 정해 주세요.</Sentences>
             <button
               type="button"
               onClick={() => {
@@ -1880,6 +1916,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             onClose={closeFlow}
             onOpenReport={openReport}
             initialType={start.type}
+            skipType={start.skipType}
           />
         )}
 
@@ -1892,6 +1929,9 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
         {routeOpen && (
           <RoutePanel
+            key={routeLaunch?.n ?? 0}
+            startTo={routeLaunch?.to ?? null}
+            startPair={routeLaunch?.pair ?? null}
             onLocate={locateMe}
             onStopLocate={stopLocate}
             myPos={myPos}
@@ -1913,6 +1953,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
               setRouteOpen(false)
               setRoutePick(null)
               setOverlay(null)
+              setRouteLaunch(null)
             }}
           />
         )}

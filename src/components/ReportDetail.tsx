@@ -131,7 +131,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
 
       {recurrence.byId.get(r.id) && (
         <p className="rf-notice adm-recur-note" role="status">
-          <span className="sent">이 곳은 {fmtDate(recurrence.byId.get(r.id)?.priorActionMs ?? 0)}에 조치된 뒤 다시 신고됐어요(재발 {recurrence.byId.get(r.id)?.nth}회).</span>
+          <span className="sent">이 곳은 {fmtDate(recurrence.byId.get(r.id)?.priorActionMs ?? 0)}에 조치된 뒤 다시 제보됐어요(재발 {recurrence.byId.get(r.id)?.nth}회).</span>
           <button type="button" className="adm-link" onClick={() => onOpenReport(recurrence.byId.get(r.id)?.priorId ?? r.id)}>
             앞선 건 보기
           </button>

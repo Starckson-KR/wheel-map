@@ -1,0 +1,162 @@
+/* 인터랙션 2차(지도·제보): 중앙 핀 들어올리기, 줄자 끌기. 움직임 줄이기는 html.motion-reduce 기준(기기 설정과 상관없음). */
+
+/* ───── 위치 고르기 중앙 핀 ───── */
+.cp {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  z-index: calc(var(--z-pick) - 1);
+  pointer-events: none; /* 지도 끌기·확대·누르기를 그대로 지도가 받는다 */
+}
+.cp-pin {
+  position: absolute;
+  left: -16px;
+  top: -44px; /* 핀 끝이 지도 한가운데 */
+  width: 32px;
+  height: 44px;
+  filter: drop-shadow(0 1px 1px rgb(25 31 40 / 0.25));
+}
+.cp-pin svg { display: block; }
+.cp-pin path { fill: var(--primary); stroke: #fff; stroke-width: 2; }
+.cp-pin circle { fill: #fff; }
+.cp-shadow {
+  position: absolute;
+  left: -9px;
+  top: -3px;
+  width: 18px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(25 31 40 / 0.4);
+  transition: transform 0.12s var(--ease-out), opacity 0.12s var(--ease-out);
+}
+/* 떠 있는 동안: 그림자는 작고 옅게. 내려앉으면 원래 크기 */
+.cp[data-lifted='1'] .cp-shadow { transform: scale(0.55); opacity: 0.45; }
+.cp-ring {
+  position: absolute;
+  left: -16px;
+  top: -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  opacity: 0;
+  animation: cp-land 0.45s var(--ease-out);
+}
+@keyframes cp-land {
+  from { transform: scale(0.3); opacity: 0.7; }
+  to { transform: scale(1.5); opacity: 0; }
+}
+html.motion-reduce .cp-shadow { transition: none; }
+/* 움직임 줄이기: 퍼지지 않고 한 번 켜졌다 꺼진다(내려앉았다는 정보는 남김) */
+html.motion-reduce .cp-ring { animation: cp-land-calm 0.45s linear; transform: none; }
+@keyframes cp-land-calm {
+  from { opacity: 0.7; }
+  to { opacity: 0; }
+}
+
+/* ───── 줄자 끌기 ───── */
+.rl {
+  --rl-c: var(--r-n);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-3) var(--s-2);
+  border-radius: var(--r-lg);
+  background: var(--bg-sub);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.rl[data-tier='o'] { --rl-c: var(--r-o); }
+.rl[data-tier='t'] { --rl-c: var(--r-t); }
+.rl[data-tier='x'] { --rl-c: var(--r-x); }
+.rl-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-weight: 600;
+  color: var(--text-strong);
+}
+.rl-read { display: inline-flex; align-items: baseline; gap: var(--s-2); }
+.rl-read b { font-size: var(--fs-head); font-variant-numeric: tabular-nums; }
+.rl-tier { font-style: normal; font-size: var(--fs-small); color: var(--text-sub); }
+.rl[data-tier='o'] .rl-tier { color: var(--r-o-text); }
+.rl[data-tier='t'] .rl-tier { color: var(--r-t-text); }
+.rl[data-tier='x'] .rl-tier { color: var(--r-x-text); }
+.rl-tier.is-flash { animation: rl-flash 0.3s var(--ease-out); }
+@keyframes rl-flash {
+  from { transform: scale(1.18); opacity: 0.5; }
+  to { transform: scale(1); opacity: 1; }
+}
+.rl-row { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: var(--s-2); }
+.rl-btn {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-full);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-strong);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.rl-btn:active { background: var(--primary-weak); }
+.rl-track {
+  position: relative;
+  height: 60px;
+  touch-action: pan-y; /* 세로는 화면 스크롤, 가로만 끌기로 받는다 */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: ew-resize;
+  border-radius: var(--r-md);
+}
+.rl-track:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rl-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 12px;
+  height: 20px;
+  border-radius: var(--r-full);
+  background: var(--grey-200);
+  overflow: hidden;
+}
+.rl-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--p);
+  background: var(--rl-c);
+  transition: background-color 0.12s var(--ease-out), width 0.12s var(--ease-out);
+}
+.rl-track.is-drag .rl-fill { transition: background-color 0.12s var(--ease-out); }
+.rl-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bg); }
+.rl-thumb {
+  position: absolute;
+  top: 6px;
+  left: var(--p);
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 3px solid var(--rl-c);
+  box-shadow: var(--shadow-1);
+  transition: left 0.12s var(--ease-out), border-color 0.12s var(--ease-out), transform 0.12s var(--ease-out);
+}
+.rl-track.is-drag .rl-thumb { transition: border-color 0.12s var(--ease-out), transform 0.12s var(--ease-out); transform: scale(1.12); }
+.rl-scale { position: absolute; left: 0; right: 0; top: 42px; height: 16px; font-size: var(--fs-caption); color: var(--text-sub); }
+.rl-scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+html.motion-reduce .rl-fill,
+html.motion-reduce .rl-thumb,
+html.motion-reduce .rl-track.is-drag .rl-thumb { transition: none; transform: none; }
+html.motion-reduce .rl-tier.is-flash { animation: rl-flash-calm 0.3s linear; }
+@keyframes rl-flash-calm {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}

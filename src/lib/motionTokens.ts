@@ -11,6 +11,8 @@ export const SPRING = {
   quick: { type: 'spring', stiffness: 900, damping: 60 },
   /** 눌림 반응. 손을 떼면 바로 돌아온다. */
   press: { type: 'spring', stiffness: 1100, damping: 66 },
+  /** 튕김(오버슈트 약 15%). 축하·도장·유형 선택에만 쓴다. 다른 스프링은 모두 튕기지 않는다. */
+  pop: { type: 'spring', stiffness: 700, damping: 28 },
 } as const satisfies Record<string, Transition>
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
@@ -29,3 +31,16 @@ export const STAGGER_MAX = 10
 /** 누름 크기 */
 export const TAP = 0.97
 export const TAP_KEY = 0.94
+
+/** 길게 누르기 기준 시간(ms). 진행 표시는 PROGRESS_FROM부터 차오른다. */
+export const LONG_PRESS_MS = 450
+export const LONG_PRESS_PROGRESS_FROM = 150
+/** 길게 누르는 동안 이만큼(px) 넘게 움직이면 길게 누르기가 아니라 끌기·스크롤로 보고 취소한다. */
+export const LONG_PRESS_SLOP = 10
+/** 당겨서 새로고침 기준 거리(px, 실기기에서 조정) */
+export const REFRESH_PULL = 72
+/** 끌어서 확정하는 기준: 폭의 비율, 또는 속도(px/s) */
+export const COMMIT_RATIO = 0.35
+export const COMMIT_VELOCITY = 500
+/** 가로·세로 방향을 정하는 처음 이동 거리(px) */
+export const AXIS_LOCK_PX = 8

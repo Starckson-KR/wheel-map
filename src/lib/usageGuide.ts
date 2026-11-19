@@ -10,8 +10,8 @@ export const GUIDE_OPEN_EVENT = 'wheelmap:guide-open'
 export const GUIDE_SLIDES: { icon: string; text: string }[] = [
   { icon: 'map', text: '다니기 불편한 곳을 지도에서 확인해요' },
   { icon: 'route', text: '휠체어로 갈 수 있는 길을 찾아 드려요' },
-  { icon: 'report', text: '불편한 곳을 사진 한 장으로 신고해요' },
-  { icon: 'bell', text: '내 신고가 어떻게 처리되는지 알려 드려요' },
+  { icon: 'report', text: '불편한 곳을 사진 한 장으로 제보해요' },
+  { icon: 'bell', text: '내 제보가 어떻게 처리되는지 알려 드려요' },
 ]
 
 export const guideSeen = (): boolean => {

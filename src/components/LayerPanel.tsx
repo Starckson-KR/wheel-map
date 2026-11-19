@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { PUB_LAYERS, type LayerState, type PubDataset, type PubLayerId } from '../lib/publicLayers'
 import SheetHandle from './SheetHandle'
 import { DEFAULT_FILTER, STATUS_CHIPS, type KindKey, type MapFilter } from '../lib/mapFilter'
@@ -39,7 +40,7 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
 
         <button type="button" className={'lp-card' + (layers.team ? ' on' : '')} aria-pressed={layers.team} onClick={() => set({ team: !layers.team })}>
           <span className="lp-icon" aria-hidden="true">
-            🗺️
+            <Icon name="map" size={22} />
           </span>
           <span className="lp-text">
             <strong>팀 조사·시민 제보</strong>
@@ -84,7 +85,7 @@ export default function LayerPanel({ layers, data, loading, onChange, onClose, f
             <div key={l.id}>
               <button type="button" className={'lp-card' + (on ? ' on' : '')} aria-pressed={on} onClick={() => set({ [l.id]: !on } as Partial<LayerState>)}>
                 <span className="lp-icon" aria-hidden="true">
-                  {l.icon}
+                  <Icon name="building" size={22} />
                 </span>
                 <span className="lp-text">
                   <strong>

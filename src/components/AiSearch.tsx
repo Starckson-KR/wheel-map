@@ -12,9 +12,28 @@ import { MAX_QUESTION_CHARS, cleanQuestion, hasPersonalInfo } from '../lib/aiSea
 import { answerAsk } from '../lib/aiSearch/knowledgeData'
 import type { AskAnswer, Topic } from '../lib/aiSearch/knowledge'
 import { Sentences } from './Sentences'
+import { getMotionReduce } from '../lib/viewPrefs'
 
 // 홈 검색창: 질문을 쓰면 알맞은 화면을 「안내」한다. 자동으로 이동하지 않고, 사용자가 버튼을 눌러야 이동한다.
 const EXAMPLES = ['경사로가 막혔어요', '가까운 저상버스', '내 접수번호 찾기', '개선된 곳 보기']
+
+// 홈 모드: 입력칸 예시 문구가 돌아간다
+export const ROTATE_MS = 3000
+const PLACEHOLDERS = ['예: 경사로가 막혔어요', '예: 가까운 저상버스 언제 와요?', '예: 전남대까지 휠체어 길', '예: 내 접수번호 찾기']
+
+/** 멈춤(입력 중·포커스 중)이거나 움직임 줄이기면 첫 문구에 고정한다. 문구가 바뀌어도 스크린리더에는 알리지 않는다(placeholder라 aria-live 없음). */
+function useRotatingPlaceholder(list: readonly string[], paused: boolean): string {
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    if (paused) return
+    const t = window.setInterval(() => {
+      if (getMotionReduce()) setI(0)
+      else setI((n) => (n + 1) % list.length)
+    }, ROTATE_MS)
+    return () => window.clearInterval(t)
+  }, [paused, list.length])
+  return list[getMotionReduce() ? 0 : i]
+}
 
 const REASON_TEXT: Record<FallbackReason, string> = {
   off: '키워드로 찾았어요 (AI 검색이 꺼져 있어요)',
@@ -35,13 +54,15 @@ const TOPIC_LABEL: Record<Topic, string> = {
   voucher: '상품권 가맹점',
   bus: '버스 정류장',
   agency: '담당 기관',
-  howto: '신고·이용 방법',
+  howto: '제보·이용 방법',
 }
 
 type State = { kind: 'idle' } | { kind: 'loading' } | { kind: 'done'; r: Understood; ans: AskAnswer | null }
 
-export default function AiSearch({ onHelp }: { onHelp: () => void }) {
+export default function AiSearch({ onHelp, home = false }: { onHelp: () => void; home?: boolean }) {
   const [q, setQ] = useState('')
+  const [focused, setFocused] = useState(false)
+  const rotating = useRotatingPlaceholder(PLACEHOLDERS, !home || focused || q !== '')
   const [st, setSt] = useState<State>({ kind: 'idle' })
   const [aiOn, setAiOn] = useState(getAiEnabled)
   const seq = useRef(0)
@@ -91,13 +112,15 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
 
   return (
     <section className="hp-ai" aria-label="AI 검색">
-      <p className="hp-ai-tag">
-        <span className="hp-ai-badge">AI 검색</span>
-        <span>궁금한 걸 적으면 알맞은 화면을 찾아 드려요</span>
-      </p>
+      {!home && (
+        <p className="hp-ai-tag">
+          <span className="hp-ai-badge">AI 검색</span>
+          <span>궁금한 걸 적으면 알맞은 화면을 찾아 드려요</span>
+        </p>
+      )}
       <form
         role="search"
-        className="hp-ask"
+        className={home ? 'hp-ask hp-ask-big' : 'hp-ask'}
         onSubmit={(e) => {
           e.preventDefault()
           void run(q)
@@ -113,12 +136,16 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
           autoComplete="off"
           aria-label="질문 입력"
           aria-describedby={personal ? hintId : undefined}
-          placeholder="무엇이든 물어보세요"
+          placeholder={home ? rotating : '무엇이든 물어보세요'}
           onChange={(e) => setQ(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
-        <button type="button" className="hp-ask-btn" aria-label="휠체어 길찾기 바로 열기" onClick={() => go(TO.route)}>
-          <Icon name="route" size={22} />
-        </button>
+        {!home && (
+          <button type="button" className="hp-ask-btn" aria-label="휠체어 길찾기 바로 열기" onClick={() => go(TO.route)}>
+            <Icon name="route" size={22} />
+          </button>
+        )}
         <button type="submit" className="hp-ask-btn hp-ask-go" aria-label="검색" disabled={busy || !q.trim()}>
           <Icon name="search" size={22} />
         </button>
@@ -128,6 +155,7 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
           개인정보는 적지 말아 주세요. 전화번호나 이메일은 보내기 전에 가려져요.
         </Sentences>
       )}
+      {!home && (
       <ul className="hp-ai-chips" aria-label="예시 질문">
         {EXAMPLES.map((t) => (
           <li key={t}>
@@ -150,6 +178,7 @@ export default function AiSearch({ onHelp }: { onHelp: () => void }) {
           </button>
         </li>
       </ul>
+      )}
 
       <div className="hp-ai-live" aria-live="polite" aria-atomic="true" aria-busy={busy}>
         {st.kind === 'loading' && (

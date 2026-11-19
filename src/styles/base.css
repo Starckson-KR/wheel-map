@@ -77,8 +77,8 @@ h4 {
 .rf-notice {
   padding: var(--s-3) 14px;
   border-radius: var(--r-md);
-  background: var(--blue-50);
-  color: var(--blue-700);
+  background: var(--grey-100);
+  color: var(--text);
   font-size: var(--fs-small);
 }
 
@@ -393,7 +393,7 @@ h4 {
   height: 24px;
   padding: 0 var(--s-2);
   border-radius: var(--r-sm);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   font-style: normal;
   white-space: nowrap;
@@ -482,7 +482,7 @@ h4 {
   height: 28px;
   border-radius: var(--r-full);
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* 요약 목록(이름 | 값) */
@@ -702,10 +702,10 @@ html .hm-counts > .hm-count { height: auto; min-height: 32px; padding: 4px 12px 
 .sent { display: block; }
 .sent + .sent { margin-top: 0.2em; }
 /* 짧은 라벨·안내: 두 줄이 되면 줄 길이를 고르게(끝줄에 한 글자만 남지 않게) */
-.hp-n > span, .bm button.hp-chip, .hp-tile-t, .bn-sum, .bn-dl dd, .ob-sub, .ob-feat small { text-wrap: balance; }
+.bn-sum, .bn-dl dd, .ob-sub, .ob-feat small { text-wrap: balance; }
 /* 오류 문구 앞 "!" 표시는 첫 문장 줄 안에 둔다(문장이 블록이라 따로 한 줄이 되지 않게) */
 .rf-err:has(> .sent)::before { content: none; }
-.rf-err > .sent:first-child::before { content: '! '; font-weight: 800; }
+.rf-err > .sent:first-child::before { content: '! '; font-weight: 700; }
 /* 좁은 폭의 혜택 카드: 항목 이름을 위에 두고 내용을 한 줄 전체 폭으로 보여 줘 3~4줄로 늘어지지 않게 */
 @media (max-width: 480px) {
   .bn-dl > div:is(div) { flex-direction: column; gap: 0; }
@@ -720,10 +720,8 @@ html body .hm-title, html body .lr-title, html body .lr-sub {
   white-space: normal;
   text-wrap: balance;
 }
-html body .hp-n > span { -webkit-line-clamp: 3; }
 /* 버튼 글자는 줄바꿈하지 않는다 */
 .bm button.rf-nowrap { white-space: nowrap; flex: none; }
-.hp-intro { text-wrap: balance; }
 
 /* 글자 크게: 혜택 요약만 한 단계 작게(3줄로 늘어지지 않게) */
 html[data-text='large'] .bn-sum { font-size: var(--fs-small); }
@@ -740,7 +738,7 @@ html[data-text='large'] .bn-sum { font-size: var(--fs-small); }
 /* 상태 필터는 칩 모양(위 세그먼트와 구분) */
 .rp-tabs.rp-tabs--chips { gap: var(--s-2); border-bottom: 0; }
 .bm .rp-tabs--chips button { min-height: 36px; padding: 0 var(--s-3); border-radius: var(--r-full); border-bottom: 0; margin-bottom: 0; font-size: var(--fs-small); }
-.bm .rp-tabs--chips button.on { background: var(--primary-weak); color: var(--primary); }
+.bm .rp-tabs--chips button.on { background: var(--bg); box-shadow: inset 0 0 0 2px var(--primary); color: var(--blue-700); }
 .pg-agencies strong, .pg-agencies .bm-meta { word-break: keep-all; }
 
 /* 사진: 한 줄로 옆으로 넘겨 본다(3+1 배치 없음) */

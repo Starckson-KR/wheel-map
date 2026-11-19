@@ -13,9 +13,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
-  padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
-  background: var(--bg-sub);
+  padding: 0;
 }
 
 .rv-sample p {
@@ -37,8 +35,8 @@
   min-height: var(--touch);
   padding: 0 var(--s-3);
   border-radius: var(--r-md);
-  background: var(--blue-50);
-  color: var(--blue-700);
+  background: var(--grey-100);
+  color: var(--text-strong);
   font-size: var(--fs-small);
   font-weight: 700;
   word-break: keep-all;

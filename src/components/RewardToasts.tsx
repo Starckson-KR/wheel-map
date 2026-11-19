@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence } from 'motion/react'
+import RewardCelebrate from './RewardCelebrate'
+import { pickPromotion } from '../lib/verifyDeck'
 import { DEMO_USERS, useReports, userName } from '../lib/reportStore'
 import type { Report } from '../types'
-import { EMBLEM_BY_ID, computeRewards, diffRewards, type RewardChange, type UserReward } from '../lib/rewards'
+import '../styles/interact-verify.css'
+import { EMBLEM_BY_ID, computeRewards, diffRewards, type EmblemDef, type RewardChange, type UserReward } from '../lib/rewards'
 
 // 점수·칭호가 늘어난 순간 화면 아래에 짧게 알려 준다. 점수는 제보 기록에서 계산하므로, 기록이 바뀔 때마다 이전 계산과 비교한다.
 type Toast = { id: number; title: string; sub?: string; ms: number }
@@ -26,6 +30,29 @@ export default function RewardToasts() {
   const prevIds = useRef<Set<string>>(new Set())
   const seq = useRef(0)
   const [toasts, setToasts] = useState<Toast[]>([])
+  // 내가 새 칭호를 받으면 한 줄 알림 대신 승급 장면을 먼저 보여 주고, 닫으면 알림 줄로 줄어든다.
+  const [promo, setPromo] = useState<{ def: EmblemDef; toast: Toast } | null>(null)
+  const promoRef = useRef(promo)
+  promoRef.current = promo
+  const showToast = useCallback((t: Toast) => {
+    setToasts((x) => [...x, t].slice(-3))
+    window.setTimeout(() => setToasts((x) => x.filter((y) => y.id !== t.id)), t.ms)
+  }, [])
+  const closePromo = useCallback(() => {
+    const p = promoRef.current
+    if (!p) return
+    setPromo(null)
+    showToast(p.toast)
+  }, [showToast])
+  // 시연 확인용: window.dispatchEvent(new CustomEvent('wheelmap:promo', { detail: 'g2' }))
+  useEffect(() => {
+    const on = (e: Event) => {
+      const def = EMBLEM_BY_ID.get(String((e as CustomEvent).detail ?? 'g2'))
+      if (def) setPromo({ def, toast: { id: ++seq.current, title: `'${def.name}' 칭호와 엠블럼을 받았어요`, ms: 3000 } })
+    }
+    window.addEventListener('wheelmap:promo', on)
+    return () => window.removeEventListener('wheelmap:promo', on)
+  }, [])
 
   // 제보 기록이 바뀔 때마다(저장소 구독) 이전 계산과 비교한다.
   useEffect(() => {
@@ -39,7 +66,11 @@ export default function RewardToasts() {
         const made: Toast[] = []
         for (const id of ids) {
           const c = diffRewards(prev.current[id], next[id])
-          if (c) made.push({ ...describe(c, id === me), id: ++seq.current })
+          if (!c) continue
+          const t = { ...describe(c, id === me), id: ++seq.current }
+          const def = id === me ? pickPromotion(c.newEmblems, (k) => EMBLEM_BY_ID.get(k)) : null
+          if (def && !promoRef.current) setPromo({ def, toast: t })
+          else made.push(t)
         }
         if (made.length > 0) {
           setToasts((t) => [...t, ...made].slice(-3))
@@ -59,8 +90,10 @@ export default function RewardToasts() {
     })
   }, [])
 
-  if (toasts.length === 0) return null
   return (
+    <>
+      <AnimatePresence>{promo && <RewardCelebrate key="promo" def={promo.def} mine name="" onClose={closePromo} />}</AnimatePresence>
+      {toasts.length > 0 && (
     <div className="rw-toasts" role="status" aria-live="polite">
       {toasts.map((t) => (
         <button key={t.id} type="button" className="rw-toast" onClick={() => setToasts((x) => x.filter((y) => y.id !== t.id))}>
@@ -69,5 +102,7 @@ export default function RewardToasts() {
         </button>
       ))}
     </div>
+      )}
+    </>
   )
 }

@@ -14,7 +14,7 @@ type Nodes = { el: HTMLElement; mid: HTMLElement | null; more: HTMLElement | nul
 const px = (el: HTMLElement, name: string) => parseFloat(getComputedStyle(el).getPropertyValue(name)) || 0
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 /** 눌렀을 때 다음 단계 */
-const NEXT_SNAP: Record<Snap, Snap> = { 0: 1, 1: 2, 2: 0 }
+const NEXT_SNAP: Record<Snap, Snap> = { 0: 2, 1: 2, 2: 0 } // 11/18: 접힌 단계에 칩이 없어져 최소와 기본은 같은 높이다. 눌러서는 바로 펼친다
 /** 내용이 나타날 때 올라오는 거리(px) */
 const RISE_MID = 8
 const RISE_MORE = 10

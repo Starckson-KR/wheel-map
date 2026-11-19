@@ -120,7 +120,7 @@
   --r-full: 999px;
 
   /* 그림자 */
-  --shadow-1: 0 1px 2px rgb(25 31 40 / 0.06), 0 2px 8px rgb(25 31 40 / 0.08);
+  --shadow-1: 0 1px 2px rgb(25 31 40 / 0.05), 0 1px 6px rgb(25 31 40 / 0.05);
   --shadow-2: 0 4px 16px rgb(25 31 40 / 0.14);
   --shadow-sheet: 0 -4px 24px rgb(25 31 40 / 0.16);
 
@@ -143,6 +143,15 @@
   --z-pick: 50;
   --z-modal: 60;
   --z-lightbox: 100;
+
+  /* 카드: 흰 면 하나, 모서리 16, 안 여백 20. 카드 안에 카드를 넣지 않고 선·여백으로 나눈다 */
+  --card-pad: 20px;
+  --card-radius: var(--r-lg);
+  --card-bg: var(--bg);
+  --card-gap: var(--s-3);
+  --fw-regular: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
 
   --touch: 44px;
   /* 하단 탭 바 높이: 어느 화면에서도 같다. 모바일 보기에서만 아래에 붙고, PC 보기에서는 위쪽 내비라서 0 */

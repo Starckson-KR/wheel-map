@@ -118,7 +118,8 @@ declare namespace kakao.maps {
     interface MapMouseEvent {
       latLng: LatLng
     }
-    function addListener(target: Map, type: 'idle' | 'dragstart', handler: () => void): void
+    function addListener(target: Map, type: 'idle' | 'dragstart' | 'dragend', handler: () => void): void
+    function removeListener(target: Map, type: 'dragstart' | 'dragend', handler: () => void): void
     function addListener(target: Map, type: 'click', handler: (event: MapMouseEvent) => void): void
     function addListener(target: Polyline | Polygon, type: 'click', handler: (event: MapMouseEvent) => void): void
     function addListener(target: Marker, type: 'dragend' | 'click', handler: () => void): void

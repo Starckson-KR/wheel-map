@@ -1,0 +1,208 @@
+/* 인터랙션 1차: [제보] 길게 누르기 부채꼴, 축하 색종이. 움직임 줄이기는 html.motion-reduce 기준(기기 설정과 상관없음). */
+
+/* ───── [제보] 원: 길게 누르는 동안 시스템 메뉴·글자 선택·스크롤을 막는다 ───── */
+.tabbar-fab {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 6; /* 부채꼴 막(z 5) 위 */
+}
+.tabbar-fab-c { touch-action: none; }
+.tabbar-fab.is-open .tabbar-fab-c,
+.tabbar-fab.is-open:active .tabbar-fab-c {
+  transform: translateY(-14px) scale(1.12);
+}
+
+/* 진행 고리: 150ms부터 450ms까지 차오르고, 다 차면 부채꼴이 열린다 */
+.fabm-ring {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  overflow: visible;
+  pointer-events: none;
+}
+.fabm-ring circle {
+  fill: none;
+  stroke: var(--blue-100);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+:root[data-theme='dark'] .fabm-ring circle { stroke: var(--primary); }
+/* PC(위쪽 내비의 알약 버튼)는 고리 없이 */
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .fabm-ring { display: none; }
+}
+:root[data-view='desktop'] .fabm-ring { display: none; }
+
+/* ───── 부채꼴 ───── */
+.fabm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: rgb(15 23 42 / 0.28);
+  touch-action: none;
+}
+.fabm {
+  position: fixed;
+  z-index: 7;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.fabm-it {
+  position: absolute;
+  left: -32px;
+  top: -32px;
+  box-sizing: border-box;
+  width: 64px;
+  height: 64px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--bg);
+  color: var(--text-strong, var(--text));
+  box-shadow: 0 8px 20px -6px rgb(15 23 42 / 0.45);
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+.fabm-in {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  word-break: keep-all;
+  transition: transform 120ms var(--ease-out), background-color 120ms var(--ease-out), color 120ms var(--ease-out);
+}
+.fabm-in > span { max-width: 56px; }
+.fabm-it.is-hover,
+.fabm-it:focus-visible {
+  z-index: 1;
+  border-color: var(--blue-600);
+  background: var(--blue-600);
+  color: #fff;
+}
+:root[data-theme='dark'] .fabm-it.is-hover,
+:root[data-theme='dark'] .fabm-it:focus-visible { border-color: var(--primary); background: var(--primary); color: #0b1220; }
+.fabm-it:focus-visible { outline: 3px solid var(--blue-100); outline-offset: 2px; }
+.fabm-it.is-hover .fabm-in { transform: scale(1.12); }
+.fabm-it.is-picked .fabm-in { transform: scale(1.3); }
+
+/* ───── 축하 색종이(Celebration) ───── */
+.cf {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 3;
+}
+.cf-p {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 2px;
+  opacity: 0;
+  animation: cf-burst 1000ms var(--ease-out) both;
+  will-change: transform, opacity;
+}
+.cf-c0 { background: #3182f6; }
+.cf-c1 { background: #f2b84b; }
+.cf-c2 { background: #52c79a; }
+.cf-c3 { background: #ff7a6b; }
+/* 위로 솟았다가(35%) 떨어지며 사라진다 */
+@keyframes cf-burst {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(0.6); }
+  35% { opacity: 1; transform: translate(calc(var(--dx) * 0.7), calc(var(--up) * -1)) rotate(calc(var(--rot) * 0.4)) scale(1); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
+  100% { opacity: 0; transform: translate(var(--dx), calc(var(--fall))) rotate(var(--rot)) scale(1); }
+}
+
+/* ───── 접수 완료 화면 ───── */
+.rf-done-hero { position: relative; display: grid; place-items: center; }
+.rf-done .rv-no { animation: rf-stamp 360ms 160ms cubic-bezier(0.34, 1.7, 0.5, 1) backwards; }
+@keyframes rf-stamp {
+  from { opacity: 0; transform: scale(1.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+.rf-done .rv-steps li { animation: rf-step-in 260ms var(--ease-out) backwards; }
+.rf-done .rv-steps li:nth-child(1) { animation-delay: 420ms; }
+.rf-done .rv-steps li:nth-child(2) { animation-delay: 510ms; }
+.rf-done .rv-steps li:nth-child(3) { animation-delay: 600ms; }
+@keyframes rf-step-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ───── 움직임 줄이기: 이동·크기 변화는 즉시, 투명도만. 색종이는 컴포넌트가 아예 그리지 않는다 ───── */
+html.motion-reduce .fabm-in,
+html.motion-reduce .tabbar-fab-c { transition: none; }
+html.motion-reduce .tabbar-fab.is-open .tabbar-fab-c,
+html.motion-reduce .tabbar-fab.is-open:active .tabbar-fab-c { transform: translateY(-14px); }
+html.motion-reduce .fabm-it.is-hover .fabm-in,
+html.motion-reduce .fabm-it.is-picked .fabm-in { transform: none; }
+html.motion-reduce .cf-p,
+html.motion-reduce .rf-done .rv-no,
+html.motion-reduce .rf-done .rv-steps li { animation: none; opacity: 1; }
+
+/* ───── 당겨서 새로고침(A1): 홈 맨 위에서만. 브라우저 기본 새로고침과 겹치지 않게 막는다 ───── */
+.hp-scroll { overscroll-behavior-y: contain; }
+.pr-ind {
+  position: absolute;
+  z-index: 4;
+  top: calc(var(--safe-top) + 8px);
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-1), inset 0 0 0 1px var(--line);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -48px);
+  pointer-events: none;
+}
+.pr-ic { flex: none; transform: rotate(var(--pr-rot, 0deg)); }
+.pr-ind[data-phase='ready'] .pr-ic { color: var(--blue-600); }
+.pr-ind[data-phase='busy'] .pr-ic { animation: pr-spin 800ms linear infinite; }
+@keyframes pr-spin { to { transform: rotate(360deg); } }
+
+/* ───── 원형 확장 전환(B2): 새 화면이 눌린 버튼 중심에서 퍼진다. 좌표·반지름은 lib/circleReveal.ts가 정한다 ───── */
+html.vt-circle .app-view { opacity: 1 !important; transform: none !important; } /* 퍼지는 동안 새 화면은 이미 다 보이는 상태 */
+html.vt-circle::view-transition-old(root) { animation: none; }
+html.vt-circle::view-transition-new(root) { animation: vt-circle-in 380ms var(--ease-drawer) both; }
+@keyframes vt-circle-in {
+  from { clip-path: circle(0px at var(--vt-x) var(--vt-y)); }
+  to { clip-path: circle(var(--vt-r) at var(--vt-x) var(--vt-y)); }
+}
+
+/* ───── 하단 탭 아이콘·유형 카드 누름(B3·C2): 크기는 motion(SPRING.pop)이 바꾼다 ───── */
+.tb-ic { display: inline-flex; flex: none; }
+.tabbar-btn .tb-ic svg { transition: none; }
+.tabbar-btn:active .tb-ic svg { transform: none; }
+.bm button.rf-type { transition: background-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out); }
+
+html.motion-reduce .pr-ind[data-phase='busy'] .pr-ic { animation: none; }
+html.motion-reduce .pr-ic { transform: none; }
+html.motion-reduce.vt-circle::view-transition-new(root) { animation: none; }

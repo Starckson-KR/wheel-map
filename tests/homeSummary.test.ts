@@ -1,31 +1,56 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nextGradeRatio, ratingCounts } from '../src/lib/homeSummary.ts'
+import { summarizeMine, mineLines, parseHomeExtra, EXTRA_TILES, FIXED_TILES } from '../src/lib/homeSummary.ts'
 import { TAB_ITEMS } from '../src/lib/tabs.ts'
 import { TAB_ORDER } from '../src/lib/motionTokens.ts'
 import { TO, parseHash } from '../src/lib/nav.ts'
-import type { Barrier } from '../src/types.ts'
 
-const b = (o: Partial<Barrier> & { id: string }): Barrier => ({ name: o.id, type: 't', measurements: [], source: 'team_survey', photos: [], note: '', kind: 'point', geometry: null, ...o }) as Barrier
+const R = (userId: string, status: string) => ({ userId, status }) as { userId: string; status: never }
 
-test('등급별 개수: 묶음 제외, 부모 등급 따름, 등급 없으면 제외', () => {
-  const c = ratingCounts([
-    b({ id: 'g', kind: 'group', rating: 'X' }),
-    b({ id: 'a', rating: 'X' }),
-    b({ id: 'c', rating: 'TRIANGLE', parentId: 'g' }),
-    b({ id: 'd', parentId: 'g' }),
-    b({ id: 'e', rating: 'O' }),
-    b({ id: 'f' }),
-  ])
-  assert.deepEqual(c, { total: 4, X: 2, TRIANGLE: 1, O: 1 })
+test('내 제보 요약: 제보가 없으면 모두 0, 문구는 "아직 제보가 없어요"', () => {
+  const s = summarizeMine([], 'u1')
+  assert.deepEqual(s, { total: 0, active: 0, waiting: 0, fixed: 0 })
+  assert.equal(mineLines(s).big, '아직 제보가 없어요')
 })
 
-test('다음 칭호 진행률', () => {
-  assert.equal(nextGradeRatio(null), 0)
-  const p = (now: number, need: number) => ({ label: '', now, need })
-  assert.equal(nextGradeRatio({ name: '', how: '', progress: [p(2, 5), p(10, 20)], anyOf: true }), 0.5)
-  assert.equal(nextGradeRatio({ name: '', how: '', progress: [p(5, 5), p(0, 4)] }), 0.5)
-  assert.equal(nextGradeRatio({ name: '', how: '', progress: [p(9, 5)] }), 1)
+test('내 제보 요약: 상태별 집계와 다른 사용자 제보 제외', () => {
+  const list = [
+    R('u1', 'pending'),
+    R('u1', 'pending'),
+    R('u1', 'verified'),
+    R('u1', 'in_progress'),
+    R('u1', 'resolved'),
+    R('u1', 'rechecked'),
+    R('u1', 'rejected'),
+    R('u1', 'merged'),
+    R('u2', 'pending'),
+    R('u2', 'resolved'),
+  ]
+  const s = summarizeMine(list, 'u1')
+  assert.deepEqual(s, { total: 8, active: 4, waiting: 2, fixed: 2 })
+  assert.deepEqual(mineLines(s), { big: '4건 처리 중', sub: '검증 대기 2 · 고쳐짐 2' })
+  assert.deepEqual(summarizeMine(list, 'u3'), { total: 0, active: 0, waiting: 0, fixed: 0 })
+})
+
+test('내 제보 요약: 처리 중이 없어도 제보가 있으면 숫자를 보인다', () => {
+  const s = summarizeMine([R('u1', 'rechecked')], 'u1')
+  assert.deepEqual(mineLines(s), { big: '0건 처리 중', sub: '검증 대기 0 · 고쳐짐 1' })
+})
+
+test('자주 쓰는 서비스: 고정 5칸, 6번째 후보는 중복 없이 고정 칸과 겹치지 않는다', () => {
+  assert.equal(FIXED_TILES.length, 5)
+  const ids = [...FIXED_TILES, ...EXTRA_TILES].map((t) => t.id)
+  assert.equal(new Set(ids).size, ids.length)
+  assert.equal(FIXED_TILES.find((t) => t.id === 'receipt')?.to, '#/report?section=receipt')
+  assert.equal(FIXED_TILES.find((t) => t.id === 'route')?.to, TO.route)
+})
+
+test('6번째 칸 저장값: 목록에 있는 것만 인정', () => {
+  assert.equal(parseHomeExtra('bus')?.label, '저상버스 도착')
+  assert.equal(parseHomeExtra('route'), null)
+  assert.equal(parseHomeExtra('없는값'), null)
+  assert.equal(parseHomeExtra(null), null)
+  assert.equal(parseHomeExtra(''), null)
 })
 
 test('하단 탭 순서: 홈 · 동행지도 · 제보 · 혜택알림 · 내 정보', () => {

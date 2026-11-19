@@ -39,11 +39,11 @@ export function TlStep(props: { color: string; title: ReactNode; sub?: ReactNode
 }
 
 /** 경로 카드: 큰 시간, 회색 거리, 작은 상태 배지. 카드 전체가 하나의 버튼이다 */
-export function RouteCard(props: { time: string; sub: ReactNode; badges?: ReactNode; chips?: ReactNode; on: boolean; onPick: () => void; foot?: ReactNode }) {
-  const { time, sub, badges, chips, on, onPick, foot } = props
+export function RouteCard(props: { time: string; sub: ReactNode; badges?: ReactNode; chips?: ReactNode; on: boolean; onPick: () => void; foot?: ReactNode; id?: string; disabled?: boolean }) {
+  const { time, sub, badges, chips, on, onPick, foot, id, disabled } = props
   return (
-    <li className={'rc' + (on ? ' on' : '')}>
-      <button type="button" className="rc-btn" aria-pressed={on} onClick={onPick}>
+    <li className={'rc' + (on ? ' on' : '') + (disabled ? ' off' : '')} data-card={id}>
+      <button type="button" className="rc-btn" aria-pressed={on} disabled={disabled} onClick={onPick}>
         <span className="rc-top">
           <span className="rc-time">{time}</span>
           {badges && <span className="rc-badges">{badges}</span>}

@@ -12,20 +12,20 @@ import { loadPubDataset } from '../lib/publicLayers'
 import { BADGE_TEXT, FILE_MAX_BYTES, pickCandidates } from '../lib/demoLarge'
 import { Sentences } from './Sentences'
 
-// 시연용 모의 연동 표시: 모의 접수 모드에서는 어느 화면에서나 계속 보인다.
-// hideLarge: 지도 화면은 "시연용 가상 데이터" 배지를 보이지 않는다(홈·내 정보·행정 화면과 정보 패널에는 그대로 있다).
-export function MockStrip({ hideLarge = false }: { hideLarge?: boolean } = {}) {
+// 시연용 모의 연동·가상 데이터 표시: 모의 접수 모드에서는 홈·내 정보·행정 화면에 계속 보인다.
+// onMap: 지도 화면은 두 표시를 모두 보이지 않는다(저장 오류 알림만 남김, 제보 안내에는 모의 연동 문구가 따로 있다).
+export function MockStrip({ onMap = false }: { onMap?: boolean } = {}) {
   const mode = useReports((s) => s.complaintMode)
   const storageError = useReports((s) => s.storageError)
   const hasLarge = useReports((s) => s.reports.some((r) => r.demoSet === 'large'))
   return (
     <>
-      {hasLarge && !hideLarge && (
+      {hasLarge && !onMap && (
         <div className="mock-strip mock-strip-large" role="note">
           {BADGE_TEXT}
         </div>
       )}
-      {mode === 'mock' && (
+      {mode === 'mock' && !onMap && (
         <div className="mock-strip" role="note">
           시연용 모의 연동 · 실제 접수는 되지 않아요
         </div>

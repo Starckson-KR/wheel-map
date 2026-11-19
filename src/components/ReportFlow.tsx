@@ -1,3 +1,7 @@
+import Celebration from './Celebration'
+import { haptic } from '../lib/haptic'
+import { m } from 'motion/react'
+import { SPRING, TAP } from '../lib/motionTokens'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PHOTO_MAX_COUNT, TEMP_VALID_HOURS, VOTES_REQUIRED } from '../lib/config'
 import { coordText, useAddress } from '../lib/addressCache'
@@ -13,6 +17,8 @@ import { confirmSheet, toast } from '../lib/uiStore'
 import { prefersCalm } from '../lib/viewPrefs'
 import { Sentences } from './Sentences'
 import ReportTypeIcon from './ReportTypeIcon'
+import RulerSlider from './RulerSlider'
+import { CURB_RULER, WIDTH_RULER } from '../lib/ruler'
 import '../styles/review.css'
 
 export type Loc = { lat: number; lng: number }
@@ -29,6 +35,8 @@ type Props = {
   onOpenReport: (id: string) => void
   /** 홈 AI 검색에서 고른 유형(앱 유형 목록에 있는 값만 쓴다). 미리 선택만 해 두고, 바꿀 수 있다 */
   initialType?: string | null
+  /** 부채꼴 바로가기처럼 유형을 이미 골랐으면 2단계(위치)부터 연다. 뒤로 가면 1단계에 그 유형이 골라져 있다 */
+  skipType?: boolean
 }
 
 const GPS_ERR: Record<number, string> = {
@@ -53,13 +61,13 @@ const reportNo = (id: string) => id.replace(/^r-/i, 'R-').toUpperCase()
 
 const num = (s: string) => (s.trim() === '' ? undefined : Number(s))
 
-export default function ReportFlow({ location, onLocation, onPickStart, hidden, seeds, onClose, onOpenReport, initialType = null }: Props) {
+export default function ReportFlow({ location, onLocation, onPickStart, hidden, seeds, onClose, onOpenReport, initialType = null, skipType = false }: Props) {
   const reports = useReports((s) => s.reports)
   const addReport = useReports((s) => s.addReport)
   const userId = useReports((s) => s.userId)
 
-  const [step, setStep] = useState<Step>(1)
   const [presetType] = useState<string | null>(() => (initialType && REPORT_TYPES.some((t) => t.type === initialType) ? initialType : null))
+  const [step, setStep] = useState<Step>(skipType && presetType ? 2 : 1)
   const [type, setType] = useState<string | null>(presetType)
   const [photos, setPhotos] = useState<Photo[]>([])
   const [description, setDescription] = useState('')
@@ -94,6 +102,11 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
     if (location === st.location) setLocSource(st.source)
   }, [hidden, location])
   useEffect(() => () => photosRef.current.forEach((p) => URL.revokeObjectURL(p.url)), [])
+
+  // 접수가 끝나는 순간: 색종이·도장(화면 반응)과 함께 진동
+  useEffect(() => {
+    if (done) haptic('success')
+  }, [done])
 
   // 단계가 바뀌면 맨 위부터 보여 준다
   useEffect(() => {
@@ -285,7 +298,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   }
 
   const cancel = async () => {
-    if (!done && (type || photos.length || description) && !(await confirmSheet({ title: '신고를 그만 쓸까요?', body: '작성 중인 내용이 사라져요.', confirmLabel: '그만 쓰기', cancelLabel: '계속 쓰기', danger: true }))) return
+    if (!done && (type || photos.length || description) && !(await confirmSheet({ title: '제보를 그만 쓸까요?', body: '작성 중인 내용이 사라져요.', confirmLabel: '그만 쓰기', cancelLabel: '계속 쓰기', danger: true }))) return
     onClose()
   }
 
@@ -293,20 +306,20 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const q = STEP_Q[step]
 
   return (
-    <div ref={panelRef} className="rf" role="dialog" aria-modal="true" aria-label="장애요소 신고하기" hidden={hidden}>
+    <div ref={panelRef} className="rf" role="dialog" aria-modal="true" aria-label="장애요소 제보하기" hidden={hidden}>
       <div className="rf-head">
         {!done && step > 1 && (
           <button type="button" className="bm-back" onClick={() => go((step - 1) as Step)} disabled={busy} aria-label="이전 단계">
             이전
           </button>
         )}
-        <h2>신고하기{!done && <span className="rf-step" aria-hidden="true">{step}/4</span>}</h2>
+        <h2>제보하기{!done && <span className="rf-step" aria-hidden="true">{step}/4</span>}</h2>
         <button type="button" className="bm-close" onClick={cancel}>
           닫기
         </button>
       </div>
       {!done && (
-        <div className="rf-progress" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} aria-valuetext={`4단계 중 ${step}단계`} aria-label="신고 진행 단계">
+        <div className="rf-progress" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} aria-valuetext={`4단계 중 ${step}단계`} aria-label="제보 진행 단계">
           <i style={{ transform: `scaleX(${step / 4})` }} />
         </div>
       )}
@@ -314,11 +327,14 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
       {done ? (
         <div className="rf-body">
           <div className="rf-done rv-done" role="status">
-            <span className="rf-done-mark" aria-hidden="true" />
-            <h2 className="rf-q">{done.merged ? '기존 건에 합쳐서 등록했어요' : '신고를 등록했어요'}</h2>
-            <span className="rv-no">신고 번호 {reportNo(done.id)}</span>
+            <span className="rf-done-hero">
+              <span className="rf-done-mark" aria-hidden="true" />
+              <Celebration />
+            </span>
+            <h2 className="rf-q">{done.merged ? '기존 건에 합쳐서 등록했어요' : '제보를 등록했어요'}</h2>
+            <span className="rv-no">제보 번호 {reportNo(done.id)}</span>
             <Sentences as="p">{done.merged
-                ? '기존 건의 신고 목록에 추가됐어요.'
+                ? '기존 건의 제보 목록에 추가됐어요.'
                 : '지금은 "검증 대기" 상태예요. 다른 시민이 확인하면 지도에 나타나요.'}</Sentences>
             {!done.merged && (
               <>
@@ -334,7 +350,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     <span className="n" aria-hidden="true">2</span>
                     <span>
                       <strong>기관 접수</strong>
-                      <span className="t">검증된 신고는 담당 기관에 접수하는 방법을 안내해요.</span>
+                      <span className="t">검증된 제보는 담당 기관에 접수하는 방법을 안내해요.</span>
                     </span>
                   </li>
                   <li>
@@ -346,11 +362,11 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   </li>
                 </ol>
                 <Sentences as="p" className="rv-tip">
-                  다른 리뷰어가 내 신고를 확인해 줄 수 있어요.
+                  다른 리뷰어가 내 제보를 확인해 줄 수 있어요.
                 </Sentences>
               </>
             )}
-            {done.photoFailed && <Sentences as="p" className="rf-warn">일부 사진은 이 브라우저에 저장하지 못했어요. 신고 기록은 저장됐어요.</Sentences>}
+            {done.photoFailed && <Sentences as="p" className="rf-warn">일부 사진은 이 브라우저에 저장하지 못했어요. 제보 기록은 저장됐어요.</Sentences>}
           </div>
           <div className="rf-actions">
             <button type="button" onClick={() => onOpenReport(done.id)}>
@@ -364,7 +380,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 navGo('#/report?section=mine')
               }}
             >
-              내 민원 현황
+              내 제보 현황
             </button>
           </div>
         </div>
@@ -377,9 +393,9 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
           {step === 1 && (
             <>
-              {presetType && type === presetType && (
+              {presetType && !skipType && type === presetType && (
                 <Sentences as="p" className="bm-meta rf-preset" role="status">
-                  검색에서 고른 유형이에요. 다르면 바꿔 주세요.
+                  미리 고른 유형이에요. 다르면 바꿔 주세요.
                 </Sentences>
               )}
               {(['fixed', 'temporary'] as const).map((cat) => (
@@ -389,22 +405,29 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   </legend>
                   <div className="rf-types">
                     {REPORT_TYPES.filter((t) => t.category === cat).map((t) => (
-                      <button
+                      <m.button
                         key={t.type}
                         type="button"
-                        className={'rf-type' + (type === t.type ? ' on' : '')}
+                        className={'rf-type mt' + (type === t.type ? ' on' : '')}
                         aria-pressed={type === t.type}
-                        onClick={() => setType(t.type)}
+                        whileTap="press"
+                        variants={{ press: { scale: TAP } }}
+                        transition={SPRING.press}
+                        onClick={() => {
+                          haptic('tick')
+                          setType(t.type)
+                        }}
                       >
-                        <span className="rf-icon" aria-hidden="true">
+                        {/* 누르면 아이콘이 커졌다가 손을 뗄 때 튕겨 돌아온다(C2) */}
+                        <m.span className="rf-icon" aria-hidden="true" variants={{ press: { scale: 1.25 } }} transition={SPRING.pop}>
                           <ReportTypeIcon type={t.type} size={22} />
-                        </span>
+                        </m.span>
                         <span className="rf-type-text">
                           <strong>{t.type}</strong>
                           <span>{t.desc}</span>
                         </span>
                         {type === t.type && <span className="rf-check">선택했어요</span>}
-                      </button>
+                      </m.button>
                     ))}
                   </div>
                 </fieldset>
@@ -532,7 +555,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 )}
                 {photos.length < PHOTO_MAX_COUNT && (
                   <div className="rv-sample">
-                    <Sentences as="p">올릴 사진이 없나요? 체험용 그림으로 끝까지 해 볼 수 있어요. 신고에 &quot;샘플 사진&quot;이라고 표시돼요.</Sentences>
+                    <Sentences as="p">올릴 사진이 없나요? 체험용 그림으로 끝까지 해 볼 수 있어요. 제보에 &quot;샘플 사진&quot;이라고 표시돼요.</Sentences>
                     <div className="rv-sample-btns">
                       {SAMPLE_SCENES.map((s) => (
                         <button key={s.id} type="button" disabled={sampleBusy} onClick={() => addSample(s.id)}>
@@ -581,6 +604,8 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 <h3>
                   직접 잰 값 <span className="bm-meta">선택</span>
                 </h3>
+                <RulerSlider spec={WIDTH_RULER} label="폭" value={widthM} onChange={setWidthM} />
+                <RulerSlider spec={CURB_RULER} label="턱 높이" value={curbCm} onChange={setCurbCm} />
                 <div className="rf-two">
                   <label className="rf-field">
                     폭 (m)
@@ -654,7 +679,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
             <>
               {duplicates.length > 0 && (
                 <section className="rf-card rf-dup" aria-label="중복 확인">
-                  <strong>이미 신고된 곳일 수 있어요</strong>
+                  <strong>이미 제보된 곳일 수 있어요</strong>
                   <Sentences as="p">{`같은 유형(${info.type})이 반경 15m 안에 있어요. 같은 곳이라면 기존 건에 합쳐 주세요.`}</Sentences>
                   {duplicates.map((d) => (
                     <div key={d.id} className="rf-dup-item">
@@ -662,7 +687,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                         <strong>{d.label}</strong> · {d.type}
                         <br />
                         <span className="bm-meta">
-                          {dist(d.distanceM)} 떨어져 있어요{d.at ? ` · ${new Date(d.at).toLocaleDateString('ko-KR')} 신고` : ''}
+                          {dist(d.distanceM)} 떨어져 있어요{d.at ? ` · ${new Date(d.at).toLocaleDateString('ko-KR')} 제보` : ''}
                         </span>
                       </span>
                       <button type="button" className="rf-primary rf-nowrap" disabled={busy} onClick={() => submit(d.id)}>

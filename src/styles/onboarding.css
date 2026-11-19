@@ -173,7 +173,7 @@
   margin: 0 0 var(--s-2);
   font-size: 2.75rem;
   line-height: 4.2rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--text-strong);
   outline: none;
@@ -434,7 +434,7 @@
 .ob-card-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); }
 .ob-card-head strong { display: block; color: var(--text-strong); }
 .ob-card-head small { color: var(--text-sub); font-size: var(--fs-caption); }
-.ob-card-avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-weight: 800; }
+.ob-card-avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-weight: 700; }
 .ob-card-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
 .ob-card-actions .ob-btn { flex: 1 1 auto; width: auto; min-width: max-content; white-space: nowrap; }
 
@@ -521,7 +521,7 @@ html[data-page-hidden] .ob-orb, html[data-page-hidden] .ob-orb::before { animati
 /* 홈 화면 추가 안내: 번호 순서 목록 */
 .ob-steps { margin: var(--s-5) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s-3); }
 .ob-step { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--bg-sub); }
-.ob-step-n { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-small); font-weight: 800; }
+.ob-step-n { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-small); font-weight: 700; }
 .ob-step-t { flex: 1; min-width: 0; font-size: var(--fs-body); line-height: 1.5; color: var(--text); }
 .ob-step-t strong { color: var(--text-strong); }
 .ob-step-ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--bg); color: var(--primary); }

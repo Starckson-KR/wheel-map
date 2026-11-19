@@ -44,14 +44,12 @@
   display: flex;
   align-items: center;
   gap: var(--s-4);
-  padding: var(--s-5) var(--s-4);
-  border-radius: var(--r-xl);
-  background: var(--bg-sub);
+  padding: var(--s-2) 0 var(--s-3);
 }
 
 .rw-hero-text h3 {
   font-size: var(--fs-head);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .rw-score {
@@ -63,7 +61,7 @@
 .rw-score b {
   color: var(--primary);
   font-size: var(--fs-title);
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -76,8 +74,9 @@
 .rw-next {
   padding: var(--s-4);
   border-radius: var(--r-lg);
-  background: var(--primary-weak);
+  background: var(--grey-100);
 }
+.bm .rw .rf-seg button { padding: 0 var(--s-1); font-size: var(--fs-small); font-weight: 700; white-space: nowrap; }
 
 .rw-next h4 {
   margin: 0;
@@ -162,7 +161,7 @@
 .rw-stats b {
   color: var(--text-strong);
   font-size: var(--fs-head);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .rw-stats span {
@@ -312,7 +311,7 @@
 .rk-row.rk-mine { border-color: var(--primary); background: var(--primary-weak); }
 :root[data-theme='dark'] .rk-row.rk-mine { background: var(--bg-page); }
 .rk-out { margin-top: var(--s-1); }
-.rk-no { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-full); background: var(--bg); border: 1px solid var(--line); color: var(--text-strong); font-weight: 800; font-variant-numeric: tabular-nums; }
+.rk-no { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-full); background: var(--bg); border: 1px solid var(--line); color: var(--text-strong); font-weight: 700; font-variant-numeric: tabular-nums; }
 .rk-who { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
 .rk-who strong { color: var(--text-strong); overflow-wrap: anywhere; }
 .rk-sub { color: var(--text-sub); font-size: var(--fs-caption); overflow-wrap: anywhere; }
@@ -333,7 +332,7 @@
 .ch-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
 .ch-head strong { color: var(--text-strong); }
 .ch-num { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
-.ch-done { color: var(--green-700); font-weight: 800; }
+.ch-done { color: var(--green-700); font-weight: 700; }
 :root[data-theme='dark'] .ch-done { color: #5fd0a0; }
 .ch-track { height: 8px; overflow: hidden; border-radius: var(--r-full); background: var(--line); }
 .ch-track i { display: block; height: 100%; border-radius: var(--r-full); background: var(--primary); transition: width var(--t-sheet) var(--ease-out); }

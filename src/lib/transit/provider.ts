@@ -15,6 +15,13 @@ export type TransitFetch = { ok: true; itineraries: TItinerary[]; source: 'store
 
 export const hasStoredTransit = (pairId: string | null) => !!pairId && !!STORED[pairId]
 
+/** 저장된 버스 경로의 가장 빠른 소요(초). 없으면 null(카드에 시간을 보이는 데만 쓴다) */
+export function storedTransitSummary(pairId: string | null): { time: number; count: number } | null {
+  const s = pairId ? STORED[pairId] : undefined
+  if (!s || s.itineraries.length === 0) return null
+  return { time: Math.min(...s.itineraries.map((i) => i.time)), count: s.itineraries.length }
+}
+
 export async function fetchTransit(pairId: string | null, from: Place, to: Place, allowRelay: boolean): Promise<TransitFetch> {
   const s = pairId ? STORED[pairId] : undefined
   if (s) return { ok: true, itineraries: s.itineraries, source: 'stored', fetchedAt: s.fetchedAt }

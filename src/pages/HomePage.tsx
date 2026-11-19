@@ -11,83 +11,35 @@ import { readDevReturn } from '../lib/devReturn'
 import SheetHandle from '../components/SheetHandle'
 import { loadBarriers } from '../lib/seed'
 import { TO, go } from '../lib/nav'
-import { computeRanking } from '../lib/ranking'
-import { computeRewards } from '../lib/rewards'
-import { nextGradeRatio, ratingCounts } from '../lib/homeSummary'
-import { nowMs, rankingUserIds, useReports } from '../lib/reportStore'
-import { prefersCalm } from '../lib/viewPrefs'
+import { EXTRA_TILES, FIXED_TILES, HOME_EXTRA_KEY, mineLines, parseHomeExtra, summarizeMine } from '../lib/homeSummary'
+import { useReports } from '../lib/reportStore'
 import { openGuide } from '../lib/usageGuide'
 import { confirmSheet, toast } from '../lib/uiStore'
-import CountUp, { CountText } from '../components/CountUp'
+import { CountText } from '../components/CountUp'
 import AiSearch from '../components/AiSearch'
-import { BENEFITS } from '../lib/benefitsData'
-import { homeCount, loadPrefs } from '../lib/benefits'
 import { loadPubDataset } from '../lib/publicLayers'
 import { pickCandidates } from '../lib/demoLarge'
 import { Sentences } from '../components/Sentences'
 import { Wordmark } from '../components/Wordmark'
-
-const TILES = [
-  { icon: 'report', label: '문제 신고하기', to: TO.newReport },
-  { icon: 'list', label: '내 민원 현황', to: TO.report },
-  { icon: 'bus', label: '저상버스 도착', to: TO.bus },
-  { icon: 'map', label: '동행지도', to: TO.map },
-  { icon: 'check', label: '개선 현황', to: TO.progress },
-  { icon: 'building', label: '담당 기관 안내', to: TO.agency },
-]
-
-// 안내 문구는 앱에 이미 있는 기능을 쓰는 방법만 적는다. t는 할 일, d는 앱에서 누를 곳.
-const GUIDES = [
-  {
-    id: 'bus', icon: 'bus', label: '버스 타기',
-    lines: [
-      { t: '저상버스가 오는지 먼저 확인해요', d: "길찾기에서 '버스 타고'를 골라요", to: TO.bus },
-      { t: '정류장 근처에서 다음 저상버스를 봐요', d: '길찾기 결과의 정류장을 눌러요', to: TO.bus },
-      { t: '타기 불편한 정류장이 있는지 봐요', d: '지도에서 정류장 표시를 눌러요', to: TO.map },
-      { t: '불편한 정류장을 알려 줘요', d: '문제 신고하기에서 정류장 유형을 골라요', to: TO.newReport },
-    ],
-  },
-  {
-    id: 'cross', icon: 'cross', label: '길 건너기',
-    lines: [
-      { t: '건너기 어려운 곳을 피해 가요', d: "길찾기에서 '걸어서'를 골라요", to: TO.route },
-      { t: '결과에서 지나기 어려운 곳을 확인해요', d: '○ △ X 표시와 설명을 읽어요', to: TO.route },
-      { t: '횡단보도 불편을 알려 줘요', d: '문제 신고하기에서 위치와 사진을 남겨요', to: TO.newReport },
-    ],
-  },
-  {
-    id: 'enter', icon: 'enter', label: '건물 출입',
-    lines: [
-      { t: '도착지 출입이 불편한지 먼저 봐요', d: '길찾기 결과의 도착지 출입 안내를 읽어요', to: TO.route },
-      { t: '출입구 주변 불편을 지도에서 찾아요', d: '지도에서 출입구 표시를 눌러요', to: TO.map },
-      { t: '출입구 불편을 알려 줘요', d: '문제 신고하기에서 위치와 사진을 남겨요', to: TO.newReport },
-    ],
-  },
-  {
-    id: 'file', icon: 'help', label: '신고 방법',
-    lines: [
-      { t: '문제 신고하기로 시작해요', d: '유형, 위치, 사진과 설명 순서로 남겨요', to: TO.newReport },
-      { t: '내 민원 진행 상황을 확인해요', d: '민원신고 탭에서 단계를 볼 수 있어요', to: TO.report },
-      { t: '담당 기관을 확인해요', d: '문제에 따라 맡은 기관이 달라요', to: TO.agency },
-      { t: '상태가 바뀌면 알림에서 봐요', d: '혜택알림 탭에서 변화를 볼 수 있어요', to: TO.alerts },
-    ],
-  },
-]
-const FOLDED = 2
+import { usePullRefresh } from '../components/usePullRefresh'
 
 const MENU = [
-  { icon: 'home', label: '홈', to: TO.home },
-  { icon: 'map', label: '동행지도', to: TO.map },
-  { icon: 'bus', label: '저상버스 도착', to: TO.bus },
-  { icon: 'report', label: '문제 신고하기', to: TO.newReport },
-  { icon: 'list', label: '내 민원 현황', to: TO.report },
-  { icon: 'check', label: '개선 현황', to: TO.progress },
-  { icon: 'building', label: '담당 기관 안내', to: TO.agency },
-  { icon: 'bell', label: '혜택알림', to: TO.alerts },
-  { icon: 'user', label: '내 정보', to: TO.me },
+  { id: 'home', icon: 'home', label: '홈', to: TO.home },
+  { id: 'map', icon: 'map', label: '동행지도', to: TO.map },
+  { id: 'bus', icon: 'bus', label: '저상버스 도착', to: TO.bus },
+  { id: 'new', icon: 'report', label: '문제 제보하기', to: TO.newReport },
+  { id: 'mine', icon: 'list', label: '내 제보 현황', to: TO.report },
+  { id: 'progress', icon: 'check', label: '개선 현황', to: TO.progress },
+  { id: 'agency', icon: 'building', label: '담당 기관 안내', to: TO.agency },
+  { id: 'alerts', icon: 'bell', label: '혜택알림', to: TO.alerts },
+  { id: 'me', icon: 'user', label: '내 정보', to: TO.me },
 ]
 
-function MenuSheet({ onClose }: { onClose: () => void }) {
+type SheetItem = { id: string; icon: string; label: string }
+
+// 아래에서 올라오는 목록 시트: 전체메뉴와 「+ 추가」가 같이 쓴다.
+// selectedId가 있으면 그 줄에 체크가 붙고, onClear가 있으면 맨 아래에 「비우기」가 보인다.
+function ListSheet({ title, items, selectedId, onPick, onClear, onClose }: { title: string; items: SheetItem[]; selectedId?: string; onPick: (id: string) => void; onClear?: () => void; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const present = useIsPresent()
   useEffect(() => {
@@ -112,26 +64,34 @@ function MenuSheet({ onClose }: { onClose: () => void }) {
         className="hs-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="전체메뉴"
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
         initial={{ y: '100%' }}
         animate={{ y: 0, transition: SPRING.sheet }}
         exit={{ y: '100%', transition: { ...SPRING.sheet, restDelta: 0.5 } }}
       >
         <div className="hs-head">
-          <h2>전체메뉴</h2>
+          <h2>{title}</h2>
           <button type="button" className="hs-x" aria-label="닫기" onClick={onClose}><Icon name="close" size={22} /></button>
         </div>
         <ul className="hs-list">
-          {MENU.map((m) => (
-            <li key={m.label}>
-              <button type="button" className="hs-item" onClick={() => { onClose(); go(m.to) }}>
-                <span className="hs-ic"><Icon name={m.icon} size={20} /></span>
-                <span>{m.label}</span>
-                <Icon name="chev" size={16} />
+          {items.map((it) => (
+            <li key={it.id}>
+              <button type="button" className="hs-item" aria-current={it.id === selectedId || undefined} onClick={() => onPick(it.id)}>
+                <span className="hs-ic"><Icon name={it.icon} size={20} /></span>
+                <span>{it.label}</span>
+                <Icon name={it.id === selectedId ? 'check' : 'chev'} size={it.id === selectedId ? 18 : 16} />
               </button>
             </li>
           ))}
+          {onClear && (
+            <li>
+              <button type="button" className="hs-item hs-clear" onClick={onClear}>
+                <span className="hs-ic"><Icon name="close" size={20} /></span>
+                <span>비우기</span>
+              </button>
+            </li>
+          )}
         </ul>
       </m.div>
     </m.div>
@@ -142,13 +102,6 @@ declare const __BUILD_HASH__: string
 declare const __BUILD_TIME__: string
 
 const BARRIERS = loadBarriers()
-const COUNTS = ratingCounts(BARRIERS)
-const SUM_CHIPS = [
-  { key: 'X', label: '지나기 어려움', n: COUNTS.X },
-  { key: 'TRIANGLE', label: '주의', n: COUNTS.TRIANGLE },
-  { key: 'O', label: '괜찮음', n: COUNTS.O },
-] as const
-
 // 설정 시트: 화면 설정과 시연 도구(기존 컴포넌트 재사용), 행정 화면 입구
 function SettingsSheet({ onClose }: { onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -197,18 +150,53 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
   )
 }
 
+const readExtra = () => {
+  try {
+    return localStorage.getItem(HOME_EXTRA_KEY)
+  } catch {
+    return null
+  }
+}
+
 export default function HomePage() {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
-  const [gid, setGid] = useState(GUIDES[0].id)
   const [menu, setMenu] = useState(false)
   const riseTiles = useRiseOnce('home-tiles')
-  const riseNews = useRiseOnce('home-news')
+  // 6번째 칸: 목록에서 고른 화면(localStorage에만 기억, 계정 동기화 없음)
+  const [extraId, setExtraId] = useState<string | null>(() => parseHomeExtra(readExtra())?.id ?? null)
+  const [picker, setPicker] = useState(false)
+  const extra = parseHomeExtra(extraId)
+  const saveExtra = (id: string | null) => {
+    setExtraId(id)
+    setPicker(false)
+    try {
+      if (id) localStorage.setItem(HOME_EXTRA_KEY, id)
+      else localStorage.removeItem(HOME_EXTRA_KEY)
+    } catch {
+      /* 저장하지 못해도 이번에는 바뀐다 */
+    }
+  }
+  const openTile = (to: string) => (to ? go(to) : openGuide())
   const [settings, setSettings] = useState(() => readDevReturn() !== null) // 개발자 관리에서 신고를 보고 뒤로 왔으면 설정 시트를 다시 연다
-  const [more, setMore] = useState(false)
   const [filling, setFilling] = useState(false)
   const [fillMsg, setFillMsg] = useState('')
-  const [skipTrial, setSkipTrial] = useState(false)
+  // 「처음이세요?」는 첫 방문 때만: 한 번 눌러 닫거나 체험 데이터를 채우면 다시 보이지 않는다
+  const [skipTrial, setSkipTrialState] = useState(() => {
+    try {
+      return localStorage.getItem('wheelmap.trialSeen') === '1'
+    } catch {
+      return false
+    }
+  })
+  const setSkipTrial = (v: boolean) => {
+    setSkipTrialState(v)
+    try {
+      localStorage.setItem('wheelmap.trialSeen', v ? '1' : '0')
+    } catch {
+      /* 저장하지 못해도 이번에는 닫힌다 */
+    }
+  }
   const fillDemo = useReports((s) => s.fillDemo)
   const fillLargeDemo = useReports((s) => s.fillLargeDemo)
   // 체험 데이터(대규모 시연 데이터)가 없을 때만 홈 맨 위에 안내 카드를 보인다
@@ -223,6 +211,7 @@ export default function HomePage() {
       fillDemo(barriers)
       const n = fillLargeDemo(pickCandidates({ crosswalk: cw.items, bus: bus.items, facility: fac.items }), barriers)
       setFillMsg('')
+      setSkipTrial(true)
       toast(n > 0 ? '체험 데이터를 채웠어요.' : '체험 데이터가 이미 있어요.')
       go(TO.map)
     } catch {
@@ -231,66 +220,42 @@ export default function HomePage() {
       setFilling(false)
     }
   }
-  const chipsRef = useRef<HTMLUListElement>(null)
+  // 당겨서 새로고침: 「내 제보」 숫자를 다시 계산하고 등장 연출을 다시 보인다. 새로 받아 오는 자료는 없다.
+  const [tick, setTick] = useState(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const indRef = useRef<HTMLDivElement>(null)
+  const { refresh } = usePullRefresh({ scrollRef, bodyRef, indRef, onRefresh: () => setTick((t) => t + 1) })
   // AI 검색의 「이용 안내」 결과도 사용법 슬라이드를 연다
   const openHelp = openGuide
-  const guide = GUIDES.find((g) => g.id === gid) ?? GUIDES[0]
-  const lines = more ? guide.lines : guide.lines.slice(0, FOLDED)
-  const canMore = guide.lines.length > FOLDED
-  // 고른 항목이 칩 줄 안에서 보이도록 맞춘다
-  const shownGid = useRef(gid)
-  useEffect(() => {
-    if (shownGid.current === gid) return
-    shownGid.current = gid
-    const el = chipsRef.current?.querySelector('[aria-pressed="true"]')
-    const calm = prefersCalm()
-    el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: calm ? 'auto' : 'smooth' })
-  }, [gid])
 
-  const rw = useMemo(() => computeRewards(reports, [userId])[userId], [reports, userId])
-  const ratio = nextGradeRatio(rw?.next ?? null)
-
-  const news = useMemo(() => {
-    const mine = reports.filter((r) => r.userId === userId)
-    const doing = mine.filter((r) => ['verified', 'filed', 'assigned', 'in_progress'].includes(r.status)).length
-    const recheck = mine.filter((r) => r.status === 'resolved').length
-    // 이번 주(월~일) 점수와 순위는 혜택알림의 참여 랭킹과 같은 계산을 쓴다
-    const ids = rankingUserIds()
-    const row = computeRanking(reports, ids.includes(userId) ? ids : [...ids, userId], 'week', nowMs(), 0, false).rows.find((x) => x.userId === userId)
-    const pts = row?.points ?? 0
-    const myRank = row?.rank
-    const wait = reports.filter((r) => r.userId !== userId && r.status === 'pending').length
-    const bn = homeCount(BENEFITS, loadPrefs(), nowMs())
-    // 알릴 것이 없는(0인) 소식은 그리지 않는다
-    return [
-      ...(doing > 0 ? [{ tone: 'blue', t: `처리 중인 내 민원이 ${doing}건 있어요`, to: TO.report }] : []),
-      ...(pts > 0 || myRank ? [{ tone: 'green', t: myRank ? `이번 주 내 순위 ${myRank}위예요 · ${pts}점을 모았어요` : `이번 주 참여 점수 ${pts}점을 모았어요`, to: TO.alerts }] : []),
-      ...(recheck > 0 ? [{ tone: 'amber', t: `재확인을 기다리는 민원이 ${recheck}건 있어요`, to: TO.report }] : []),
-      ...(wait > 0 ? [{ tone: 'purple', t: `확인할 제보가 ${wait}건 있어요`, to: TO.report }] : []),
-      ...(bn.count > 0 ? [{ tone: 'green', wide: true, t: bn.personal ? `나에게 맞는 혜택 ${bn.count}개를 찾았어요` : `알아두면 좋은 혜택·행사 ${bn.count}개를 모았어요`, to: TO.benefits }] : []),
-    ]
-  }, [reports, userId])
+  const mine = useMemo(() => mineLines(summarizeMine(reports, userId)), [reports, userId, tick])
 
   return (
     <div className="bm pg">
-      <div className="pg-scroll">
-        <div className="pg-col hp">
+      <div className="pr-ind" ref={indRef} role="status" aria-live="polite" data-phase="idle">
+        <svg className="pr-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+          <path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" />
+        </svg>
+        <span data-pr-label />
+      </div>
+      <div className="pg-scroll hp-scroll" ref={scrollRef}>
+        <div className="pg-col hp" ref={bodyRef}>
           <MockStrip />
           <header className="pg-top">
             <h1 className="pg-brand">
               <button type="button" aria-label="이의있음 홈" onClick={() => go(TO.home)}><Wordmark decorative /></button>
             </h1>
             <div className="pg-icons">
-              <button type="button" className="pg-ic" aria-label="설정" aria-haspopup="dialog" onClick={() => { setMenu(false); setSettings(true) }}><Icon name="gear" size={22} /><span>설정</span></button>
-              <button type="button" className="pg-ic" aria-label="전체메뉴 열기" aria-haspopup="dialog" onClick={() => { setSettings(false); setMenu(true) }}><Icon name="menu" size={22} /><span>전체메뉴</span></button>
+              <button type="button" className="pg-ic" aria-label="설정" aria-haspopup="dialog" onClick={() => { setMenu(false); setSettings(true) }}><Icon name="gear" size={24} /></button>
+              <button type="button" className="pg-ic" aria-label="전체메뉴 열기" aria-haspopup="dialog" onClick={() => { setSettings(false); setMenu(true) }}><Icon name="menu" size={24} /></button>
             </div>
           </header>
-
 
           {needTrial && (
             <section className="hp-trial" aria-labelledby="h-trial">
               <h2 id="h-trial">처음이세요?</h2>
-              <Sentences as="p">체험 데이터를 채우면 지도와 랭킹이 채워져요. 모두 가상이고, 민원은 실제로 접수되지 않아요.</Sentences>
+              <Sentences as="p">체험 데이터를 채우면 지도와 랭킹이 채워져요. 모두 가상이고, 제보는 실제로 접수되지 않아요.</Sentences>
               <div className="hp-trial-act">
                 <button type="button" className="rf-primary" disabled={filling} onClick={fillTrial}>체험 데이터 채우기</button>
                 <button type="button" disabled={filling} onClick={() => setSkipTrial(true)}>그냥 둘러보기</button>
@@ -299,118 +264,77 @@ export default function HomePage() {
             </section>
           )}
 
-          <div className="hp-notice">
-            <button type="button" aria-haspopup="dialog" onClick={openGuide}>
-              <Icon name="help" size={18} />
-              <span>이용 안내 · 이렇게 해 보세요</span>
-              <span className="hp-nchev"><Icon name="chev" size={16} /></span>
-            </button>
-          </div>
+          <section className="hp-ask-wrap" aria-labelledby="h-q">
+            <h2 id="h-q" className="hp-q">어디가 불편하세요?</h2>
+            <AiSearch onHelp={openHelp} home />
+          </section>
 
-          <AiSearch onHelp={openHelp} />
-
-          {COUNTS.total > 0 && (
-            <section className="hp-card hp-sum" aria-labelledby="h-sum">
-              <div className="hp-card-top">
-                <h2 id="h-sum">오늘 장애요소 <b><CountUp value={COUNTS.total} /></b>곳</h2>
-                <button type="button" className="hp-link" onClick={() => go(TO.map)}>지도 보기</button>
-              </div>
-              <ul className="hp-sum-chips">
-                {SUM_CHIPS.map((c) => (
-                  <li key={c.key} className={'hp-sum-' + c.key}><b>{c.n}</b><span>{c.label}</span></li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <section className="hp-mine" aria-labelledby="h-mine">
+            <PressButton type="button" className="hp-mine-go" onClick={() => go('#/report?section=mine')}>
+              <span id="h-mine" className="hp-mine-t">내 제보</span>
+              <span id="h-mine-n" className="hp-mine-n"><CountText text={mine.big} /></span>
+              {mine.sub && <span className="hp-mine-s">{mine.sub}</span>}
+              <span className="hp-mine-chev" aria-hidden="true"><Icon name="chev" size={20} /></span>
+            </PressButton>
+            <button type="button" className="hp-mine-re" aria-label="내 제보 새로고침" onClick={refresh}><Icon name="refresh" size={20} /></button>
+          </section>
 
           <section className="hp-svc" aria-labelledby="h-svc">
             <div className="hp-sh">
-              <h2 id="h-svc">자주 찾는 서비스</h2>
-              <button type="button" className="hp-plus" aria-label="전체 기능 보기" onClick={() => setMenu(true)}><Icon name="plus" size={20} /></button>
+              <h2 id="h-svc">자주 쓰는 서비스</h2>
+              <button type="button" className="hp-link" onClick={() => setPicker(true)}>편집</button>
             </div>
             <ul className="hp-tiles">
-              {TILES.map((t, i) => (
-                <RiseLi key={t.label} first={riseTiles} i={i}>
+              {FIXED_TILES.map((t, i) => (
+                <RiseLi key={t.id + tick} first={riseTiles || tick > 0} i={i}>
                   <PressButton type="button" className="hp-tile" onClick={() => go(t.to)}>
+                    <span className="hp-tile-ic"><Icon name={t.icon} size={26} /></span>
                     <span className="hp-tile-t">{t.label}</span>
-                    <span className="hp-tile-ic"><Icon name={t.icon} size={20} /></span>
                   </PressButton>
                 </RiseLi>
               ))}
+              <RiseLi key={(extra?.id ?? 'add') + tick} first={riseTiles || tick > 0} i={FIXED_TILES.length}>
+                {extra ? (
+                  <PressButton type="button" className="hp-tile" onClick={() => openTile(extra.to)}>
+                    <span className="hp-tile-ic"><Icon name={extra.icon} size={26} /></span>
+                    <span className="hp-tile-t">{extra.label}</span>
+                  </PressButton>
+                ) : (
+                  <PressButton type="button" className="hp-tile hp-tile-add" aria-haspopup="dialog" onClick={() => setPicker(true)}>
+                    <span className="hp-tile-ic"><Icon name="plus" size={26} /></span>
+                    <span className="hp-tile-t">추가</span>
+                  </PressButton>
+                )}
+              </RiseLi>
             </ul>
-          </section>
-
-          {rw && (
-            <section className="hp-card hp-me" aria-labelledby="h-me">
-              <div className="hp-card-top">
-                <h2 id="h-me">{rw.title || '아직 칭호가 없어요'}</h2>
-                <button type="button" className="hp-link" onClick={() => go(TO.me)}>내 정보</button>
-              </div>
-              {rw.next ? (
-                <>
-                  <div className="hp-me-meta"><span>다음 칭호 · {rw.next.name}</span><b>{rw.total}점</b></div>
-                  <div className="hp-bar" role="progressbar" aria-label={`다음 칭호 ${rw.next.name}까지`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio * 100)}>
-                    <i style={{ transform: `scaleX(${ratio})` }} />
-                  </div>
-                  <p className="hp-me-how">{rw.next.how}{rw.next.anyOf ? ' (둘 중 하나)' : ''}</p>
-                </>
-              ) : (
-                <div className="hp-me-meta"><span>모든 칭호를 받았어요</span><b>{rw.total}점</b></div>
-              )}
-            </section>
-          )}
-
-          <section aria-labelledby="h-news">
-            <h2 id="h-news" className="hp-tab"><span>소식 <Icon name="chev" size={14} /></span></h2>
-            <div className="hp-board">
-              {news.length === 0 && <p className="hp-news-empty">새 소식이 없어요</p>}
-              <ul className="hp-news">
-                {news.map((n, i) => (
-                  <RiseLi key={n.t} first={riseNews} i={i} className={'wide' in n ? 'hp-news-wide' : undefined}>
-                    <PressButton type="button" className={'hp-n hp-n-' + n.tone} onClick={() => go(n.to)}>
-                      <span><CountText text={n.t} /></span>
-                    </PressButton>
-                  </RiseLi>
-                ))}
-              </ul>
-            </div>
-          </section>
-
-          <section aria-labelledby="h-guide">
-            <div className="hp-tabrow">
-              <h2 id="h-guide" className="hp-tab"><span>상황별 이동 가이드 <Icon name="chev" size={14} /></span></h2>
-            </div>
-            <div className="hp-board">
-              <ul className="hp-chips" ref={chipsRef}>
-                {GUIDES.map((g) => (
-                  <li key={g.id}>
-                    <button type="button" className="hp-chip" aria-pressed={g.id === gid} onClick={() => setGid(g.id)}>
-                      <span className="hp-chip-ic"><Icon name={g.icon} size={26} /></span>
-                      <span>{g.label}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <ul className="hp-rows" aria-label={`${guide.label} 안내`}>
-                {lines.map((l) => (
-                  <li key={l.t}>
-                    <button type="button" className="hp-row" onClick={() => go(l.to)}>
-                      <span className="hp-row-t"><strong>{l.t}</strong><span>{l.d}</span></span>
-                      <Icon name="chev" size={18} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {canMore && (
-                <button type="button" className="hp-more" aria-expanded={more} onClick={() => setMore((v) => !v)}>
-                  {more ? '접기' : `더보기 (${guide.lines.length - FOLDED})`} <span className={more ? 'hp-up' : ''}><Icon name="chevD" size={16} /></span>
-                </button>
-              )}
-            </div>
           </section>
         </div>
       </div>
-      <AnimatePresence>{menu && <MenuSheet onClose={() => setMenu(false)} />}</AnimatePresence>
+      <AnimatePresence>
+        {menu && (
+          <ListSheet
+            key="menu"
+            title="전체메뉴"
+            items={MENU}
+            onPick={(id) => {
+              setMenu(false)
+              go(MENU.find((x) => x.id === id)?.to ?? TO.home)
+            }}
+            onClose={() => setMenu(false)}
+          />
+        )}
+        {picker && (
+          <ListSheet
+            key="extra"
+            title="여섯 번째 칸"
+            items={EXTRA_TILES.map(({ id, icon, label }) => ({ id, icon, label }))}
+            selectedId={extra?.id}
+            onPick={saveExtra}
+            onClear={extra ? () => saveExtra(null) : undefined}
+            onClose={() => setPicker(false)}
+          />
+        )}
+      </AnimatePresence>
       {settings && <SettingsSheet onClose={() => setSettings(false)} />}
     </div>
   )

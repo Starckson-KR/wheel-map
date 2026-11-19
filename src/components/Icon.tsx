@@ -30,11 +30,21 @@ const P: Record<string, string> = {
   rain: 'M7 15h10.5a3.5 3.5 0 0 0 .4-6.98A5.5 5.5 0 0 0 7.3 6.9 4.1 4.1 0 0 0 7 15zM8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5',
   snow: 'M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5',
   thermo: 'M10 14.8V5a2 2 0 1 1 4 0v9.8a4 4 0 1 1-4 0zM12 9v7',
+  bridge: 'M3 17h18M5 17V9M19 17V9M5 9c2 0 3-2 7-2s5 2 7 2M9 17v-6M15 17v-6',
+  heart: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z',
+  zebra: 'M5 5v14M9.5 5v14M14 5v14M18.5 5v14',
+  drop: 'M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3zM9.5 14a2.6 2.6 0 0 0 2.4 2.5',
+  umbrella: 'M3 12a9 9 0 0 1 18 0zM12 12v6.5a2 2 0 0 1-4 0',
+  wind: 'M3 9h10a2.5 2.5 0 1 0-2.5-2.5M3 14h14a2.5 2.5 0 1 1-2.5 2.5M3 19h6',
+  school: 'M3 10l9-5 9 5M5 10v9h14v-9M9 19v-5h6v5',
+  parking: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM10 16.5V8h2.6a2.3 2.3 0 0 1 0 4.6H10',
   refresh: 'M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5',
+  walk: 'M13 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9 21l3-6-2-3 1-4 3 2 3 1M11 8l-3 2v3M15 21l-2-5',
+  child: 'M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM12 8v7M8 11l4-1 4 1M12 15l-3 6M12 15l3 6',
 }
-/** 카카오 지도 커스텀 오버레이처럼 HTML 문자열이 필요한 곳에서 쓰는 같은 그림 */
-export function iconSvg(name: string, size = 24): string {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${P[name] ?? ''}"/></svg>`
+/** 카카오 지도 커스텀 오버레이처럼 HTML 문자열이 필요한 곳에서 쓰는 같은 그림. 작은 핀에서는 선 굵기(stroke)를 올려 또렷하게 한다. */
+export function iconSvg(name: string, size = 24, stroke = 2): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${P[name] ?? ''}"/></svg>`
 }
 export default function Icon({ name, size = 24 }: { name: string; size?: number }) {
   return (

@@ -28,14 +28,14 @@
 
 /* 공공데이터(장애인 화장실 등)는 참고용이라 멀리서는 작은 옅은 점으로만 보인다 */
 .bm-pub--dot {
-  min-width: 14px;
-  width: 14px;
-  height: 14px;
+  min-width: 12px;
+  width: 12px;
+  height: 12px;
   padding: 0;
   border-width: 1.5px;
-  border-radius: 50%;
+  border-radius: 3px; /* 둥근 네모: 장애요소의 동그란 점과 모양으로 구분 */
   font-size: 0;
-  opacity: 0.55;
+  opacity: 0.75;
 }
 
 /* #/verify 에서는 화면 설정 버튼이 오른쪽 아래에 떠 있다 */

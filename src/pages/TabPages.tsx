@@ -21,6 +21,7 @@ import { loadBarriers } from '../lib/seed'
 import AccountCard from '../components/onboarding/AccountCard'
 import { Sentences } from '../components/Sentences'
 import { openGuide } from '../lib/usageGuide'
+import { DATA_SOURCES } from '../lib/dataSources'
 import { Wordmark } from '../components/Wordmark'
 import { isMockReport } from '../lib/realFirst'
 
@@ -138,6 +139,14 @@ export function MeTab() {
             </button>
           </li>
         </ul>
+        <details className="pg-src">
+          <summary>데이터 출처</summary>
+          <ul>
+            {DATA_SOURCES.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+        </details>
       </section>
     </Page>
   )

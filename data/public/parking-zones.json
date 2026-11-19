@@ -1,0 +1,787 @@
+{
+ "source": "광주 C-ITS 주정차 단속구간",
+ "provider": "광주광역시 (광주 C-ITS, 공공데이터포털 제공)",
+ "url": "https://www.data.go.kr/data/15098622/openapi.do",
+ "license": "확인 필요 (데이터셋 페이지의 이용허락범위 미확인)",
+ "fetchedAt": "2026-11-19T11:04:54.022Z",
+ "area": "광주 북구",
+ "count": 97,
+ "items": [
+  {
+   "id": "parking-3206",
+   "name": "두암타운사거리 ~ 제2순환도로 진입로 주변",
+   "lat": 35.1619211,
+   "lng": 126.938857,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3211",
+   "name": "대인교차로 ~ 건축자재의 거리 방향",
+   "lat": 35.1565658,
+   "lng": 126.9126122,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3213",
+   "name": "양산호수공원",
+   "lat": 35.2063158,
+   "lng": 126.8732195,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3214",
+   "name": "영동아파트",
+   "lat": 35.2061698,
+   "lng": 126.8702916,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3215",
+   "name": "연제골드클래스아파트",
+   "lat": 35.2007669,
+   "lng": 126.8668381,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3216",
+   "name": "연재주공아파트 102동",
+   "lat": 35.2016161,
+   "lng": 126.8691909,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3217",
+   "name": "연제현대아파트",
+   "lat": 35.1979397,
+   "lng": 126.8648937,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3218",
+   "name": "연제대주피오레2차",
+   "lat": 35.1976785,
+   "lng": 126.8706403,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3219",
+   "name": "양산중",
+   "lat": 35.1976873,
+   "lng": 126.8742131,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3220",
+   "name": "이안광주첨단아파트",
+   "lat": 35.220332,
+   "lng": 126.8756207,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3221",
+   "name": "용두주공2단지아파트",
+   "lat": 35.2168646,
+   "lng": 126.8762928,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3222",
+   "name": "광주희망병원",
+   "lat": 35.2207583,
+   "lng": 126.8797228,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3223",
+   "name": "옹두중",
+   "lat": 35.2153389,
+   "lng": 126.8739748,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3224",
+   "name": "지산중",
+   "lat": 35.2175965,
+   "lng": 126.8779764,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3225",
+   "name": "본촌초",
+   "lat": 35.2161396,
+   "lng": 126.8770409,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3226",
+   "name": "부영사랑으로아파트",
+   "lat": 35.2152859,
+   "lng": 126.8832712,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3227",
+   "name": "양산지구현진에버빌아파트",
+   "lat": 35.2125224,
+   "lng": 126.8814927,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3228",
+   "name": "양산동행정복지센터",
+   "lat": 35.2102581,
+   "lng": 126.8799066,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3229",
+   "name": "한양수자인리버뷰아파트",
+   "lat": 35.2144373,
+   "lng": 126.8633562,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3230",
+   "name": "첨단2지구중흥S클래스아파트",
+   "lat": 35.2063651,
+   "lng": 126.8585558,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3231",
+   "name": "신용중",
+   "lat": 35.2100652,
+   "lng": 126.8588967,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3232",
+   "name": "광주양산초등학교",
+   "lat": 35.2063738,
+   "lng": 126.8589203,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3233",
+   "name": "양산우체국앞교차로",
+   "lat": 35.2111791,
+   "lng": 126.874109,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3234",
+   "name": "첨단자이2차아파트",
+   "lat": 35.2126046,
+   "lng": 126.8680061,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3235",
+   "name": "첨단자이1차아파트",
+   "lat": 35.2121607,
+   "lng": 126.870909,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3236",
+   "name": "신용주공아파트",
+   "lat": 35.2096904,
+   "lng": 126.8680434,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3237",
+   "name": "동림초",
+   "lat": 35.1874532,
+   "lng": 126.8637138,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3238",
+   "name": "광주예술고",
+   "lat": 35.1862622,
+   "lng": 126.8783838,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3239",
+   "name": "미보라3차",
+   "lat": 35.1850049,
+   "lng": 126.8739244,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3240",
+   "name": "새우리한방병원",
+   "lat": 35.1849834,
+   "lng": 126.8704253,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3241",
+   "name": "나산건강아파트",
+   "lat": 35.1835663,
+   "lng": 126.8711241,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3242",
+   "name": "그랑시아웨딩",
+   "lat": 35.1828113,
+   "lng": 126.8718137,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3243",
+   "name": "동림동삼익아파트]",
+   "lat": 35.1794397,
+   "lng": 126.858952,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3244",
+   "name": "죽림마을주공",
+   "lat": 35.1768498,
+   "lng": 126.8642556,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3245",
+   "name": "삼라마이다스빌",
+   "lat": 35.1746349,
+   "lng": 126.8640973,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3246",
+   "name": "서강고",
+   "lat": 35.1814203,
+   "lng": 126.873081,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3247",
+   "name": "벽산블루밍메가씨티2단지",
+   "lat": 35.1784842,
+   "lng": 126.8763839,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3248",
+   "name": "벽산블루밍메가씨티3단지",
+   "lat": 35.1766088,
+   "lng": 126.8788743,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3249",
+   "name": "삼호아파트",
+   "lat": 35.1772597,
+   "lng": 126.8712493,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3250",
+   "name": "운암동우체국",
+   "lat": 35.1766011,
+   "lng": 126.871116,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3251",
+   "name": "벽산블루밍메가씨티1단지",
+   "lat": 35.1759095,
+   "lng": 126.8760577,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3252",
+   "name": "대자초",
+   "lat": 35.1760878,
+   "lng": 126.8734926,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3253",
+   "name": "운암1동행정복지센터",
+   "lat": 35.1748171,
+   "lng": 126.8735042,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3254",
+   "name": "운암 어린이공원",
+   "lat": 35.1740319,
+   "lng": 126.8828084,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3255",
+   "name": "일곡현대1차",
+   "lat": 35.2165686,
+   "lng": 126.902593,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3256",
+   "name": "일동중학교",
+   "lat": 35.201744,
+   "lng": 126.8943221,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3257",
+   "name": "일곡제1근린공원",
+   "lat": 35.2104848,
+   "lng": 126.9010624,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3258",
+   "name": "일곡초",
+   "lat": 35.2102359,
+   "lng": 126.8975834,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3259",
+   "name": "서일초",
+   "lat": 35.2104973,
+   "lng": 126.8975844,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3260",
+   "name": "일곡벽산아파트",
+   "lat": 35.2125945,
+   "lng": 126.8978681,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3261",
+   "name": "용봉주공아파트",
+   "lat": 35.1875873,
+   "lng": 126.8890216,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3262",
+   "name": "우산중",
+   "lat": 35.1871062,
+   "lng": 126.9118447,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3263",
+   "name": "오차아파트",
+   "lat": 35.189486,
+   "lng": 126.8992601,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3264",
+   "name": "오치사거리",
+   "lat": 35.1893429,
+   "lng": 126.9053496,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3265",
+   "name": "서산초",
+   "lat": 35.1893433,
+   "lng": 126.9042175,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3266",
+   "name": "럭키아파트",
+   "lat": 35.1860907,
+   "lng": 126.8985777,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3267",
+   "name": "서광인텔파크아파트",
+   "lat": 35.1914394,
+   "lng": 126.8926586,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3268",
+   "name": "하백초",
+   "lat": 35.1875811,
+   "lng": 126.8893001,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3269",
+   "name": "매곡금호타운아파트",
+   "lat": 35.1938112,
+   "lng": 126.8949137,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3270",
+   "name": "고려고",
+   "lat": 35.1873663,
+   "lng": 126.89832,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3271",
+   "name": "서라아파트",
+   "lat": 35.1952319,
+   "lng": 126.9000497,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3272",
+   "name": "수영어린이집",
+   "lat": 35.1967476,
+   "lng": 126.9026374,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3273",
+   "name": "삼각모아호반아파트",
+   "lat": 35.1927324,
+   "lng": 126.898816,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3274",
+   "name": "광주북부경찰서",
+   "lat": 35.1872103,
+   "lng": 126.899331,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3275",
+   "name": "문산중",
+   "lat": 35.1917403,
+   "lng": 126.9246049,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3276",
+   "name": "문산초",
+   "lat": 35.1906152,
+   "lng": 126.9268479,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3277",
+   "name": "우미1차",
+   "lat": 35.1890803,
+   "lng": 126.9228342,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3278",
+   "name": "모아아파트",
+   "lat": 35.1862482,
+   "lng": 126.9206758,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3279",
+   "name": "문화근린공원",
+   "lat": 35.182938,
+   "lng": 126.9175871,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3280",
+   "name": "해광한신무지개아파트",
+   "lat": 35.186932,
+   "lng": 126.9243632,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3281",
+   "name": "동신고",
+   "lat": 35.1763649,
+   "lng": 126.927456,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3282",
+   "name": "풍향초",
+   "lat": 35.1700719,
+   "lng": 126.9255901,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3283",
+   "name": "삼정초",
+   "lat": 35.1667561,
+   "lng": 126.9327611,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3284",
+   "name": "두암중",
+   "lat": 35.166472,
+   "lng": 126.9341053,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3285",
+   "name": "풍향골어린이공원",
+   "lat": 35.1717024,
+   "lng": 126.9325738,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3286",
+   "name": "두암3동 제1근린공원",
+   "lat": 35.171698,
+   "lng": 126.9327713,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3287",
+   "name": "우산체육공원",
+   "lat": 35.1763649,
+   "lng": 126.927456,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3288",
+   "name": "우산초",
+   "lat": 35.1783445,
+   "lng": 126.9200286,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3289",
+   "name": "말바우시장",
+   "lat": 35.1736956,
+   "lng": 126.9131871,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3290",
+   "name": "동부교육지원청",
+   "lat": 35.173061,
+   "lng": 126.9159013,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3291",
+   "name": "북구보건소",
+   "lat": 35.1734984,
+   "lng": 126.912385,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3292",
+   "name": "효동초",
+   "lat": 35.1708293,
+   "lng": 126.9043467,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3293",
+   "name": "광주역 북편",
+   "lat": 35.1689799,
+   "lng": 126.9036304,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3294",
+   "name": "전대입구사거리",
+   "lat": 35.1720396,
+   "lng": 126.9045637,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3295",
+   "name": "북구청",
+   "lat": 35.1719797,
+   "lng": 126.9044524,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3296",
+   "name": "용봉초",
+   "lat": 35.1696485,
+   "lng": 126.8998793,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3297",
+   "name": "신안사거리",
+   "lat": 35.1687347,
+   "lng": 126.9032302,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3298",
+   "name": "서림초",
+   "lat": 35.1638362,
+   "lng": 126.8968948,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3300",
+   "name": "NC백화점",
+   "lat": 35.1627723,
+   "lng": 126.9012007,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3301",
+   "name": "임동행정복지센터",
+   "lat": 35.1672573,
+   "lng": 126.8911543,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3302",
+   "name": "임동중흥S클래스고운라피네",
+   "lat": 35.1611304,
+   "lng": 126.893324,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3303",
+   "name": "서림마을다사로움아파트",
+   "lat": 35.1601557,
+   "lng": 126.8998439,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3304",
+   "name": "중앙여고",
+   "lat": 35.1730806,
+   "lng": 126.8892219,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3305",
+   "name": "신동아아파트",
+   "lat": 35.1787712,
+   "lng": 126.8899322,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3306",
+   "name": "용주어린이공원",
+   "lat": 35.1809016,
+   "lng": 126.9017221,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3307",
+   "name": "용봉동행정복지센터",
+   "lat": 35.1809016,
+   "lng": 126.9017221,
+   "address": "",
+   "fields": {}
+  },
+  {
+   "id": "parking-3308",
+   "name": "용주초",
+   "lat": 35.1816606,
+   "lng": 126.8986073,
+   "address": "",
+   "fields": {}
+  }
+ ]
+}

@@ -16,6 +16,7 @@ import { handleAdmin, isAdminPath } from './admin.ts'
 import { handleActivity, isActivityPath } from './activity.ts'
 import { handleBis, isBisPath } from './bis.ts'
 import { handleRt, isRtPath } from './rt.ts'
+import { handleTransit, isTransitPath } from './transit.ts'
 import { handleWeather, isWeatherPath } from './weather.ts'
 import type { ApiBody } from './intents.ts'
 import type { Env } from './types'
@@ -82,6 +83,7 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
   if (isAdminPath(path)) return handleAdmin(request, env, origin as string, { now: deps.now, waitUntil: deps.waitUntil })
   if (isActivityPath(path)) return handleActivity(request, env, origin as string, { now: deps.now })
   if (isBisPath(path)) return handleBis(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
+  if (isTransitPath(path)) return handleTransit(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
   if (isWeatherPath(path)) return handleWeather(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
   if (isAccountPath(path)) return handleAccount(request, env, origin as string, { now: deps.now, waitUntil: deps.waitUntil })
   if (request.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)

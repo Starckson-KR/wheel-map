@@ -1,5 +1,6 @@
 import snap from '../../../data/public/bus-snapshot.json'
 import { ACCOUNT_URL } from '../config.ts'
+import { sameLine } from './types.ts'
 import type { Arrival,ArrivalResult, LineLow, LineLowResult } from './types.ts'
 
 // 저상버스 도착 정보 공급자(7단계). 화면은 이 인터페이스만 쓴다.
@@ -65,7 +66,7 @@ export async function getLineLow(lineName: string): Promise<LineLowResult> {
     const r = await relayJson(`/line?name=${encodeURIComponent(lineName)}`)
     if (r.ok) return { ok: true, mode: 'live', data: r.json as LineLow }
   }
-  const d = SNAP.lines[lineName]
+  const d = SNAP.lines[lineName] ?? Object.values(SNAP.lines).find((l) => sameLine(l.lineName, lineName))
   if (d) return { ok: true, mode: 'snapshot', data: d }
   return { ok: false, reason: 'no-snapshot', message: '이 노선의 운행 정보가 없어요.' }
 }

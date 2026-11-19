@@ -52,6 +52,10 @@ import {
   type PubLayerId,
 } from '../lib/publicLayers'
 import { Sentences } from '../components/Sentences'
+import SituationChips from '../components/SituationChips'
+import { BUS_NEAR_M, NEAR_M, applyChip, chipOf, chipOrder, chipSummary, countNear, nearestM, type ChipId, type SummaryCounts } from '../lib/layerPresets'
+import { useWeather } from '../lib/weather/store'
+import { toiletAccessible } from '../lib/publicLayers'
 import { Wordmark } from '../components/Wordmark'
 import { CENTER_DEADBAND_PX, centerDelta, compassHeading, easeOut, isStepNear, lerpLatLng, smoothHeading } from '../lib/routing/followNav.ts'
 import { prefersCalm } from '../lib/viewPrefs'
@@ -135,7 +139,9 @@ const DOT_PX = 14 // 작은 색 점의 폭(겹침 계산용)
 const ROUTE_WALK = '#1250c9' // 도보 경로(진한 파랑). 장애요소 등급 색(빨강·주황·노랑·초록)과 겹치지 않게 한다.
 const ROUTE_BASE = '#7b8aa6' // 비교할 때 고르지 않은 쪽 길(연한 회색 파랑 실선)
 const NEAR_ROUTE_M = 40 // 경로에서 이 거리 안의 핀만 또렷하게 둔다
-const PIN_H = 30
+const PIN_H = 26 // 핀 높이(겹침 계산용, map.css .bm-pin과 같은 값)
+const PUB_ICON_PX = 13 // 공공데이터 핀 안 아이콘
+const PUB_ICON_STROKE = 2.4 // 작은 핀에서는 선을 조금 굵게(13px에서 약 1.3px)
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
@@ -675,7 +681,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     //    묶음 원은 건수에 따라 크기가 달라지고, 서로 겹치면 하나로 합쳐 숫자 원끼리 겹치지 않게 한다.
     const baseR = level >= 6 ? 64 : level === 5 ? 54 : level === 4 ? 44 : level === 3 ? 34 : 26
     const cnt = (m: number[]) => m.reduce((s, i) => s + (items[i].count ?? 1), 0)
-    const diaOf = (n: number) => Math.min(52, Math.round(28 + 7 * Math.log2(n)))
+    const diaOf = (n: number) => Math.min(46, Math.round(24 + 6 * Math.log2(n)))
     type Cl = { m: number[]; x: number; y: number }
     const centroid = (m: number[]): Cl => ({ m, x: m.reduce((s, i) => s + px[i].x, 0) / m.length, y: m.reduce((s, i) => s + px[i].y, 0) / m.length })
     const buildGroup = (idxs: number[], radius: number) => {
@@ -733,7 +739,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     // 팀 조사 지점 위에 겹치는 시민 제보 점·묶음은 그리지 않는다(팀 조사 지점이 항상 먼저 보이게)
     const teamBoxes = [
       ...teamG.cls.map((c) => ({ x: c.x, y: c.y, r: diaOf(cnt(c.m)) / 2 })),
-      ...teamG.singles.map((i) => ({ x: px[i].x, y: px[i].y, r: 15 })),
+      ...teamG.singles.map((i) => ({ x: px[i].x, y: px[i].y, r: 13 })),
     ]
     const underTeam = (x: number, y: number, r: number) => teamBoxes.some((b) => Math.hypot(b.x - x, b.y - y) < b.r + r + 1)
     for (let n = clusters.length - 1; n >= 0; n--) if (clusters[n].cit && underTeam(clusters[n].x, clusters[n].y, diaOf(cnt(clusters[n].m)) / 2)) clusters.splice(n, 1)
@@ -743,7 +749,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const allowed: PinMode[] = level >= 3 ? ['dot'] : level === 2 ? ['chip', 'dot'] : ['full', 'chip', 'dot'] // 글자·아이콘은 충분히 확대했을 때만
     const placed: { x: number; y: number; w: number }[] = []
     const hit = (x: number, y: number, w: number) => placed.some((p) => Math.abs(p.x - x) < (p.w + w) / 2 + 3 && Math.abs(p.y - y) < PIN_H + 3)
-    const widthOf = (it: PinItem, m: PinMode) => (m === 'lite' ? 14 : m === 'dot' ? DOT_PX : it.pg ? 38 + it.pg.label.length * 12.5 : m === 'chip' ? 58 : 30 + 29 + it.name.length * 13.5 + 12)
+    const widthOf = (it: PinItem, m: PinMode) => (m === 'lite' ? 14 : m === 'dot' ? DOT_PX : it.pg ? 38 + it.pg.label.length * 12.5 : m === 'chip' ? 52 : 26 + 27 + it.name.length * 13.5 + 12)
     const modeOf = new Map<number, PinMode>()
     const teamOrder = singles.filter((i) => !items[i].citizen || items[i].sel).sort((i, j) => prio(items[j]) - prio(items[i]))
     for (const i of teamOrder) {
@@ -849,7 +855,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       el.className = 'bm-cluster' + (cl.cit ? ' bm-cluster--cit' : '') + (ms.every((m) => m.dim) ? ' bm-pin-dim' : '') + fade
       const d = diaOf(total)
       el.style.width = el.style.height = `${d}px`
-      el.style.fontSize = total >= 100 ? '0.8125rem' : '0.875rem'
+      el.style.fontSize = total >= 100 ? '0.75rem' : '0.8125rem'
       el.textContent = String(total)
       el.title = `${total}건이 모여 있어요. 누르면 확대해요.`
       el.setAttribute('role', 'button')
@@ -924,9 +930,18 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         const dot = mapLevel > 3 && !isSel
         el.className = 'bm-pub' + (warn ? ' bm-pub-warn' : '') + (acc ? ' bm-pub-acc' : '') + (isSel ? ' bm-pub-sel' : '') + (dot ? ' bm-pub--dot' : '')
         el.style.background = info.color
-        el.innerHTML = dot ? '' : iconSvg(info.icon, 14) + (warn ? '<b>!</b>' : '') + (acc ? iconSvg('access', 14) : '')
+        el.innerHTML = dot ? '' : iconSvg(info.icon, PUB_ICON_PX, PUB_ICON_STROKE) + (warn ? '<b>!</b>' : '') + (acc ? iconSvg('access', PUB_ICON_PX, PUB_ICON_STROKE) : '')
         const shownName = g.layer === 'facility' ? facilityTitle(it) : it.name
         el.title = warn ? `${shownName} (보도턱 낮춤 없음)` : acc ? `${shownName} (출입구 정보 있음)` : shownName
+        el.setAttribute('role', 'button')
+        el.tabIndex = 0
+        el.setAttribute('aria-label', `${info.label}, ${el.title}`)
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setPubSel({ layer: g.layer, item: it })
+          }
+        })
         el.addEventListener('click', (e) => {
           e.stopPropagation()
           if (pickingRef.current) {
@@ -1355,19 +1370,33 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const hereCount = (c: Category) => here.filter((r) => r.cat === c).length
   // 핵심 3칸(어려운 곳·버스 불편·주의=지날 때 주의+주의 구역)에 이미 나온 분류는 펼침 목록에서 뺀다: 같은 숫자가 두 번 나오지 않게
   const restCats = CATEGORY_ORDER.filter((c) => c !== 'hard' && c !== 'boarding' && c !== 'caution' && c !== 'zone' && hereCount(c) > 0)
-  // 레이어 메뉴에 알려 줄 시민 제보 핀 표시 건수(표시 규칙에 맞는 건 / 지도에 나올 수 있는 전체)
-  const citizenStats = useMemo(() => {
-    void offsetDays // 시연 시각이 바뀌면 다시 센다
-    const now = nowMs()
-    let total = 0
-    let shown = 0
-    for (const r of reports) {
-      if (!SHOWN_ON_MAP.includes(r.status) || r.seedId) continue
-      total++
-      if (showCitizen(r, impactOfReport(r.type, r.locationKind), filter, now)) shown++
+  // 상황 칩: 지금 켜진 레이어가 어떤 칩의 묶음과 같으면 그 칩이 골라진 것으로 보인다. 날씨가 비·눈이면 「비 오는 날」이 맨 앞.
+  const weather = useWeather()
+  const chip = chipOf(layers)
+  const chips = useMemo(() => chipOrder(weather), [weather])
+  const pickChip = (id: ChipId) => {
+    setPubSel(null)
+    setLayers((prev) => {
+      const n = applyChip(id, prev)
+      saveLayers(n)
+      return n
+    })
+  }
+  // 요약 한 줄의 숫자: 지도 가운데 기준으로 센다(화장실 거리는 내 위치를 알 때만)
+  const chipSum = useMemo(() => {
+    if (!chip || !view || !chips.includes(chip)) return null
+    const c = { lat: (view.b[0] + view.b[2]) / 2, lng: (view.b[1] + view.b[3]) / 2 }
+    const toilets = pubData.toilet?.items.filter(toiletAccessible)
+    const counts: SummaryCounts = {
+      bus: pubData.bus && countNear(pubData.bus.items, c, BUS_NEAR_M),
+      toilet: toilets && countNear(toilets, c, NEAR_M),
+      toiletM: toilets && myPos ? nearestM(toilets, myPos) : null,
+      flood: pubData.flood && countNear(pubData.flood.items, c, NEAR_M),
+      schoolZone: pubData.schoolZone && countNear(pubData.schoolZone.items, c, NEAR_M),
+      shade: pubData.shade && countNear(pubData.shade.items, c, NEAR_M),
     }
-    return { shown, total }
-  }, [reports, filter, offsetDays])
+    return chipSummary(chip, counts)
+  }, [chip, chips, view, pubData, myPos])
 
   const overlayOpen = flowOpen || panelOpen || routeOpen || picking || !!routePick || progressMode
   const behind = !!(selectedId || selectedReportId || pubSel)
@@ -1646,7 +1675,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         )}
 
         <div className="hm-panel">
-        <header className={'hm-top' + (routeOpen || behind ? ' hm-top--route' : '') + (searchOpen ? ' hm-top--search' : '')}>
+        <header className={'hm-top' + (routeOpen || behind ? ' hm-top--route' : '') + (searchOpen ? ' hm-top--search' : '') + (progressMode ? '' : ' hm-top--chips')}>
           <div className="hm-card">
             <div className="hm-bar hm-bar--desk">
               <h1 className="hm-brand">
@@ -1681,7 +1710,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                   </button>
                 )}
               </div>
-              <button type="button" className="hm-iconbtn" onClick={() => setLayerOpen((v) => !v)} aria-expanded={layerOpen} aria-label="지도 레이어와 화면 설정" title="레이어·설정">
+              <button type="button" className="hm-iconbtn" onClick={() => setLayerOpen((v) => !v)} aria-expanded={layerOpen} aria-label="지도에 보여 줄 것 직접 고르기" title="직접 고르기">
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M11 3 2.5 7.5 11 12l8.5-4.5L11 3Z" />
                   <path d="m2.5 11.5 8.5 4.5 8.5-4.5M2.5 15.5 11 20l8.5-4.5" />
@@ -1690,6 +1719,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             </div>
           </div>
           {searchOpen && <PlaceSearchPanel k={kObj} query={searchQ} onPlace={(p) => launchRoute({ to: p })} onPair={(p) => launchRoute({ pair: p })} />}
+          {!progressMode && <SituationChips order={chips} selected={chip} onPick={pickChip} summary={chipSum} />}
           <div className="hm-chips">
             <MockStrip onMap />
           </div>
@@ -1854,7 +1884,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         {layerOpen && (
           <LayerPanel
             layers={layers}
-            data={pubData}
             loading={pubStatus}
             onChange={(patch) => {
               // 연속으로 눌러도 이전 선택이 덮어써지지 않게 직전 상태 기준으로 합친다
@@ -1867,7 +1896,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             onClose={() => setLayerOpen(false)}
             filter={filter}
             onFilter={setFilter}
-            citizen={citizenStats}
             extra={
               <>
                 <h3>화면·발표 도구</h3>

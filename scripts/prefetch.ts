@@ -1,5 +1,5 @@
 // 광주 북구 공공데이터 사전 수집 스크립트 (키는 브라우저에 넣지 않고 미리 받아 JSON으로 저장)
-// 사용: node scripts/prefetch.ts [crosswalks|toilets|facilities|bus-stops|lowfloor-check|routes [쌍id]|pilot-stops|transit-demo|bus-snapshot|vouchers [refresh]|all]  (routes는 all에 포함되지 않음)
+// 사용: node scripts/prefetch.ts [crosswalks|toilets|facilities|bus-stops|lowfloor-check|routes [쌍id]|pilot-stops|transit-demo|bus-snapshot|vouchers [refresh]|bukgu|cits|all]  (routes는 all에 포함되지 않음)
 // 결과: data/public/<이름>.json / 캐시: data/public/.cache/ / 통계: data/public/.cache/stats.json
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,8 +10,10 @@ import { searchRoute, viaKey, verdictOf, type Pt, type RouteData } from '../src/
 import { callTmap } from './tmapClient.ts';
 import { bisArrive, bisLineLow } from './bisClient.ts';
 import { callTransit, TRANSIT_DAILY_CAP, transitCallsToday } from './transitClient.ts';
+import { callOdsay, ODSAY_DAILY_CAP, odsayCallsToday } from './odsayClient.ts';
 import { classifyMatch, matchBisStop, PILOT_MATCH_RADIUS_M, stopsNear, type BisStop, type PilotStopEntry } from '../src/lib/bus/stops.ts';
 import type { TItinerary } from '../src/lib/transit/parse.ts';
+import { convertParkingZone, convertSchoolZone, airSignalStations, convertFlood, convertOverpass, convertShade, convertWelfare, convertYellowCarpet } from '../src/lib/bukguLayers.ts';
 import { attachFacilities, buildStores, isActiveFranchise, type FacilityLite, type RawFranchise, type VoucherFields } from '../src/lib/vouchers.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -38,11 +40,12 @@ const ENV = loadEnv();
 const DATA_KEY = ENV.DATA_GO_KR_KEY ?? '';
 const KAKAO_KEY = ENV.KAKAO_REST_KEY ?? '';
 const TMAP_KEY = ENV.TMAP_APP_KEY ?? '';
+const ODSAY_KEY = (ENV.KOREACONNECT_KEY ?? '').trim();
 
 // 키가 로그·오류에 새지 않게 가린다
 function mask(s: string): string {
   let t = String(s);
-  for (const k of [DATA_KEY, KAKAO_KEY, TMAP_KEY]) {
+  for (const k of [DATA_KEY, KAKAO_KEY, TMAP_KEY, ODSAY_KEY]) {
     if (!k) continue;
     t = t.split(k).join('<KEY>').split(encodeURIComponent(k)).join('<KEY>');
   }
@@ -80,7 +83,7 @@ type Item = {
 };
 function writeDataset(
   file: string,
-  meta: { source: string; provider: string; url: string; license: string; note?: string },
+  meta: { source: string; provider: string; url: string; license: string; note?: string; recordCount?: number },
   items: Item[],
 ) {
   writeJson(path.join(PUB, `${file}.json`), {
@@ -92,6 +95,7 @@ function writeDataset(
     fetchedAt: new Date().toISOString(),
     area: '광주 북구',
     count: items.length,
+    ...(meta.recordCount !== undefined ? { recordCount: meta.recordCount } : {}),
     items,
   });
 }
@@ -968,18 +972,24 @@ async function pilotStops() {
   });
 }
 
-// 시연 쌍마다 TMAP 대중교통 경로(최대 3개)를 받아 data/routes/transit.json에 저장한다. 같은 요청은 캐시, 하루 상한은 transitClient.ts.
+// 시연 쌍마다 대중교통(버스) 경로(최대 3개)를 받아 data/routes/transit.json에 저장한다. ODsay(KOREACONNECT_KEY)가 기본, 키가 없으면 TMAP(예비).
+// 같은 요청은 캐시, 하루 상한은 odsayClient.ts·transitClient.ts. 저장본은 쌍마다 새로 받은 것으로 덮어쓴다(실패한 쌍은 이전 저장본 유지).
 async function transitDemo() {
   const rdir = path.join(ROOT, 'data', 'routes');
   const pairs = readJson<any[]>(path.join(rdir, 'pairs.json'), []);
   const byId = new Map(seedBarriers().map((b: any) => [b.id, b]));
   const outPath = path.join(rdir, 'transit.json');
-  const out = readJson<any>(outPath, { source: 'TMAP 대중교통 경로(SK open API)', pairs: {} });
+  const provider = ODSAY_KEY ? 'odsay' : 'tmap';
+  const out = readJson<any>(outPath, { pairs: {} });
+  out.source = provider === 'odsay' ? 'ODsay 대중교통 길찾기(디지털융합플랫폼)' : 'TMAP 대중교통 경로(SK open API)';
+  out.provider = provider;
   let fresh = 0;
   for (const pair of pairs) {
     const f: any = byId.get(pair.fromId), t: any = byId.get(pair.toId);
     if (f?.geometry?.kind !== 'point' || t?.geometry?.kind !== 'point') continue;
-    const r = await callTransit({ from: f.geometry.at, to: t.geometry.at }, TMAP_KEY, ROOT);
+    const r = provider === 'odsay'
+      ? await callOdsay(f.geometry.at, t.geometry.at, ODSAY_KEY, ROOT)
+      : await callTransit({ from: f.geometry.at, to: t.geometry.at }, TMAP_KEY, ROOT);
     if (!r.ok) { log('  ' + pair.id, '실패:', r.error); continue; }
     if (!r.fromCache) fresh++;
     out.pairs[pair.id] = { fromId: pair.fromId, toId: pair.toId, fetchedAt: new Date().toISOString(), itineraries: r.itineraries };
@@ -987,7 +997,9 @@ async function transitDemo() {
   }
   out.fetchedAt = new Date().toISOString();
   writeJson(outPath, out);
-  log(`  transit 저장 완료. 이번 실행의 TMAP 대중교통 실제 호출 ${fresh}회, 오늘 누적 ${transitCallsToday(ROOT)}/${TRANSIT_DAILY_CAP}`);
+  log(provider === 'odsay'
+    ? `  transit 저장 완료. 이번 실행의 ODsay 실제 호출 ${fresh}회, 오늘 누적 ${odsayCallsToday(ROOT)}/${ODSAY_DAILY_CAP}`
+    : `  transit 저장 완료. 이번 실행의 TMAP 대중교통 실제 호출 ${fresh}회, 오늘 누적 ${transitCallsToday(ROOT)}/${TRANSIT_DAILY_CAP}`);
 }
 
 // 발표(배포)판용 한 시점 스냅샷: 시범 정류장 + 대중교통 시연 경로의 승·하차 정류소의 도착정보와 노선별 운행 저상 수.
@@ -1041,12 +1053,122 @@ async function busSnapshot() {
   log(`  스냅샷 저장: 정류소 ${Object.keys(stations).length}곳, 노선 ${Object.keys(lineLow).length}개 (도착정보 새 호출 ${calls}회)`);
 }
 
+// ---------- 3-3. bukgu (북구 공공데이터 파일 6종: 육교·장애인시설·옐로카펫·침수 이력·그늘막·대기질 신호등) ----------
+// 원본: data/public/bukgu/<번호>_*.csv (공공데이터포털 파일, CP949). 변환 규칙은 src/lib/bukguLayers.ts(시험 있음).
+// 그늘막은 좌표가 없어 지번주소를 카카오 주소검색으로 바꾼다(캐시 .cache/kakao-geocode.json 재사용, 키는 .env에서만 읽음).
+// 대기질 신호등 원본(56MB)은 위치만 뽑은 뒤 지워도 된다. 원본이 없으면 그 레이어는 건너뛰고 기존 결과 파일을 둔다.
+const BUKGU_DIR = path.join(PUB, 'bukgu');
+function bukguCsv(no: string): string | null {
+  if (!fs.existsSync(BUKGU_DIR)) return null;
+  const f = fs.readdirSync(BUKGU_DIR).find((n) => n.startsWith(no + '_') && n.endsWith('.csv'));
+  return f ? path.join(BUKGU_DIR, f) : null;
+}
+async function bukgu() {
+  const base = (no: string, title: string) => ({
+    provider: '전남광주통합특별시 북구 (공공데이터포털 제공)',
+    url: `https://www.data.go.kr/data/${no}/fileData.do`,
+    source: title,
+    license: '확인 필요 (데이터셋 페이지의 이용허락범위 미확인)',
+  });
+  const stat: Record<string, unknown> = {};
+  const jobsB: [string, string, string, (rows: Record<string, string>[]) => Promise<Item[]> | Item[], string][] = [
+    ['15174676', 'overpass', '북구 지리 데이터 육교', convertOverpass, '육교'],
+    ['15174692', 'welfare-facilities', '북구 지리 데이터 장애인시설', convertWelfare, '장애인시설'],
+    ['15145412', 'yellow-carpets', '북구 지리 데이터 옐로카펫', convertYellowCarpet, '옐로카펫'],
+    ['15159563', 'flood', '북구 침수피해지역 현황', convertFlood, '침수 이력'],
+    ['15151510', 'air-signals', '북구 대기질 신호등 측정 데이터(설치 위치만 사용)', airSignalStations, '대기질 신호등'],
+  ];
+  for (const [no, file, title, conv, label] of jobsB) {
+    const csv = bukguCsv(no);
+    if (!csv) {
+      log(`  ${label}: 원본(${no}) 없음 - 건너뜀(기존 결과 유지)`);
+      continue;
+    }
+    const rows = readCsvObjects(csv);
+    const items = await conv(rows);
+    writeDataset(file, { ...base(no, title), note: file === 'flood' ? '약 100m 칸마다 한 핀으로 묶음(recordCount가 원본 기록 수)' : undefined, recordCount: file === 'flood' ? rows.length : undefined }, items);
+    stat[file] = { rows: rows.length, items: items.length, 용봉동: items.filter((x) => inYongbong(x.address)).length };
+    log(`  ${label}: 원본 ${rows.length}행 → ${items.length}곳`);
+  }
+  const shade = bukguCsv('15104763');
+  if (shade) {
+    const rows = readCsvObjects(shade);
+    const { items, failed } = await convertShade(rows, geocode);
+    writeDataset('shade', { ...base('15104763', '북구 그늘막 설치현황'), note: '원본에 좌표가 없어 카카오 로컬 주소검색으로 좌표를 구함(geocoded 표시)' }, items);
+    stat.shade = { rows: rows.length, items: items.length, geocodeFailed: failed, 용봉동: items.filter((x) => inYongbong(x.address)).length, kakaoCalls };
+    log(`  그늘막: 원본 ${rows.length}행 → 좌표 ${items.length}곳 (변환 실패 ${failed}곳 뺌, 카카오 호출 ${kakaoCalls}회)`);
+  }
+  saveStats('bukgu', stat);
+}
+
+// ---------- 3-4. cits (광주 C-ITS 스쿨존·주정차 단속구간, data.go.kr 15098622) ----------
+// 두 번만 호출해 .cache에 원본을 두고(캐시가 있으면 호출 안 함) 북구 것만 JSON으로 저장. 주정차 구간은 주소가 없어 카카오 행정구역으로 북구를 가른다.
+async function cits() {
+  const base = 'https://apis.data.go.kr/6290000/gjcitsdata';
+  const key = 'serviceKey=' + encodeURIComponent(DATA_KEY.slice(0, 64));
+  const load = async (name: string, fn: string, extra: string): Promise<any[] | null> => {
+    const cp = path.join(CACHE, `cits-${name}.json`);
+    const hit = readJson<any[] | null>(cp, null);
+    if (hit) return hit;
+    const r = await getText(`${base}/${fn}?${key}&pageNo=1&numOfRows=1000&type=json${extra}`);
+    let j: any = null;
+    try {
+      j = JSON.parse(r.text);
+    } catch {
+      /* 아래에서 처리 */
+    }
+    if (r.status !== 200 || !Array.isArray(j?.data)) {
+      log(`  C-ITS ${fn} 실패: HTTP ${r.status} ${mask(r.text.slice(0, 120))}`);
+      return null;
+    }
+    writeJson(cp, j.data);
+    return j.data;
+  };
+  const meta = (title: string) => ({
+    source: title,
+    provider: '광주광역시 (광주 C-ITS, 공공데이터포털 제공)',
+    url: 'https://www.data.go.kr/data/15098622/openapi.do',
+    license: '확인 필요 (데이터셋 페이지의 이용허락범위 미확인)',
+  });
+  const stat: Record<string, unknown> = {};
+  const school = await load('school', 'getSchoolZone', '&offerDate=20211231');
+  if (school) {
+    const items = convertSchoolZone(school);
+    writeDataset('school-zones', meta('광주 C-ITS 어린이보호구역'), items);
+    stat.school = { all: school.length, bukgu: items.length, 용봉동: items.filter((x) => inYongbong(x.address)).length };
+    log(`  스쿨존: 광주 ${school.length}곳 → 북구 ${items.length}곳`);
+  }
+  const parking = await load('parking', 'getParkingZone', '');
+  if (parking) {
+    const regPath = path.join(CACHE, 'kakao-region-cits.json');
+    const reg = readJson<Record<string, string | null>>(regPath, {});
+    for (const z of parking) {
+      const id = String(z.zoneId);
+      const lat = Number(z.latitude);
+      const lng = Number(z.longitude);
+      if (id in reg || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const r = await kakaoGet(`https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?x=${lng}&y=${lat}`);
+      if (r.status !== 200) continue;
+      const d = (r.json?.documents ?? []).find((x: any) => x.region_type === 'H') ?? r.json?.documents?.[0];
+      reg[id] = d ? d.region_2depth_name : null;
+    }
+    writeJson(regPath, reg);
+    const items = convertParkingZone(parking, (_la, _ln, z) => reg[String(z.zoneId)] === '북구');
+    writeDataset('parking-zones', meta('광주 C-ITS 주정차 단속구간'), items);
+    stat.parking = { all: parking.length, bukgu: items.length, kakaoCalls };
+    log(`  주정차 단속구간: 광주 ${parking.length}곳 → 북구 ${items.length}곳`);
+  }
+  saveStats('cits', stat);
+}
+
 // ---------- 실행 ----------
 const jobs: Record<string, () => Promise<void>> = {
   crosswalks,
   toilets,
   facilities,
   vouchers,
+  bukgu,
+  cits,
   'bus-stops': busStops,
   'bus-stops-bis': busStopsBis,
   'lowfloor-check': lowfloorCheck,
@@ -1056,7 +1178,7 @@ const jobs: Record<string, () => Promise<void>> = {
   'bus-snapshot': busSnapshot,
 };
 const arg = process.argv[2] ?? 'all';
-const run = arg === 'all' ? Object.keys(jobs).filter((n) => !['routes', 'transit-demo', 'bus-snapshot', 'vouchers'].includes(n)) : [arg]; // routes는 TMAP 호출이 들어가 따로 실행
+const run = arg === 'all' ? Object.keys(jobs).filter((n) => !['routes', 'transit-demo', 'bus-snapshot', 'vouchers', 'bukgu', 'cits'].includes(n)) : [arg]; // routes는 TMAP 호출이 들어가 따로 실행
 if (run.some((n) => !(n in jobs))) {
   console.error('사용: node scripts/prefetch.ts [' + Object.keys(jobs).join('|') + '|all]');
   process.exit(1);

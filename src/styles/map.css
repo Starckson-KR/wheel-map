@@ -275,24 +275,26 @@
   background: currentColor;
 }
 
-/* ───── 지도 위 표시(핀) ───── */
+/* ───── 지도 위 표시(핀) ─────
+   11/19: 보이는 크기를 10~15% 줄였다(30→26px). 글자 13px·흰 테두리 2px은 그대로 두고 그림자를 또렷하게 해 읽기 쉽게 한다.
+   누르는 영역은 ::after의 투명 여백으로 44px를 지킨다. */
 .bm-pin {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   box-sizing: border-box;
-  height: 30px;
-  min-width: 30px;
-  padding: 0 4px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 3px;
   border: 2px solid #fff;
   border-radius: var(--r-full);
   color: #fff;
   font: 700 13px/1 var(--font);
   letter-spacing: 0;
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgb(25 31 40 / 0.32);
+  box-shadow: 0 1px 4px rgb(25 31 40 / 0.4);
   cursor: pointer;
   transition: transform var(--t-fast) var(--ease-out), opacity var(--t-fast) var(--ease-out);
 }
@@ -300,20 +302,20 @@
 .bm-pin::after {
   content: '';
   position: absolute;
-  inset: -8px;
+  inset: -11px; /* 26 - 테두리 4 + 22 = 44px */
 }
 
 .bm-pin--chip,
 .bm-pin--full {
-  padding: 0 8px 0 7px;
+  padding: 0 7px 0 6px;
 }
 
 .bm-pin-k {
   display: inline-grid;
   place-items: center;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
   background: #fff;
   color: #333d4b;
   font-size: 0.6875rem;
@@ -325,8 +327,8 @@
 }
 
 .bm-pin-small {
-  height: 26px;
-  min-width: 26px;
+  height: 22px;
+  min-width: 22px;
 }
 
 .bm-pin-dim {
@@ -343,6 +345,11 @@
   font-size: 0;
   gap: 0;
   box-shadow: 0 1px 3px rgb(25 31 40 / 0.4);
+}
+/* 작은 점은 촘촘해서 누르는 영역을 28px까지만 넓힌다(44px면 이웃 점을 가린다) */
+.bm-pin--dot::after,
+.bm-pin--lite::after {
+  inset: -10px;
 }
 
 .bm-pin--dot.bm-pin-small {
@@ -398,16 +405,17 @@
   place-items: center;
   box-sizing: border-box;
   position: relative;
-  min-width: 28px;
-  width: 34px;
-  height: 34px;
+  min-width: 24px;
+  width: 30px;
+  height: 30px;
   padding: 0;
-  border: 3px solid #fff;
+  border: 2px solid #fff;
   border-radius: var(--r-full);
   background: #333d4b;
   color: #fff;
-  font: 700 14px/1 var(--font);
-  box-shadow: 0 2px 8px rgb(25 31 40 / 0.4);
+  font: 700 13px/1 var(--font);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 5px rgb(25 31 40 / 0.45);
   cursor: pointer;
   transition: opacity var(--t-fast) var(--ease-out);
 }
@@ -415,7 +423,7 @@
 .bm-cluster::after {
   content: '';
   position: absolute;
-  inset: -8px;
+  inset: -9px; /* 가장 작은 묶음(30px)도 44px */
 }
 
 .hm-legend i.hm-leg-kind,
@@ -474,9 +482,9 @@
 
 /* 멀리서 보는 시민 제보: 글자 없이 작고 옅은 색 점 */
 .bm-pin--lite {
-  height: 14px;
-  min-width: 14px;
-  width: 14px;
+  height: 12px;
+  min-width: 12px;
+  width: 12px;
   padding: 0;
   border-width: 1.5px;
   border-style: solid;
@@ -501,13 +509,15 @@
   opacity: 0.82;
 }
 
+/* 공공데이터 핀: 둥근 네모(○△X의 동그라미와 모양으로 구분)에 흰 선 아이콘. 26→22px, 아이콘 선은 굵게(BarrierMap PUB_ICON_STROKE) */
 .bm-pub {
+  position: relative;
   box-sizing: border-box;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 5px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 2px;
   border: 2px solid #fff;
-  border-radius: 8px;
+  border-radius: 7px;
   color: #fff;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -517,8 +527,23 @@
   justify-content: center;
   gap: 1px;
   white-space: nowrap;
-  box-shadow: 0 1px 4px rgb(25 31 40 / 0.4);
+  box-shadow: 0 1px 4px rgb(25 31 40 / 0.45);
   cursor: pointer;
+}
+.bm-pub svg {
+  display: block;
+}
+.bm-pub::after {
+  content: '';
+  position: absolute;
+  inset: -13px; /* 22 - 테두리 4 + 26 = 44px */
+}
+.bm-pub--dot::after {
+  inset: -9px; /* 촘촘한 점은 28px까지만 */
+}
+.bm-pub:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .bm-pub-warn {
@@ -537,9 +562,9 @@
 }
 
 .bm-pub.bm-pub-acc.bm-pub--dot {
-  min-width: 18px;
-  width: 18px;
-  height: 18px;
+  min-width: 16px;
+  width: 16px;
+  height: 16px;
   opacity: 1;
 }
 
@@ -2182,4 +2207,214 @@ html[data-text='large'] .ms .rf-actions button {
   .bm button.ps-row:hover:not(:disabled) {
     background: var(--grey-100);
   }
+}
+
+/* ───── 상황 칩 줄(검색바 아래): 길 가기·버스 타기·화장실 찾기·비 오는 날·아이와 함께 ───── */
+.sc {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  pointer-events: none;
+}
+.sc-row {
+  display: flex;
+  gap: var(--s-2);
+  margin: 0 -8px;
+  padding: 2px 8px 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+.sc-row::-webkit-scrollbar {
+  display: none;
+}
+.bm button.sc-chip {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--bg);
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* 보이는 높이는 40px, 누르는 영역은 위아래로 넓혀 44px */
+.bm button.sc-chip::before {
+  content: '';
+  position: absolute;
+  inset: -3px -1px;
+}
+.bm button.sc-chip svg {
+  flex: none;
+  color: var(--grey-600);
+  transition: color var(--t-fast) var(--ease-out);
+}
+.bm button.sc-chip.on {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.bm button.sc-chip.on svg {
+  color: var(--on-primary);
+}
+@media (hover: hover) and (pointer: fine) {
+  .bm button.sc-chip:hover:not(:disabled):not(.on) {
+    background-color: var(--grey-50);
+  }
+  .bm button.sc-chip.on:hover:not(:disabled) {
+    background-color: var(--primary);
+  }
+}
+/* 요약 한 줄: 높이와 투명도가 같이 열리고 닫힌다 */
+.sc-sum-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  max-width: calc(100% - 52px); /* 오른쪽 범례 버튼 자리 */
+  opacity: 0;
+  transition: grid-template-rows 240ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+.sc-sum-wrap.on {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.sc-sum-in {
+  min-height: 0;
+  margin: 0 -2px;
+  padding: 0 2px; /* 그림자가 잘리지 않게 */
+  overflow: hidden;
+}
+.sc-sum {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 1px 0 4px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-1), 0 0 0 1px rgb(25 31 40 / 0.06);
+  color: var(--text);
+  font-size: var(--fs-small);
+  line-height: 1.4;
+  pointer-events: auto;
+}
+.sc-sum strong {
+  color: var(--text-strong);
+  font-weight: 700;
+}
+.sc-sum-ic {
+  display: inline-flex;
+  flex: none;
+}
+/* 칩 줄이 있으면 범례 버튼·범례는 한 줄 아래로 */
+.bm .hm-top--chips button.hm-legend-toggle {
+  top: calc(var(--safe-top) + 112px);
+}
+.hm-top--chips .hm-legend {
+  top: calc(var(--safe-top) + 158px);
+}
+.hm-top--search .sc {
+  display: none;
+}
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) .hm-panel .sc { padding: 0 var(--s-4) var(--s-2) var(--s-5); }
+  :root:not([data-view='mobile']) .hm-panel .sc-row { flex-wrap: wrap; margin: 0; padding: 0 0 6px; overflow: visible; }
+  :root:not([data-view='mobile']) .hm-panel .sc-sum-wrap { max-width: none; }
+}
+:root[data-view='desktop'] .hm-panel .sc { padding: 0 var(--s-4) var(--s-2) var(--s-5); }
+:root[data-view='desktop'] .hm-panel .sc-row { flex-wrap: wrap; margin: 0; padding: 0 0 6px; overflow: visible; }
+:root[data-view='desktop'] .hm-panel .sc-sum-wrap { max-width: none; }
+
+/* ───── 직접 고르기: 다섯 묶음, 두 줄 타일 ───── */
+.lp-group h3 {
+  margin: var(--s-2) 0;
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+.lp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+}
+.bm button.lp-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 52px;
+  padding: 0 10px 0 12px;
+  border: 1.5px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--grey-100);
+  color: var(--text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: left;
+  transition:
+    transform var(--t-press) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
+}
+.bm button.lp-tile.on {
+  border-color: var(--primary);
+  background: var(--primary-weak);
+  color: var(--text-strong);
+}
+.lp-tile-ic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: #fff;
+}
+.lp-tile-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 체크: 켜면 살짝 커지며 나타난다 */
+.lp-tile-ck {
+  flex: none;
+  display: inline-flex;
+  color: var(--primary);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+.lp-tile.on .lp-tile-ck {
+  opacity: 1;
+  transform: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .bm button.lp-tile.on:hover:not(:disabled) {
+    background-color: var(--primary-weak);
+  }
+}
+.bm button.lp-reset.lp-reset--center {
+  align-self: center;
+  color: var(--text-sub);
+  text-decoration: none;
+  transition: opacity var(--t-fast) var(--ease-out);
+}
+.bm button.lp-reset.lp-reset--center:disabled {
+  background: none;
+  opacity: 0;
+}
+html.motion-reduce :is(.sc-sum-wrap, .lp-tile-ck, .bm button.lp-tile, .bm button.sc-chip svg, .bm button.lp-reset.lp-reset--center) {
+  transition: none;
 }

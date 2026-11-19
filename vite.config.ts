@@ -6,6 +6,7 @@ import { execSync } from 'node:child_process'
 import { callTmap, validateReq } from './scripts/tmapClient.ts'
 import { bisArrive, bisLineLow } from './scripts/bisClient.ts'
 import { callTransit, validateTransitReq } from './scripts/transitClient.ts'
+import { callOdsay } from './scripts/odsayClient.ts'
 import { callWeather } from './scripts/weatherClient.ts'
 
 // 현장 사진(data/photos)은 내부 확인용이라 개발 서버에서만 제공한다.
@@ -174,6 +175,47 @@ function devTransit(): Plugin {
   }
 }
 
+// ODsay 대중교통 길찾기 중계(개발 서버 전용). 키는 .env의 KOREACONNECT_KEY를 서버 쪽에서만 읽는다. 배포판은 Worker의 /transit을 쓴다(worker/src/transit.ts).
+// 응답 형식은 TMAP 중계와 같다. 상태: 503=키 없음, 429=하루 상한, 422=경로 없음, 502=상류 오류.
+const ODSAY_ROUTE = '/wheel-map/__odsay/transit'
+
+function devOdsay(): Plugin {
+  return {
+    name: 'dev-odsay-relay',
+    apply: 'serve',
+    configureServer(server) {
+      const root = server.config.root
+      const key = () => (loadEnv(server.config.mode, server.config.envDir || root, '').KOREACONNECT_KEY ?? '').trim()
+      server.middlewares.use(ODSAY_ROUTE, (req, res) => {
+        const send = (status: number, obj: unknown) => {
+          res.statusCode = status
+          res.setHeader('Content-Type', 'application/json; charset=utf-8')
+          res.setHeader('Cache-Control', 'no-store')
+          res.end(JSON.stringify(obj))
+        }
+        if (req.method !== 'POST') return send(405, { error: 'POST만 허용합니다.' })
+        let raw = ''
+        req.on('data', (c) => {
+          raw += c
+          if (raw.length > 2000) req.destroy()
+        })
+        req.on('end', async () => {
+          try {
+            const body = validateTransitReq(JSON.parse(raw))
+            if (!body) return send(400, { error: '요청 형식이 올바르지 않습니다.' })
+            const r = await callOdsay(body.from, body.to, key(), root)
+            console.log(`[odsay] ${r.ok ? (r.fromCache ? '캐시' : '호출') : '실패 ' + r.status}`)
+            if (!r.ok) return send(r.status === 'nokey' ? 503 : r.status === 'limit' ? 429 : r.status === 'noroute' ? 422 : 502, { error: r.error })
+            send(200, { itineraries: r.itineraries, cached: r.fromCache })
+          } catch {
+            send(400, { error: '요청을 읽지 못했습니다.' })
+          }
+        })
+      })
+    },
+  }
+}
+
 // 기상청 날씨 중계(개발 서버 전용). 키는 .env의 DATA_GO_KR_KEY를 서버 쪽에서만 읽는다. 배포판은 Worker의 /weather를 쓴다(worker/src/weather.ts).
 const WEATHER_ROUTE = '/wheel-map/__weather'
 
@@ -241,5 +283,5 @@ export default defineConfig({
   base: '/wheel-map/', // GitHub Pages(저장소 이름)용
   // Worker 허용 출처가 localhost:5173뿐이라 포트를 고정한다. 이미 쓰는 중이면 다른 번호로 옮겨 가지 않고 실패한다.
   server: { port: 5173, strictPort: true },
-  plugins: [react(), versionFile(), devPhotos(), devTmap(), devBis(), devTransit(), devWeather()],
+  plugins: [react(), versionFile(), devPhotos(), devTmap(), devBis(), devTransit(), devOdsay(), devWeather()],
 })

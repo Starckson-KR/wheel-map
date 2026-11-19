@@ -883,3 +883,16 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 .hp-tile-add .hp-tile-ic { color: var(--text-sub); }
 .hs-item[aria-current] > svg:last-child { color: var(--primary); }
 .bm button.hs-clear { color: var(--text-sub); }
+
+/* 내 정보 > 데이터 출처(접힌 목록) */
+.pg-src { border-top: 1px solid var(--line); }
+.pg-src > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  cursor: pointer;
+  color: var(--text-strong);
+  font-weight: 500;
+}
+.pg-src > ul { margin: 0; padding: 0 16px 12px 32px; color: var(--text-sub, #4e5968); font-size: 0.875rem; line-height: 1.6; }

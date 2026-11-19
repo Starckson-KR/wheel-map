@@ -51,13 +51,15 @@ export function WeatherLine() {
 }
 
 /** 길찾기 경로 카드 위 주의 한 줄: 비·눈·높은 기온일 때만 보인다. */
-export function WeatherBand() {
+export function WeatherBand({ floodCount = 0 }: { floodCount?: number }) {
   const w = useWeather()
-  const a = w ? advisoryOf(w) : null
+  const a0 = w ? advisoryOf(w) : null
+  // 비·눈이고 길에 침수 이력이 있으면 한 줄로 합친다(띠가 두 줄 겹치지 않게)
+  const a = a0 && floodCount > 0 && (a0.kind === 'rain' || a0.kind === 'snow') ? { ...a0, text: `${a0.kind === 'rain' ? '비가 와요' : '눈이 와요'}. 짧은 길에 물이 찼던 곳 ${floodCount}곳` } : a0
   return (
     <Reveal show={!!a}>
       {a && (
-        <p className="wx-band" role="note" key={a.kind}>
+        <p className="wx-band" role="note" key={a.kind + floodCount}>
           <span className="wx-ic"><Icon name={a.icon} size={20} /></span>
           <span className="fx-fade">{a.text}</span>
         </p>

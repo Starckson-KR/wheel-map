@@ -30,6 +30,11 @@ import { WeatherBand } from './WeatherBits'
 import { Badge, RouteCard, Tl, TlHit, TlStep, VerdictBadge } from './RouteUi'
 import { fmtDist, fmtMin, WALK_COLOR } from './routeFmt'
 import { prefersCalm } from '../lib/viewPrefs'
+import { useWeather } from '../lib/weather/store'
+import { isWet } from '../lib/weather/model'
+import { loadLayerPool } from '../lib/routing/layerData.ts'
+import { alongRows, cardNotes, routeFacts, type LayerPool, type RouteFacts } from '../lib/routing/layerRoute.ts'
+import Icon from './Icon'
 
 const SHOWN_ON_MAP: ReportStatus[] = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
@@ -74,6 +79,8 @@ type Result = {
   stats: NetStats
   own: OwnSearch | null // 자체 보행망으로 찾았으면 그 결과(턴바이턴·피해 간 곳). TMAP으로 찾았으면 null
   fallback: boolean // 자체 보행망으로 못 찾아 TMAP으로 넘어왔는가
+  pool: LayerPool | null // 길찾기가 스스로 쓴 공공데이터(육교·침수·화장실·그늘막·정류장·스쿨존). 못 받았으면 null
+  wet: boolean // 이 결과를 구할 때 비·눈이었는가(침수 이력을 경로 계산에 넣었는가)
   start: Place
   end: Place
   fitKey: number
@@ -239,6 +246,8 @@ export default function RoutePanel(props: Props) {
   const [transitOv, setTransitOv] = useState<RouteOverlay | null>(null)
   const [openStop, setOpenStop] = useState<string | null>(null)
   const runId = useRef(0)
+  const weather = useWeather()
+  const wet = weather ? isWet(weather) : false
   const [engineMode, setEngineMode] = useState<'own' | 'tmap'>('own') // 개발 모드에서만 바꿀 수 있다(비교용)
   const [guide, setGuide] = useState<Guide | null>(null)
   const [guideMsg, setGuideMsg] = useState('')
@@ -361,11 +370,13 @@ export default function RoutePanel(props: Props) {
       const obstacles = buildObstacles(barriers, seedRatings, citizen)
       // 1순위: 자체 보행망(키·서버 없이 브라우저 안에서 계산). 못 찾으면(보행망 밖·연결 끊김) TMAP 방식으로 넘어간다.
       let own: OwnSearch | null = null
+      let pool: LayerPool | null = null
       let why: 'load' | 'outside' | 'no-path' = 'load'
       if (engineMode === 'own') {
-        const wg = await getWalkGraph()
+        const [wg, lp] = await Promise.all([getWalkGraph(), loadLayerPool(wet).catch(() => null)])
+        pool = lp
         if (wg) {
-          const o = searchOwn(wg, [f.lat, f.lng], [t.lat, t.lng], obstacles, ROUTE_CFG, WALK_CFG)
+          const o = searchOwn(wg, [f.lat, f.lng], [t.lat, t.lng], obstacles, ROUTE_CFG, WALK_CFG, lp ? [...lp.overpass, ...lp.flood] : [])
           if (o.base) own = o
           else why = o.error === 'no-path' ? 'no-path' : 'outside'
         }
@@ -393,7 +404,7 @@ export default function RoutePanel(props: Props) {
         extrasError = true
       }
       if (my !== runId.current) return
-      setResult({ res, pair: pairLabel, extras, extrasError, stats, own, fallback: !own && engineMode === 'own', start: f, end: t, fitKey: my })
+      setResult({ res, pair: pairLabel, extras, extrasError, stats, own, fallback: !own && engineMode === 'own', pool, wet, start: f, end: t, fitKey: my })
       const pick = initialCard(!!res.detour, props.initialMode === 'bus', busCardState(hasStoredTransit(pid), TRANSIT_FREE_SEARCH))
       setMode(pick === 'bus' ? 'bus' : 'walk')
       setActive(pick === 'bus' ? (res.detour ? 'detour' : 'base') : pick)
@@ -567,6 +578,20 @@ export default function RoutePanel(props: Props) {
     return m
   }, [result, cards])
 
+  // 길찾기가 스스로 쓰는 공공데이터 사실(육교·침수·가는 길의 화장실 등), 카드마다
+  const facts = useMemo(() => {
+    const m = new Map<string, RouteFacts>()
+    if (result?.pool) for (const c of cards) m.set(c.id, routeFacts(c.route.coords, result.pool))
+    return m
+  }, [result, cards])
+  const baseFacts = facts.get('base')
+  // 날씨가 바뀌면(시연 도구 포함) 침수 이력을 넣을지가 달라지므로 같은 길을 다시 구한다
+  useEffect(() => {
+    if (status !== 'done' || !result || result.wet === wet || guide) return
+    void run(result.start, result.end, pairId, result.pair)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wet])
+
   // 지도에 보낼 정보
   useEffect(() => {
     if (mode === 'bus') {
@@ -588,6 +613,22 @@ export default function RoutePanel(props: Props) {
         if (s.item.lat != null && s.item.lng != null) markers.push({ lat: s.item.lat, lng: s.item.lng, text: '버스', title: s.item.name, cls: 'rt-m-bus' })
       }
     }
+    // 길찾기가 쓴 지점만 작게 표시(가는 길의 화장실·그늘막·정류장, 지나는 육교·침수 이력)
+    const f = facts.get(activeCard.id)
+    if (f) {
+      const seen = new Set(markers.map((m) => `${m.lat},${m.lng}`))
+      const add = (lat: number, lng: number, text: string, title: string, cls: string) => {
+        const k = `${lat},${lng}`
+        if (seen.has(k)) return
+        seen.add(k)
+        markers.push({ lat, lng, text, title, cls })
+      }
+      for (const x of f.toilet.items) add(x.item.lat, x.item.lng, '화장실', x.item.name, 'rt-m-toilet')
+      for (const x of f.shade.items) add(x.item.lat, x.item.lng, '그늘막', x.item.name, 'rt-m-shade')
+      for (const x of f.stop.items) add(x.item.lat, x.item.lng, '정류장', x.item.name, 'rt-m-bus')
+      for (const o of f.overpass) add(o.lat, o.lng, '육교', '육교', 'rt-m-overpass')
+      for (const o of f.flood) add(o.lat, o.lng, '침수', '침수 이력', 'rt-m-flood')
+    }
     onOverlay({
       start: result.start,
       end: result.end,
@@ -606,7 +647,7 @@ export default function RoutePanel(props: Props) {
     })
     // onOverlay는 부모의 setState라 의존성에서 뺀다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result, activeCard, perRoute, focus, unresolvedIds, mode, transitOv, active, fitN, guide, steps])
+  }, [result, activeCard, perRoute, facts, focus, unresolvedIds, mode, transitOv, active, fitN, guide, steps])
 
   useEffect(() => () => onOverlay(null), []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -626,6 +667,40 @@ export default function RoutePanel(props: Props) {
   const railIds = cardOrder(!!result?.res.detour)
   const sel: CardId = mode === 'bus' ? 'bus' : active
   const busState = busCardState(hasStoredTransit(pairId), TRANSIT_FREE_SEARCH)
+  // 카드 아래 배지: 「피했어요」(초록)와 지나는 곳 수(주황)
+  const chipsOf = (id: 'base' | 'detour') => {
+    const cur = facts.get(id)
+    if (!cur || !baseFacts) return undefined
+    const n = cardNotes(cur, baseFacts, id === 'base')
+    if (n.avoided.length === 0 && n.passes.overpass === 0 && n.passes.flood === 0) return undefined
+    return (
+      <>
+        {n.avoided.includes('overpass') && <Badge tone="green">육교 피했어요</Badge>}
+        {n.avoided.includes('flood') && <Badge tone="green">침수 이력 피했어요</Badge>}
+        {n.passes.overpass > 0 && <Badge tone="orange">육교 {n.passes.overpass}곳</Badge>}
+        {n.passes.flood > 0 && <Badge tone="orange">침수 이력 {n.passes.flood}곳</Badge>}
+      </>
+    )
+  }
+  const alongBlock = (id: 'base' | 'detour') => {
+    const f = facts.get(id)
+    const rows = f ? alongRows(f) : []
+    if (rows.length === 0) return undefined
+    return (
+      <div className="rc-near">
+        <h4>가는 길에 있어요</h4>
+        <ul>
+          {rows.map((r) => (
+            <li key={r.key}>
+              <i className={'rc-near-ic rc-near-' + r.key} aria-hidden="true"><Icon name={r.icon} size={14} /></i>
+              <span className="rc-near-t">{r.label}</span>
+              {r.sub && <span className="rc-near-s">{r.sub}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
   const finalId: 'base' | 'detour' = result?.res.detour ? 'detour' : 'base'
   const finalSummary = result?.res.summary[finalId] ?? null
 
@@ -937,7 +1012,7 @@ export default function RoutePanel(props: Props) {
 
       {status === 'done' && result && activeCard && (
         <div ref={topRef} className="rt-top" aria-live="polite">
-          <WeatherBand />
+          <WeatherBand floodCount={result.wet && wet ? (baseFacts?.flood.length ?? 0) : 0} />
           <div className="rc-rail" role="group" aria-label="경로 고르기. 옆으로 넘기거나 좌우 화살표 키를 눌러요">
             <ul
               ref={railRef}
@@ -976,6 +1051,8 @@ export default function RoutePanel(props: Props) {
                     onPick={() => pickCard(c.id)}
                     time={fmtMin(c.route.time)}
                     sub={`${fmtWalk(c.route.distance)} · ${c.title}`}
+                    chips={chipsOf(c.id)}
+                    foot={sel === c.id ? alongBlock(c.id) : undefined}
                     badges={
                       <>
                         {c.id === 'detour' && <Badge tone="blue">추천</Badge>}

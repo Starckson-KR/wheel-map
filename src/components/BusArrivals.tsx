@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Skeleton from './Skeleton'
 import type { BoardingWarn } from '../lib/bus/boarding.ts'
 import { getArrivals, getLineLow, LIVE_AVAILABLE, hasSnapshot } from '../lib/bus/provider.ts'
-import { nextLow, arrivalText, type Arrival, type ArrivalResult, type LineLowResult } from '../lib/bus/types.ts'
+import { nextLow, arrivalText, sameLine, type Arrival, type ArrivalResult, type LineLowResult } from '../lib/bus/types.ts'
 
 export type StopChoice = { stationId: string; name: string; next?: string }
 
@@ -59,7 +59,7 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
     } else if (res && res.ok) {
       const low = nextLow(res.arrivals, lineName)
       if (low) text = `다음 저상버스 ${arrivalText(low).replace(`${low.lineName}번 `, '')}`
-      else if (lineName && res.arrivals.some((a) => a.lineName === lineName)) text = `${lineName}번이 오지만 저상버스가 아니에요`
+      else if (lineName && res.arrivals.some((a) => sameLine(a.lineName, lineName))) text = `${lineName}번이 오지만 저상버스가 아니에요`
       else text = '곧 오는 저상버스 정보 없음'
     }
     return (
@@ -127,7 +127,7 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
           {lineName && (
             <div className="bus-line-box">
               {(() => {
-                const mine = res.arrivals.filter((a) => a.lineName === lineName)
+                const mine = res.arrivals.filter((a) => sameLine(a.lineName, lineName))
                 const mineLow = nextLow(res.arrivals, lineName)
                 return (
                   <>

@@ -1,7 +1,8 @@
 // 자체 보행망 길찾기 한 번: 기본 길(장애요소 벌점 없음)과 피해 가는 길(장애요소 벌점 있음)을 같은 보행망에서 구하고,
 // 기존 TMAP 방식과 같은 모양(SearchResult)으로 돌려준다. 그래서 화면의 카드·판정·타임라인을 그대로 쓴다.
 import { analyze, summarize, type Hit, type Obstacle, type Pt, type RouteCfg, type SearchResult } from './engine.ts'
-import { findWalkRoute, type OwnRoute, type WalkCfg } from './walkRoute.ts'
+import { findWalkRoute, type OwnRoute, type SoftSpot, type WalkCfg } from './walkRoute.ts'
+import { spotsNearRoute } from './layerRoute.ts'
 import type { WalkGraph } from './walkGraph.ts'
 
 const isX = (h: Hit) => h.role === 'X'
@@ -17,7 +18,7 @@ export type OwnSearch = {
 
 const sameRoute = (a: OwnRoute, b: OwnRoute) => a.coords.length === b.coords.length && a.coords.every((p, i) => p[0] === b.coords[i][0] && p[1] === b.coords[i][1])
 
-export function searchOwn(g: WalkGraph, from: Pt, to: Pt, obstacles: Obstacle[], cfg: RouteCfg, wcfg: WalkCfg): OwnSearch {
+export function searchOwn(g: WalkGraph, from: Pt, to: Pt, obstacles: Obstacle[], cfg: RouteCfg, wcfg: WalkCfg, soft: SoftSpot[] = []): OwnSearch {
   const res: SearchResult = { base: null, baseHits: [], detour: null, detourHits: [], via: [], unresolved: [], untested: [], endpoint: [], attempts: [], requests: 0, summary: { base: null, detour: null } }
   const b = findWalkRoute(g, from, to, wcfg, { avoid: false })
   if (!b.route) return { res, base: null, detour: null, avoided: [], error: b.error }
@@ -30,11 +31,12 @@ export function searchOwn(g: WalkGraph, from: Pt, to: Pt, obstacles: Obstacle[],
     return near(base.coords[0]) || near(base.coords[base.coords.length - 1])
   }
   const endpointIds = new Set(res.baseHits.filter((h) => isX(h) && atEnds(h)).map(gk))
-  const need = res.baseHits.some((h) => (isX(h) || h.role === 'T') && !endpointIds.has(gk(h)))
+  // 육교·침수 지점(soft)을 지나도 피해 가는 길을 찾아 본다
+  const need = res.baseHits.some((h) => (isX(h) || h.role === 'T') && !endpointIds.has(gk(h))) || spotsNearRoute(base.coords, soft).length > 0
 
   let detour: OwnRoute | null = null
   if (need) {
-    const a = findWalkRoute(g, from, to, wcfg, { avoid: true, obstacles })
+    const a = findWalkRoute(g, from, to, wcfg, { avoid: true, obstacles, soft })
     if (a.route && !sameRoute(a.route, base) && a.route.distance <= base.distance * wcfg.maxDetourRatio) detour = a.route
   }
   const finalHits = detour ? analyze(detour.coords, obstacles, cfg.radiusM) : res.baseHits

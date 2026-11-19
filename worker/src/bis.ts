@@ -149,7 +149,12 @@ export async function handleBis(request: Request, env: Env, origin: string, deps
       listOf(j).map((l) => ({ id: String(l.LINE_ID ?? ''), short: String(l.SHORT_LINE_NAME ?? l.LINE_NAME ?? ''), name: String(l.LINE_NAME ?? '') })),
     )
     if (!li.cached) await prune(db, now)
-    const same = li.data.filter((l) => l.short === name || l.name === name).slice(0, 2)
+    let same = li.data.filter((l) => l.short === name || l.name === name).slice(0, 2)
+    // 길찾기가 주는 번호만(예: 07)이면 이름 앞에 지역 글자가 붙은 노선(진월07)으로 찾는다. 후보가 하나일 때만 인정한다.
+    if (same.length === 0) {
+      const tail = li.data.filter((l) => l.short.endsWith(name) && /^[^\d]+$/.test(l.short.slice(0, l.short.length - name.length)))
+      if (tail.length === 1) same = tail
+    }
     if (same.length === 0) return err(502, `노선 ${name}을 BIS 노선 목록에서 찾지 못했습니다.`, origin)
     let total = 0
     let low = 0

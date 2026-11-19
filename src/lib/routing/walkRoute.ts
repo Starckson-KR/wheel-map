@@ -23,6 +23,9 @@ export type WalkCfg = {
   maxDetourRatio: number // 피해 가는 길이 기본 길의 몇 배까지 허용
 }
 
+// 장애요소와 따로 쓰는 가벼운 벌점 지점(육교·침수 이력). 길 토막이 radiusM 안이면 penaltyM(m)을 더한다. 경로 검사 결과(Hit)에는 나오지 않는다.
+export type SoftSpot = { id: string; kind: 'overpass' | 'flood'; lat: number; lng: number; radiusM: number; penaltyM: number }
+
 export type OwnRoute = RouteData & {
   seg: number[] // 경로선 각 구간(coords[i]→coords[i+1])의 길 성질 비트(walkGraph의 M)
   stepsM: number // 계단 구간 길이(m)
@@ -164,7 +167,7 @@ export function edgeBaseCost(e: { mask: number; len: number; inc: number }, cfg:
   return c
 }
 
-type Obs = { id: string; kind: 'point' | 'line'; x: number[]; y: number[]; penalty: number }
+type Obs = { id: string; kind: 'point' | 'line'; x: number[]; y: number[]; penalty: number; r?: number }
 
 function obstaclesForCost(g: WalkGraph, obstacles: Obstacle[], cfg: WalkCfg, ignore: (id: string) => boolean): Obs[] {
   const pr = projOf(g.ref)
@@ -181,17 +184,18 @@ function obstaclesForCost(g: WalkGraph, obstacles: Obstacle[], cfg: WalkCfg, ign
 function obsPenalty(e: WEdge, obs: Obs[], r: number): number {
   let p = 0
   for (const o of obs) {
-    const ox0 = Math.min(...o.x) - r
-    const ox1 = Math.max(...o.x) + r
-    const oy0 = Math.min(...o.y) - r
-    const oy1 = Math.max(...o.y) + r
+    const rr = o.r ?? r
+    const ox0 = Math.min(...o.x) - rr
+    const ox1 = Math.max(...o.x) + rr
+    const oy0 = Math.min(...o.y) - rr
+    const oy1 = Math.max(...o.y) + rr
     if (e.bb[2] < ox0 || e.bb[0] > ox1 || e.bb[3] < oy0 || e.bb[1] > oy1) continue
-    if (obstacleDist(o, e) <= r) p += o.penalty
+    if (obstacleDist(o, e) <= rr) p += o.penalty
   }
   return p
 }
 
-export type FindOpts = { avoid: boolean; obstacles?: Obstacle[]; ignoreIds?: string[] }
+export type FindOpts = { avoid: boolean; obstacles?: Obstacle[]; ignoreIds?: string[]; soft?: SoftSpot[] }
 
 export function findWalkRoute(g: WalkGraph, from: Pt, to: Pt, cfg: WalkCfg, opts: FindOpts): WalkResult {
   const pr = projOf(g.ref)
@@ -261,6 +265,15 @@ export function findWalkRoute(g: WalkGraph, from: Pt, to: Pt, cfg: WalkCfg, opts
   }
   const ignoreSet = new Set(opts.ignoreIds ?? [])
   const obs = opts.avoid && opts.obstacles ? obstaclesForCost(g, opts.obstacles, cfg, (id) => ignoreSet.has(id) || !!opts.obstacles?.find((o) => o.id === id && (near(o, fx, fy) || near(o, tx, ty)))) : []
+
+  // 육교·침수 지점: 출발·도착 근처 것은 피할 수 없으니 뺀다(장애요소와 같은 규칙)
+  if (opts.avoid && opts.soft) {
+    for (const sp of opts.soft) {
+      const [px, py] = pr.fwd(sp.lat, sp.lng)
+      if (Math.hypot(px - fx, py - fy) <= sp.radiusM || Math.hypot(px - tx, py - ty) <= sp.radiusM) continue
+      obs.push({ id: sp.id, kind: 'point', x: [px], y: [py], penalty: sp.penaltyM, r: sp.radiusM })
+    }
+  }
 
   const cost: number[] = new Array(edges.length)
   const costOf = (id: number) => {

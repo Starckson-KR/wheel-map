@@ -121,7 +121,12 @@ export async function bisLineLow(lineName: string, key: string, root: string): P
   const li = await bisGet('lineInfo', { _: 'all' }, key, root, LINEINFO_TTL_MS)
   if (!li.ok) return li
   const lines = listOf(li.json)
-  const same = lines.filter((l) => String(l.SHORT_LINE_NAME ?? l.LINE_NAME) === lineName || String(l.LINE_NAME) === lineName)
+  let same = lines.filter((l) => String(l.SHORT_LINE_NAME ?? l.LINE_NAME) === lineName || String(l.LINE_NAME) === lineName)
+  if (same.length === 0) {
+    // 길찾기가 주는 번호만(예: 07)이면 지역 글자가 붙은 노선(진월07)으로 찾는다(후보가 하나일 때만)
+    const tail = lines.filter((l) => { const n = String(l.SHORT_LINE_NAME ?? l.LINE_NAME); return n.endsWith(lineName) && /^[^\d]+$/.test(n.slice(0, n.length - lineName.length)) })
+    if (tail.length === 1) same = tail
+  }
   if (same.length === 0) return { ok: false, error: `노선 ${lineName}을 BIS 노선 목록에서 찾지 못했습니다.` }
   let total = 0
   let low = 0

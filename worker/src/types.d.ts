@@ -37,4 +37,8 @@ export interface Env {
   DATA_GO_KR_KEY?: string
   BIS_DAILY_CAP?: string
   BIS_PER_MINUTE?: string
+  // 대중교통(버스) 길찾기 중계: 키는 secret(wrangler secret put KOREACONNECT_KEY)으로만 넣는다.
+  KOREACONNECT_KEY?: string
+  TRANSIT_DAILY_CAP?: string
+  TRANSIT_PER_MINUTE?: string
 }

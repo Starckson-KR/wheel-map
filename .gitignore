@@ -41,3 +41,6 @@ docs/길안내_시연쌍_현장확인.md
 
 # 길 안내 지도·AI 검색 조사(내부 문서)
 docs/조사_길안내지도_AI검색.md
+
+# 광주 북구 공공데이터 원본 CSV(상세 주소 포함, data.go.kr에서 다시 받기 — docs/공공데이터_수집결과.md 8절)
+data/public/bukgu/

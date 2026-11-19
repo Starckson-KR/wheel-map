@@ -4,6 +4,8 @@ import { Sentences } from './Sentences'
 import type { VoucherFields } from '../lib/vouchers'
 import { facilityTitle, usableName } from '../lib/facilityName'
 
+const BUKGU_LAYERS: PubLayerId[] = ['overpass', 'welfare', 'yellow', 'flood', 'shade', 'airSignal', 'schoolZone', 'parkingZone']
+
 type Props = { layer: PubLayerId; item: PubItem; dataset: PubDataset; onClose: () => void }
 
 const yn = (v: unknown) => (v === 'Y' ? '있음' : v === 'N' ? '없음' : '정보 없음')
@@ -41,6 +43,46 @@ function rows(layer: PubLayerId, it: PubItem): [string, string][] {
       ['업종', v.category || '정보 없음'],
     ]
   }
+  if (layer === 'overpass') {
+    const has = f['장애인편의시설설치여부']
+    const kind = typeof f['장애인편의시설종류'] === 'string' && f['장애인편의시설종류'] && f['장애인편의시설종류'] !== '없음' ? ` (${f['장애인편의시설종류']})` : ''
+    return [
+      ['장애인 편의시설', has === 'Y' ? `있음${kind}` : has === 'N' ? '없음 (계단으로만 오를 수 있을 수 있어요)' : '정보 없음'],
+      ['육교 길이', f['육교연장'] != null ? `${f['육교연장']}m` : '정보 없음'],
+      ['육교 폭', f['육교폭'] != null ? `${f['육교폭']}m` : '정보 없음'],
+    ]
+  }
+  if (layer === 'welfare') {
+    return [
+      ['구분', String(f['구분'] || '정보 없음')],
+      ['운영기관', String(f['운영기관명'] || '정보 없음')],
+      ['전화', String(f['전화번호'] || '정보 없음')],
+    ]
+  }
+  if (layer === 'yellow') {
+    return [
+      ['인근 학교', String(f['인근학교명칭'] || '정보 없음')],
+      ['설치일', String(f['설치일'] || '정보 없음')],
+    ]
+  }
+  if (layer === 'flood') {
+    const kinds = (f['종류별'] ?? {}) as Record<string, number>
+    return [
+      ['피해 내용', Object.entries(kinds).map(([k, n]) => `${k} ${n}건`).join(', ') || '정보 없음'],
+      ['발생 연도', Array.isArray(f['발생연도']) && f['발생연도'].length ? `${(f['발생연도'] as string[]).join(', ')}년` : '정보 없음'],
+    ]
+  }
+  if (layer === 'shade') {
+    return [
+      ['종류', String(f['종류'] || '정보 없음')],
+      ['설치일', String(f['설치일자'] || '정보 없음')],
+    ]
+  }
+  if (layer === 'schoolZone') return [['구분', '어린이보호구역(스쿨존)']]
+  if (layer === 'parkingZone') return [['구분', '주정차 단속구간']]
+  if (layer === 'airSignal') {
+    return [['측정 항목', '미세먼지, 초미세먼지, 오존, 이산화질소, 일산화탄소, 아황산가스']]
+  }
   return [
     ['정류소 번호', f['nodeno'] != null ? String(f['nodeno']) : '정보 없음'],
     ['행정동', String(f['행정동'] ?? '정보 없음')],
@@ -69,7 +111,7 @@ function VoucherAccess({ item }: { item: PubItem }) {
   )
 }
 
-export default function PubCard({ layer, item, dataset, onClose }: Props) {
+export default function PubCard({ layer, item, onClose }: Props) {
   const info = PUB_LAYERS.find((l) => l.id === layer)
   return (
     <aside className="pc" aria-label="공공데이터 정보">
@@ -95,10 +137,7 @@ export default function PubCard({ layer, item, dataset, onClose }: Props) {
           </div>
         ))}
       </dl>
-      <p className="bm-meta">
-        출처: {dataset.source} ({dataset.provider}), 수집일 {dataset.fetchedAt.slice(0, 10)}
-      </p>
-      <p className="bm-meta">공공데이터라서 실제로 지나갈 수 있는지를 판정한 건 아니에요.</p>
+      {BUKGU_LAYERS.includes(layer) ? null : <p className="bm-meta">공공데이터라서 실제로 지나갈 수 있는지를 판정한 건 아니에요.</p>}
       {layer === 'voucher' && <p className="bm-meta">방문 전에 가맹 여부를 확인해 주세요.</p>}
     </aside>
   )

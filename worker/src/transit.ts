@@ -66,7 +66,7 @@ async function upstream(from: Pt, to: Pt, key: string, f: typeof fetch): Promise
   const ctl = new AbortController()
   const timer = setTimeout(() => ctl.abort(), UPSTREAM_TIMEOUT_MS)
   try {
-    const r = await f(odsayUrl(from, to), { headers: { [ODSAY_KEY_HEADER]: key, accept: 'application/json' }, signal: ctl.signal })
+    const r = await f(odsayUrl(from, to), { headers: { [ODSAY_KEY_HEADER]: key, accept: 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; wheelmap-ai/1.0)', 'accept-language': 'ko-KR,ko;q=0.9' }, signal: ctl.signal })
     const text = await r.text()
     let json: unknown = null
     try {
@@ -77,9 +77,12 @@ async function upstream(from: Pt, to: Pt, key: string, f: typeof fetch): Promise
     const p = parseOdsay(json, from, to)
     if (p.ok) return { itineraries: p.itineraries }
     if (isNoRouteCode(p.code)) return { noRoute: p.message }
+    // 11/20 확인: 포털 앞단 웹 방화벽이 Cloudflare에서 오는 요청을 막아 HTML 차단 화면이 온다(HTTP 200). 국내 PC(개발 중계·prefetch)에서는 정상.
+    console.log(`wheelmap-ai transit_upstream http=${r.status} code=${p.code ?? '-'} ${json ? 'json' : text.includes('Web firewall') ? 'waf_blocked' : 'nonjson'}`) // 종류만(키·주소 없음)
     throw new Fail(502, '지금은 버스 경로를 찾지 못했어요.')
   } catch (e) {
     if (e instanceof Fail) throw e
+    console.log(`wheelmap-ai transit_fetch_fail ${ctl.signal.aborted ? 'timeout' : (e as Error)?.name ?? 'error'}`) // 종류만
     // 오류 객체의 문구에는 주소가 들어갈 수 있어 종류만 남긴다.
     throw new Fail(502, ctl.signal.aborted ? '지금은 버스 경로를 찾지 못했어요.' : '지금은 버스 경로를 찾지 못했어요.')
   } finally {

@@ -4,7 +4,7 @@
  "url": "https://www.data.go.kr/data/15092317/openapi.do",
  "license": "이용제한 없음 (공공데이터포털 페이지, 조사문서 기준)",
  "note": "evalInfo가 null인 시설은 일일 호출 한도 때문에 상세(편의시설 항목)를 아직 조회하지 않은 것. 용봉동 시설부터 조회함. 다시 실행하면 이어서 조회.",
- "fetchedAt": "2026-11-18T10:10:37.058Z",
+ "fetchedAt": "2026-11-19T10:12:29.783Z",
  "area": "광주 북구",
  "count": 1697,
  "items": [
@@ -8511,7 +8511,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20001125",
-    "evalInfo": null
+    "evalInfo": "승강기, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8525,7 +8525,7 @@
     "faclTyCd": "주차장",
     "salStaNm": "영업",
     "estbDate": "20050711",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로"
    }
   },
   {
@@ -8539,7 +8539,7 @@
     "faclTyCd": "우체국",
     "salStaNm": "영업",
     "estbDate": "20050408",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8553,7 +8553,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20001125",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8567,7 +8567,7 @@
     "faclTyCd": "아파트 부대복리시설",
     "salStaNm": "영업",
     "estbDate": "20001125",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8583,7 +8583,7 @@
     "estbDate": "20001125",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서강로54번길 32",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8597,7 +8597,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20030630",
-    "evalInfo": null
+    "evalInfo": "승강기, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8611,7 +8611,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20030630",
-    "evalInfo": null
+    "evalInfo": "승강기, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8625,7 +8625,7 @@
     "faclTyCd": "다세대주택",
     "salStaNm": "영업",
     "estbDate": "20020403",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8639,7 +8639,7 @@
     "faclTyCd": "노인복지시설",
     "salStaNm": "영업",
     "estbDate": "20130430",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로"
    }
   },
   {
@@ -8655,7 +8655,7 @@
     "estbDate": "20120308",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서림로 10",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8671,7 +8671,7 @@
     "estbDate": "20010720",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서림로 113",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -8687,7 +8687,7 @@
     "estbDate": "20141223",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서림로 119-5",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -8701,7 +8701,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20160317",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8715,7 +8715,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20151211",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -8731,7 +8731,7 @@
     "estbDate": "20160503",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서림로 5",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -8745,7 +8745,7 @@
     "faclTyCd": "지역자치센터",
     "salStaNm": "영업",
     "estbDate": "20030307",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -8761,7 +8761,7 @@
     "estbDate": "20210727",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서림로 63",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거"
    }
   },
   {
@@ -8775,7 +8775,7 @@
     "faclTyCd": "공중화장실",
     "salStaNm": "영업",
     "estbDate": "19980411",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8789,7 +8789,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20010619",
-    "evalInfo": null
+    "evalInfo": ""
    }
   },
   {
@@ -8803,7 +8803,7 @@
     "faclTyCd": "주차장",
     "salStaNm": "영업",
     "estbDate": "20200327",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거"
    }
   },
   {
@@ -8819,7 +8819,7 @@
     "estbDate": "20100719",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서방로 12",
-    "evalInfo": null
+    "evalInfo": "승강기, 유도 및 안내 설비, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로"
    }
   },
   {
@@ -8835,7 +8835,7 @@
     "estbDate": "20100719",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서방로 12",
-    "evalInfo": null
+    "evalInfo": "승강기, 유도 및 안내 설비, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로"
    }
   },
   {
@@ -8849,7 +8849,7 @@
     "faclTyCd": "종교집회장",
     "salStaNm": "영업",
     "estbDate": "20030422",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8865,7 +8865,7 @@
     "estbDate": "20190620",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서방로 2",
-    "evalInfo": null
+    "evalInfo": "주출입구(문)"
    }
   },
   {
@@ -8879,7 +8879,7 @@
     "faclTyCd": "공중화장실",
     "salStaNm": "영업",
     "estbDate": "20111118",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -8893,7 +8893,7 @@
     "faclTyCd": "운동장(육상·구기·볼링·수영·스케이트·롤러스케이트·승마·사격·궁도·골프)과 부수되는 건축물",
     "salStaNm": "영업",
     "estbDate": "20080403",
-    "evalInfo": null
+    "evalInfo": "장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8907,7 +8907,7 @@
     "faclTyCd": "주차장",
     "salStaNm": "영업",
     "estbDate": "20021022",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거"
    }
   },
   {
@@ -8921,7 +8921,7 @@
     "faclTyCd": "공중화장실",
     "salStaNm": "영업",
     "estbDate": "20040524",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8935,7 +8935,7 @@
     "faclTyCd": "휴게음식점·제과점",
     "salStaNm": "영업",
     "estbDate": "20040507",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8949,7 +8949,7 @@
     "faclTyCd": "대피소",
     "salStaNm": "영업",
     "estbDate": "20040507",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8963,7 +8963,7 @@
     "faclTyCd": "다세대주택",
     "salStaNm": "영업",
     "estbDate": "20130103",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8977,7 +8977,7 @@
     "faclTyCd": "공중화장실",
     "salStaNm": "영업",
     "estbDate": "20150414",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -8991,7 +8991,7 @@
     "faclTyCd": "다세대주택",
     "salStaNm": "영업",
     "estbDate": "20011119",
-    "evalInfo": null
+    "evalInfo": "주출입구(문)"
    }
   },
   {
@@ -9007,7 +9007,7 @@
     "estbDate": "20190425",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서방로39번길 68",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9021,7 +9021,7 @@
     "faclTyCd": "지역자치센터",
     "salStaNm": "영업",
     "estbDate": "19980411",
-    "evalInfo": null
+    "evalInfo": "장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9037,7 +9037,7 @@
     "estbDate": "20120202",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서방로40번길 13",
-    "evalInfo": null
+    "evalInfo": "승강기, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9053,7 +9053,7 @@
     "estbDate": "20120202",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서방로40번길 13",
-    "evalInfo": null
+    "evalInfo": "승강기, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9069,7 +9069,7 @@
     "estbDate": "20171116",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서방로63번길 67",
-    "evalInfo": null
+    "evalInfo": "승강기, 유도 및 안내 설비, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9085,7 +9085,7 @@
     "estbDate": "20100322",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서방로63번길 78-10",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9099,7 +9099,7 @@
     "faclTyCd": "주차장",
     "salStaNm": "영업",
     "estbDate": "20210909",
-    "evalInfo": null
+    "evalInfo": "장애인전용주차구역, 주출입구 높이차이 제거"
    }
   },
   {
@@ -9113,7 +9113,7 @@
     "faclTyCd": "공중화장실",
     "salStaNm": "영업",
     "estbDate": "20200810",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9127,7 +9127,7 @@
     "faclTyCd": "주차장",
     "salStaNm": "영업",
     "estbDate": "20070129",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거"
    }
   },
   {
@@ -9141,7 +9141,7 @@
     "faclTyCd": "병원·치과병원·한방병원·정신병원·요양병원",
     "salStaNm": "영업",
     "estbDate": "20110927",
-    "evalInfo": null
+    "evalInfo": "승강기, 유도 및 안내 설비, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9157,7 +9157,7 @@
     "estbDate": "19980411",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서암대로 199",
-    "evalInfo": null
+    "evalInfo": ""
    }
   },
   {
@@ -9171,7 +9171,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20120522",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9185,7 +9185,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20141223",
-    "evalInfo": null
+    "evalInfo": "주출입구 접근로, 장애인전용주차구역, 주출입구높이차이제거(경사로), 주출입문, 승강기, 장애인사용가능화장실, 안내설비, 장애인사용가능객실"
    }
   },
   {
@@ -9199,7 +9199,7 @@
     "faclTyCd": "주차장",
     "salStaNm": "영업",
     "estbDate": "20141223",
-    "evalInfo": null
+    "evalInfo": "주출입구 접근로, 장애인전용주차구역, 주출입구높이차이제거(경사로), 주출입문, 승강기, 장애인사용가능화장실, 안내설비, 장애인사용가능객실"
    }
   },
   {
@@ -9213,7 +9213,7 @@
     "faclTyCd": "주차장",
     "salStaNm": "영업",
     "estbDate": "19980411",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거"
    }
   },
   {
@@ -9227,7 +9227,7 @@
     "faclTyCd": "대피소",
     "salStaNm": "영업",
     "estbDate": "19980411",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9241,7 +9241,7 @@
     "faclTyCd": "국가 또는 지자체 청사",
     "salStaNm": "영업",
     "estbDate": "19980411",
-    "evalInfo": null
+    "evalInfo": "승강기, 유도 및 안내 설비, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로"
    }
   },
   {
@@ -9255,7 +9255,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20141125",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9269,7 +9269,7 @@
     "faclTyCd": "휴게음식점·제과점",
     "salStaNm": "영업",
     "estbDate": "20180418",
-    "evalInfo": null
+    "evalInfo": "장애인전용주차구역, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9283,7 +9283,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20161215",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9297,7 +9297,7 @@
     "faclTyCd": "다세대주택",
     "salStaNm": "영업",
     "estbDate": "20110803",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9311,7 +9311,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20110829",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9327,7 +9327,7 @@
     "estbDate": "20131230",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서암대로132번길 11-10",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9343,7 +9343,7 @@
     "estbDate": "20071009",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서암대로144번길 11",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거"
    }
   },
   {
@@ -9357,7 +9357,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20160408",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9371,7 +9371,7 @@
     "faclTyCd": "이외 사회복지시설",
     "salStaNm": "영업",
     "estbDate": "20130826",
-    "evalInfo": null
+    "evalInfo": "유도 및 안내 설비, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9385,7 +9385,7 @@
     "faclTyCd": "아파트",
     "salStaNm": "영업",
     "estbDate": "20011024",
-    "evalInfo": null
+    "evalInfo": "승강기, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9399,7 +9399,7 @@
     "faclTyCd": "연립주택",
     "salStaNm": "영업",
     "estbDate": "20110707",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9415,7 +9415,7 @@
     "estbDate": "20200826",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서양로",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9431,7 +9431,7 @@
     "estbDate": "19980411",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서양로 111",
-    "evalInfo": null
+    "evalInfo": "승강기, 유도 및 안내 설비, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9447,7 +9447,7 @@
     "estbDate": "19980411",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서양로 111",
-    "evalInfo": null
+    "evalInfo": "승강기, 유도 및 안내 설비, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9463,7 +9463,7 @@
     "estbDate": "20170331",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서양로 125",
-    "evalInfo": null
+    "evalInfo": "승강기, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9477,7 +9477,7 @@
     "faclTyCd": "종교집회장",
     "salStaNm": "영업",
     "estbDate": "20130205",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9491,7 +9491,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20020529",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 높이차이 제거, 주출입구(문), 주출입구(문)"
    }
   },
   {
@@ -9505,7 +9505,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20020529",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 높이차이 제거, 주출입구(문), 주출입구(문)"
    }
   },
   {
@@ -9519,7 +9519,7 @@
     "faclTyCd": "다세대주택",
     "salStaNm": "영업",
     "estbDate": "20020227",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9533,7 +9533,7 @@
     "faclTyCd": "다세대주택",
     "salStaNm": "영업",
     "estbDate": "20030724",
-    "evalInfo": null
+    "evalInfo": ""
    }
   },
   {
@@ -9547,7 +9547,7 @@
     "faclTyCd": "초등학교",
     "salStaNm": "영업",
     "estbDate": "19980411",
-    "evalInfo": null
+    "evalInfo": "장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9563,7 +9563,7 @@
     "estbDate": "20120302",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서양로49번길 39",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9579,7 +9579,7 @@
     "estbDate": "20110309",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서양로93번길 61",
-    "evalInfo": null
+    "evalInfo": "주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9593,7 +9593,7 @@
     "faclTyCd": "교육원(연수원등)·직업훈련소·학원(자동차학원, 무도학원 제외) 등",
     "salStaNm": "영업",
     "estbDate": "20040217",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거"
    }
   },
   {
@@ -9607,7 +9607,7 @@
     "faclTyCd": "대피소",
     "salStaNm": "영업",
     "estbDate": "20021016",
-    "evalInfo": null
+    "evalInfo": ""
    }
   },
   {
@@ -9621,7 +9621,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20040628",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9635,7 +9635,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20040127",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9649,7 +9649,7 @@
     "faclTyCd": "집회장",
     "salStaNm": "영업",
     "estbDate": "19991230",
-    "evalInfo": null
+    "evalInfo": "장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9663,7 +9663,7 @@
     "faclTyCd": "휴게음식점·제과점",
     "salStaNm": "영업",
     "estbDate": "20120413",
-    "evalInfo": null
+    "evalInfo": ""
    }
   },
   {
@@ -9679,7 +9679,7 @@
     "estbDate": "20090617",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서하로 156",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9693,7 +9693,7 @@
     "faclTyCd": "국가 또는 지자체 청사",
     "salStaNm": "영업",
     "estbDate": "19980411",
-    "evalInfo": null
+    "evalInfo": "유도 및 안내 설비, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9707,7 +9707,7 @@
     "faclTyCd": "국가 또는 지자체 청사",
     "salStaNm": "영업",
     "estbDate": "19980506",
-    "evalInfo": null
+    "evalInfo": "유도 및 안내 설비, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9721,7 +9721,7 @@
     "faclTyCd": "대피소",
     "salStaNm": "영업",
     "estbDate": "19980506",
-    "evalInfo": null
+    "evalInfo": "유도 및 안내 설비, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9735,7 +9735,7 @@
     "faclTyCd": "수퍼마켓·일용품 등의 소매점",
     "salStaNm": "영업",
     "estbDate": "20120817",
-    "evalInfo": null
+    "evalInfo": "주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9749,7 +9749,7 @@
     "faclTyCd": "관광숙박시설",
     "salStaNm": "영업",
     "estbDate": "20190401",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능객실, 장애인사용가능화장실, 장애인전용주차구역, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9765,7 +9765,7 @@
     "estbDate": "20220331",
     "geocoded": true,
     "geocodeQuery": "전남광주통합특별시 북구 서하로 185",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구 접근로, 주출입구(문)"
    }
   },
   {
@@ -9779,7 +9779,7 @@
     "faclTyCd": "노인복지시설",
     "salStaNm": "영업",
     "estbDate": "20210706",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실, 주출입구 높이차이 제거, 주출입구(문)"
    }
   },
   {
@@ -9793,7 +9793,7 @@
     "faclTyCd": "교육원(연수원등)·직업훈련소·학원(자동차학원, 무도학원 제외) 등",
     "salStaNm": "영업",
     "estbDate": "20220509",
-    "evalInfo": null
+    "evalInfo": "승강기, 장애인사용가능화장실"
    }
   },
   {

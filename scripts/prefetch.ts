@@ -976,23 +976,28 @@ async function pilotStops() {
 // 같은 요청은 캐시, 하루 상한은 odsayClient.ts·transitClient.ts. 저장본은 쌍마다 새로 받은 것으로 덮어쓴다(실패한 쌍은 이전 저장본 유지).
 async function transitDemo() {
   const rdir = path.join(ROOT, 'data', 'routes');
-  const pairs = readJson<any[]>(path.join(rdir, 'pairs.json'), []);
-  const byId = new Map(seedBarriers().map((b: any) => [b.id, b]));
+  const pairs = readJson<{ pairs: any[] }>(path.join(rdir, 'demoPairs.json'), { pairs: [] }).pairs; // 앱의 시연 쌍(w1~w3, 정류장 좌표)
   const outPath = path.join(rdir, 'transit.json');
   const provider = ODSAY_KEY ? 'odsay' : 'tmap';
   const out = readJson<any>(outPath, { pairs: {} });
+  out.pairs = {}; // 옛 쌍 이름(p1~p3)이 남지 않게 시연 쌍(demoPairs.json)만 담는다
   out.source = provider === 'odsay' ? 'ODsay 대중교통 길찾기(디지털융합플랫폼)' : 'TMAP 대중교통 경로(SK open API)';
   out.provider = provider;
   let fresh = 0;
   for (const pair of pairs) {
-    const f: any = byId.get(pair.fromId), t: any = byId.get(pair.toId);
-    if (f?.geometry?.kind !== 'point' || t?.geometry?.kind !== 'point') continue;
+    if (!pair.from || !pair.to) continue;
     const r = provider === 'odsay'
-      ? await callOdsay(f.geometry.at, t.geometry.at, ODSAY_KEY, ROOT)
-      : await callTransit({ from: f.geometry.at, to: t.geometry.at }, TMAP_KEY, ROOT);
+      ? await callOdsay([pair.from.lat, pair.from.lng], [pair.to.lat, pair.to.lng], ODSAY_KEY, ROOT)
+      : await callTransit({ from: [pair.from.lat, pair.from.lng], to: [pair.to.lat, pair.to.lng] }, TMAP_KEY, ROOT);
+    if (!r.ok && provider === 'odsay' && (r as any).status === 'noroute') {
+      // 길 없음(-98 가까운 거리 등)도 결과다: 안내 문구를 저장본으로 남겨 배포판이 Worker를 부르지 않게 한다
+      out.pairs[pair.id] = { fromId: pair.from.stopId, toId: pair.to.stopId, fetchedAt: new Date().toISOString(), itineraries: [], noRoute: r.error };
+      log('  ' + pair.id, '(길 없음 저장)', r.error);
+      continue;
+    }
     if (!r.ok) { log('  ' + pair.id, '실패:', r.error); continue; }
     if (!r.fromCache) fresh++;
-    out.pairs[pair.id] = { fromId: pair.fromId, toId: pair.toId, fetchedAt: new Date().toISOString(), itineraries: r.itineraries };
+    out.pairs[pair.id] = { fromId: pair.from.stopId, toId: pair.to.stopId, fetchedAt: new Date().toISOString(), itineraries: r.itineraries };
     log('  ' + pair.id, r.fromCache ? '(캐시)' : '(호출)', r.itineraries.map((i) => `${Math.round(i.time / 60)}분 ${i.legs.map((l) => l.mode === 'BUS' ? l.lineName : l.mode === 'WALK' ? '도보' : l.mode).join('>')}`).join(' | '));
   }
   out.fetchedAt = new Date().toISOString();

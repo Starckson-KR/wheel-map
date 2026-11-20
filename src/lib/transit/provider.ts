@@ -8,7 +8,7 @@ import type { TItinerary } from './parse.ts'
 //  - 배포(GitHub Pages): Cloudflare Worker의 /transit(worker/src/transit.ts, 키는 Worker secret, 캐시·하루 상한·IP 제한).
 // 키는 브라우저에 없다. 저상버스 여부는 이 경로에 없고, 화면이 광주 BIS(LOW_BUS)로 따로 채운다.
 
-type Stored = Record<string, { fetchedAt: string; itineraries: TItinerary[] }>
+type Stored = Record<string, { fetchedAt: string; itineraries: TItinerary[]; noRoute?: string }>
 const STORED = (stored as unknown as { pairs: Stored }).pairs
 const STORED_PROVIDER: Provider = (stored as unknown as { provider?: string }).provider === 'tmap' ? 'tmap' : 'odsay'
 
@@ -65,6 +65,7 @@ async function viaWorker(from: Place, to: Place): Promise<Relay> {
 
 export async function fetchTransit(pairId: string | null, from: Place, to: Place, allowRelay: boolean): Promise<TransitFetch> {
   const s = pairId ? STORED[pairId] : undefined
+  if (s?.noRoute) return { ok: false, message: s.noRoute } // 저장된 '길 없음'(가까운 거리 등): 개발 서버 중계의 422와 같은 결과
   if (s) return { ok: true, itineraries: s.itineraries, source: 'stored', provider: STORED_PROVIDER, fetchedAt: s.fetchedAt }
   if (!allowRelay) return { ok: false, message: '시연 경로를 고르면 버스 경로를 볼 수 있어요.' }
   if (!import.meta.env.DEV) {

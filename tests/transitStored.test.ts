@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { fetchTransit, hasStoredTransit, storedTransitSummary } from '../src/lib/transit/provider.ts'
+import { fetchTransit, hasStoredNoRoute, hasStoredTransit, storedTransitSummary } from '../src/lib/transit/provider.ts'
 
 // 시연 쌍 이름이 바뀌면 transit.json 키가 어긋나 배포판에서 저장본을 못 찾는다(11/20 전수점검 E-1). 그걸 바로 드러낸다.
 const read = (p: string) => JSON.parse(fs.readFileSync(new URL(p, import.meta.url), 'utf8'))
@@ -24,4 +24,13 @@ test('noRoute 저장본은 relay 없이 그 문구를 돌려주고, 요약은 nu
   const r = await fetchTransit(id, P, P, true)
   assert.deepEqual(r, { ok: false, message: stored.pairs[id].noRoute })
   assert.equal(storedTransitSummary(id), null)
+})
+
+test('hasStoredNoRoute: w1·w3은 참, 경로가 있는 쌍·없는 쌍은 거짓', () => {
+  assert.equal(hasStoredNoRoute('w1'), true)
+  assert.equal(hasStoredNoRoute('w3'), true)
+  for (const id of Object.keys(stored.pairs)) assert.equal(hasStoredNoRoute(id), !!stored.pairs[id].noRoute)
+  assert.equal(hasStoredNoRoute('w2'), false)
+  assert.equal(hasStoredNoRoute('nope'), false)
+  assert.equal(hasStoredNoRoute(null), false)
 })

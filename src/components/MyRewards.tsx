@@ -9,6 +9,7 @@ import { REWARD_DAILY_CAP } from '../lib/config'
 import { GRADE_EMBLEMS, SPECIAL_EMBLEM, TYPE_EMBLEMS, changedRoads, computeRewards, type PointEvent } from '../lib/rewards'
 import type { Barrier, Report } from '../types'
 import { Sentences } from './Sentences'
+import { fmtDay } from '../lib/format'
 
 type Props = { barriers: Barrier[]; onOpenReports: () => void; onOpenReport: (id: string) => void; onClose?: () => void; embedded?: boolean }
 type Tab = 'title' | 'points' | 'roads'
@@ -18,7 +19,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'roads', label: '내가 바꾼 길' },
 ]
 
-const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+const fmtDate = (iso: string) => fmtDay(iso)
 const pct = (v: number | null) => (v === null ? '자료 없음' : `${Math.round(v * 100)}%`)
 
 // 명세서 4-2(3)의 내 제보 구분: 검증 대기 / 민원 접수 / 조치 완료

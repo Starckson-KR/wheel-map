@@ -10,7 +10,7 @@ import { autoStep } from '../lib/routing/followNav.ts'
 import { searchOwn, type OwnSearch } from '../lib/routing/ownSearch.ts'
 import { searchDelay, showRecommended } from '../lib/routing/searchUi.ts'
 import { busCardState, cardOrder, initialCard, settledCard, stepCard, type CardId } from '../lib/routing/cards.ts'
-import { hasStoredTransit, storedTransitSummary, TRANSIT_FREE_SEARCH } from '../lib/transit/provider.ts'
+import { hasStoredNoRoute, hasStoredTransit, storedTransitSummary, TRANSIT_FREE_SEARCH } from '../lib/transit/provider.ts'
 import { getWalkGraph } from '../lib/routing/walkData.ts'
 import { nearWalkNet, type OwnRoute } from '../lib/routing/walkRoute.ts'
 import { demoStartOf, pickStart, resolveStart, startPlan, START_HINT } from '../lib/routing/startPlace.ts'
@@ -406,7 +406,7 @@ export default function RoutePanel(props: Props) {
       }
       if (my !== runId.current) return
       setResult({ res, pair: pairLabel, extras, extrasError, stats, own, fallback: !own && engineMode === 'own', pool, wet, start: f, end: t, fitKey: my })
-      const pick = initialCard(!!res.detour, props.initialMode === 'bus', busCardState(hasStoredTransit(pid), TRANSIT_FREE_SEARCH))
+      const pick = initialCard(!!res.detour, props.initialMode === 'bus', hasStoredNoRoute(pid) ? 'none' : busCardState(hasStoredTransit(pid), TRANSIT_FREE_SEARCH))
       setMode(pick === 'bus' ? 'bus' : 'walk')
       setActive(pick === 'bus' ? (res.detour ? 'detour' : 'base') : pick)
       setFitN((n) => n + 1)
@@ -459,6 +459,7 @@ export default function RoutePanel(props: Props) {
     }
   }, [status, result, active, mode])
   const pickCard = (id: CardId, focus = false) => {
+    if (id === 'bus' && busState === 'none') return // 흐린 버스 카드는 고를 수 없다
     if (id === 'bus') setMode('bus')
     else {
       setMode('walk')
@@ -667,7 +668,8 @@ export default function RoutePanel(props: Props) {
 
   const railIds = cardOrder(!!result?.res.detour)
   const sel: CardId = mode === 'bus' ? 'bus' : active
-  const busState = busCardState(hasStoredTransit(pairId), TRANSIT_FREE_SEARCH)
+  const busState = hasStoredNoRoute(pairId) ? 'none' : busCardState(hasStoredTransit(pairId), TRANSIT_FREE_SEARCH)
+  const nearWalk = hasStoredNoRoute(pairId) // 가까워서 저장본이 '길 없음'인 쌍
   // 카드 아래 배지: 「피했어요」(초록)와 지나는 곳 수(주황)
   const chipsOf = (id: 'base' | 'detour') => {
     const cur = facts.get(id)
@@ -1019,7 +1021,7 @@ export default function RoutePanel(props: Props) {
               ref={railRef}
               className="rc-list rc-snap"
               onKeyDown={(e) => {
-                const nx = stepCard(railIds, sel, e.key)
+                const nx = stepCard(busState === 'none' ? railIds.filter((x) => x !== 'bus') : railIds, sel, e.key)
                 if (!nx) return
                 e.preventDefault()
                 if (nx !== sel) pickCard(nx, true)
@@ -1037,7 +1039,7 @@ export default function RoutePanel(props: Props) {
                       disabled={!ok}
                       onPick={() => pickCard('bus')}
                       time={sm ? fmtMin(sm.time) : '버스 타고'}
-                      sub={sm ? '버스 타고' : ok ? '버스 경로 찾기' : '이 경로는 버스 길을 볼 수 없어요'}
+                      sub={nearWalk ? '가까워서 걷는 게 나아요' : sm ? '버스 타고' : ok ? '버스 경로 찾기' : '이 경로는 버스 길을 볼 수 없어요'}
                     />
                   )
                 }

@@ -3,6 +3,7 @@ import Icon from './Icon'
 import { Sentences } from './Sentences'
 import type { VoucherFields } from '../lib/vouchers'
 import { facilityTitle, usableName } from '../lib/facilityName'
+import { facilityLabel, membersOf } from '../lib/facilityGroups'
 
 const BUKGU_LAYERS: PubLayerId[] = ['overpass', 'welfare', 'yellow', 'flood', 'shade', 'airSignal', 'schoolZone', 'parkingZone']
 
@@ -120,7 +121,7 @@ export default function PubCard({ layer, item, onClose }: Props) {
           <i className="bm-pub-chip" style={{ background: info?.color }}>
             {info && <Icon name={info.icon} size={14} />}
           </i>{' '}
-          {layer === 'facility' ? facilityTitle(item) : item.name}
+          {layer === 'facility' ? facilityLabel(item) : item.name}
         </h2>
         <button type="button" className="bm-close" onClick={onClose} aria-label="닫기">
           닫기
@@ -129,6 +130,16 @@ export default function PubCard({ layer, item, onClose }: Props) {
       <p className="pc-addr">{item.address || '주소 정보 없음'}</p>
       {item.fields['geocoded'] === true && <Sentences as="p" className="rf-notice">주소로 찾은 위치예요. 오차가 있을 수 있어요.</Sentences>}
       {layer === 'voucher' && <VoucherAccess item={item} />}
+      {layer === 'facility' && membersOf(item).length > 1 ? (
+        <ul className="pc-fac">
+          {membersOf(item).map((m) => (
+            <li key={m.key}>
+              <strong>{facilityTitle({ name: m.name, address: m.address, fields: m.fields })}</strong>
+              <span>{m.evalInfo || '정보 없음'}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
       <dl className="pc-dl">
         {rows(layer, item).map(([k, v]) => (
           <div key={k}>
@@ -137,6 +148,7 @@ export default function PubCard({ layer, item, onClose }: Props) {
           </div>
         ))}
       </dl>
+      )}
       {BUKGU_LAYERS.includes(layer) ? null : <p className="bm-meta">공공데이터라서 실제로 지나갈 수 있는지를 판정한 건 아니에요.</p>}
       {layer === 'voucher' && <p className="bm-meta">방문 전에 가맹 여부를 확인해 주세요.</p>}
     </aside>

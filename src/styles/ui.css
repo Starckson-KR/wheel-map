@@ -97,3 +97,22 @@
 /* ───── motion 누름(PressButton): 크기는 motion이 inline으로 바꾸므로 CSS의 transform 전환과 :active 크기는 끈다 ───── */
 .mt, .mt:active:not(:disabled), .bm button.mt:active:not(:disabled) { transform: none; }
 .mt, .bm button.mt { transition-property: background-color, border-color, color, opacity, box-shadow !important; }
+
+/* 시트가 올라오는 동안(자리 잡기 전)에는 안의 줄이 눌리지 않게 시트 위를 덮는다.
+   덮개는 시트 애니메이션과 같은 시간만 있다가 스스로 눌림을 풀어(pointer-events 이산 전환) 끝나지 않을 일이 없다. */
+.ms::after,
+.bm-detail::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: auto;
+  animation: sheet-settle var(--t-sheet) linear forwards;
+}
+@keyframes sheet-settle {
+  0%, 99% { pointer-events: auto; }
+  100% { pointer-events: none; }
+}
+/* 움직임 줄이기: 애니메이션이 없으니 바로 눌린다 */
+html.motion-reduce .ms::after,
+html.motion-reduce .bm-detail::after { display: none; }

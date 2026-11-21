@@ -78,7 +78,7 @@
   max-width: 12em;
   font-size: 1.5rem;
   line-height: 1.4;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text-strong);
   text-wrap: balance;
@@ -90,15 +90,15 @@
   margin: 0 auto;
   padding: var(--s-3) var(--gutter) calc(var(--s-4) + var(--safe-bottom));
 }
-.ug-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: var(--s-4); }
+.ug-dots { display: flex; justify-content: center; gap: var(--s-2); margin-bottom: var(--s-4); }
 .ug-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: var(--r-full);
   background: var(--grey-300);
   transition: width 240ms var(--ease-out), background-color 240ms var(--ease-out);
 }
-.ug-dot.is-cur { width: 22px; background: var(--primary); }
+.ug-dot.is-cur { width: 24px; background: var(--primary); }
 .ug-next {
   display: flex;
   align-items: center;
@@ -111,7 +111,7 @@
   color: var(--on-primary);
   font: inherit;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: background-color var(--t-fast) var(--ease-out), transform var(--t-press) var(--ease-out);
 }

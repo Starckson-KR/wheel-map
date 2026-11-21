@@ -23,6 +23,9 @@ export type TransitFetch =
 
 export const hasStoredTransit = (pairId: string | null) => !!pairId && !!STORED[pairId]
 
+/** 시연 쌍의 저장본이 '길 없음'(가까운 거리 등)이다. 버스 카드를 흐리게 두는 데 쓴다 */
+export const hasStoredNoRoute = (pairId: string | null) => !!pairId && !!STORED[pairId]?.noRoute
+
 /** 저장된 버스 경로의 가장 빠른 소요(초). 없으면 null(카드에 시간을 보이는 데만 쓴다) */
 export function storedTransitSummary(pairId: string | null): { time: number; count: number } | null {
   const s = pairId ? STORED[pairId] : undefined

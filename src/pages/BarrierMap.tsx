@@ -1,4 +1,6 @@
-import { facilityTitle } from '../lib/facilityName'
+import { fmtDay } from '../lib/format'
+import { facilityLabel, groupFacilities } from '../lib/facilityGroups'
+import { clusterByScreen } from '../lib/routing/markerCluster'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { CENTER_ADDRESS_CANDIDATES, geocode, loadKakao } from '../lib/kakao'
 import { loadBarriers } from '../lib/seed'
@@ -29,7 +31,7 @@ import PubCard from '../components/PubCard'
 import RoutePanel from '../components/RoutePanel'
 import PlaceSearchPanel from '../components/PlaceSearchPanel'
 import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
-import type { RouteOverlay } from '../lib/routing/overlay.ts'
+import type { RouteMarker, RouteOverlay } from '../lib/routing/overlay.ts'
 import type { DemoPair, Place } from '../lib/routing/provider.ts'
 import { busColor } from '../lib/routing/busColor.ts'
 import { arrowSpots, makeNearRoute } from '../lib/routing/near.ts'
@@ -94,8 +96,8 @@ const listTitle = (t: string) => t.replace(/\s*\([^()]*\)\s*$/, '') || t
 function HomeListRow({ r, onPick }: { r: HomeRow; onPick: (r: HomeRow) => void }) {
   const [ref, addr] = useVisibleAddress<HTMLLIElement>(r.pos?.lat ?? 0, r.pos?.lng ?? 0)
   const st = styleOf(r.impact, r.rating)
-  const d = r.pos ? new Date(r.pos.at) : null
-  const date = d && !Number.isNaN(d.getTime()) ? `${d.getMonth() + 1}/${d.getDate()} 접수` : ''
+  const day = r.pos ? fmtDay(r.pos.at) : ''
+  const date = day ? `${day} 접수` : ''
   const title = r.pos ? `${r.pos.type}${addr.short ? ` · ${addr.short}` : ''}` : r.title
   const sub = r.pos ? [r.sub, date].filter(Boolean).join(' · ') : r.sub
   return (
@@ -906,7 +908,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     for (const l of PUB_LAYERS) {
       const d = pubData[l.id]
       if (!layers[l.id] || !d) continue
-      out.push({ id: l.id, pool: d.items.filter((i) => i.lat != null && i.lng != null && pubItemShown(l.id, i, layers)) })
+      out.push({ id: l.id, pool: (l.id === 'facility' ? groupFacilities(d.items) : d.items).filter((i) => i.lat != null && i.lng != null && pubItemShown(l.id, i, layers)) })
     }
     return out
   }, [pubData, layers])
@@ -941,7 +943,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         el.className = 'bm-pub' + (warn ? ' bm-pub-warn' : '') + (acc ? ' bm-pub-acc' : '') + (isSel ? ' bm-pub-sel' : '') + (dot ? ' bm-pub--dot' : '')
         el.style.background = info.color
         el.innerHTML = dot ? '' : iconSvg(info.icon, PUB_ICON_PX, PUB_ICON_STROKE) + (warn ? '<b>!</b>' : '') + (acc ? iconSvg('access', PUB_ICON_PX, PUB_ICON_STROKE) : '')
-        const shownName = g.layer === 'facility' ? facilityTitle(it) : it.name
+        const shownName = g.layer === 'facility' ? facilityLabel(it) : it.name
         el.title = warn ? `${shownName} (보도턱 낮춤 없음)` : acc ? `${shownName} (출입구 정보 있음)` : shownName
         el.setAttribute('role', 'button')
         el.tabIndex = 0
@@ -1007,15 +1009,35 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       el.title = `${obstacleName(h.o)} — ${st.label}`
       shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(h.anchor[0], h.anchor[1]), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 11 }))
     }
-    for (const m of overlay.markers) {
-      const el = document.createElement('div')
-      el.className = 'rt-m ' + m.cls
-      el.textContent = m.text
-      el.title = m.title
-      shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(m.lat, m.lng), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 9 }))
-    }
     return () => shapes.forEach((x) => x.setMap(null))
   }, [ready, overlay])
+
+  // 길찾기 지도의 작은 딱지(횡단보도·정류장·화장실 등). 확대·축소하면 정류장 묶음만 다시 계산한다.
+  useEffect(() => {
+    const k = kRef.current
+    const map = mapRef.current
+    if (!ready || !k || !map || !overlay) return
+    const shapes: { setMap(m: kakao.maps.Map | null): void }[] = []
+    // 정류장 딱지(「정류장」「버스」)는 화면에서 가까운 것끼리 묶어 하나로 보인다. 확대하면 풀린다.
+    const isStop = (m: RouteMarker) => m.cls === 'rt-m-bus' && (m.text === '정류장' || m.text === '버스')
+    const stops = overlay.markers.filter(isStop)
+    const proj = map.getProjection()
+    const groups = clusterByScreen(stops.map((m) => proj.containerPointFromCoords(new k.maps.LatLng(m.lat, m.lng))))
+    const draw = (m: RouteMarker, text: string, title: string) => {
+      const el = document.createElement('div')
+      el.className = 'rt-m ' + m.cls
+      el.textContent = text
+      el.title = title
+      shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(m.lat, m.lng), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 9 }))
+    }
+    for (const m of overlay.markers) if (!isStop(m)) draw(m, m.text, m.title)
+    for (const g of groups) {
+      const first = stops[g[0]]
+      if (g.length === 1) draw(first, first.text, first.title)
+      else draw(first, `정류장 ${g.length}`, [...new Set(g.map((i) => stops[i].title))].join(', '))
+    }
+    return () => shapes.forEach((x) => x.setMap(null))
+  }, [ready, overlay, mapLevel])
 
   // 출발·도착 표시와 버스 번호 칩: 화면에서 겹치면 위로 비켜 놓고, 너무 멀리서 볼 때는 칩을 숨긴다(칩은 타는 곳에 노선마다 하나).
   useEffect(() => {

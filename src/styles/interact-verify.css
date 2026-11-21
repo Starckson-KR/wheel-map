@@ -3,8 +3,8 @@
 /* ───── D1 확인 투표 카드 ───── */
 .vd-stack {
   position: relative;
-  margin: 10px 0 12px;
-  padding-bottom: 10px;
+  margin: var(--s-3) 0;
+  padding-bottom: var(--s-3);
 }
 .vd-card {
   display: block;
@@ -30,8 +30,8 @@
 }
 .vd-under {
   position: absolute;
-  inset: 10px 10px 0;
-  height: calc(100% - 10px);
+  inset: var(--s-3) var(--s-3) 0;
+  height: calc(100% - var(--s-3));
   z-index: 0;
   transform: scale(0.96);
   background: var(--bg-sub, #f4f5f7);
@@ -40,7 +40,7 @@
   justify-content: center;
   color: var(--text-sub, #6b7684);
 }
-.vd-under-t { padding: 0 0 6px; font-size: 0.8125rem; }
+.vd-under-t { padding: 0 0 var(--s-2); font-size: 0.8125rem; }
 
 .vd-photo {
   position: relative;
@@ -67,7 +67,7 @@
   position: absolute;
   right: 8px;
   bottom: 8px;
-  padding: 2px 8px;
+  padding: var(--s-1) var(--s-2);
   border-radius: 999px;
   background: rgba(25, 31, 40, 0.72);
   color: #fff;
@@ -76,8 +76,8 @@
 .vd-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 12px 14px 14px;
+  gap: var(--s-1);
+  padding: var(--s-3) var(--s-4) var(--s-4);
 }
 .vd-info strong { font-size: 1.05rem; color: var(--text-strong, #191f28); }
 .vd-place { font-size: 0.9rem; color: var(--text, #333d4b); }
@@ -92,7 +92,7 @@
 }
 .vd-view {
   position: absolute;
-  inset: auto 14px 14px auto;
+  inset: auto var(--s-4) var(--s-4) auto;
   min-height: 44px;
   padding: 0 16px;
 }
@@ -100,13 +100,13 @@
 /* 도장: 끄는 방향에 따라 진해진다(불투명도는 코드가 정한다) */
 .vd-stamp {
   position: absolute;
-  top: 18px;
-  padding: 4px 14px;
+  top: var(--s-4);
+  padding: var(--s-1) var(--s-4);
   border: 4px solid currentColor;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   font-size: 1.4rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0;
   background: rgba(255, 255, 255, 0.82);
   pointer-events: none;
   opacity: 0;
@@ -118,15 +118,16 @@
 .vd-btns {
   display: grid;
   grid-template-columns: 1fr 1.6fr;
-  gap: 10px;
+  gap: var(--s-2);
 }
 .vd-btns button {
   min-height: 48px;
   border-radius: 12px;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 .vd-btns .vd-yes {
+  font-weight: 600;
   background: var(--green-700, #0b6845);
   color: #fff;
   border: 0;
@@ -198,17 +199,17 @@
 .cmp-handle:focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 5px var(--primary, #1f6de3); }
 .cmp-tag {
   position: absolute;
-  top: 10px;
-  padding: 3px 10px;
+  top: var(--s-2);
+  padding: var(--s-1) var(--s-2);
   border-radius: 999px;
   background: rgba(25, 31, 40, 0.78);
   color: #fff;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   pointer-events: none;
 }
-.cmp-tag-b { left: 10px; }
-.cmp-tag-a { right: 10px; }
+.cmp-tag-b { left: var(--s-2); }
+.cmp-tag-a { right: var(--s-2); }
 .cmp-stage.is-glide .cmp-before { transition: clip-path 0.26s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)); }
 .cmp-stage.is-glide .cmp-line,
 .cmp-stage.is-glide .cmp-handle { transition: left 0.26s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)); }
@@ -216,7 +217,7 @@
 .cmp-btns button {
   min-height: 44px;
   border-radius: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 .cmp-btns button.on {
   background: var(--primary-weak, #e8f3ff);
@@ -246,7 +247,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: var(--s-2);
   text-align: center;
   max-width: 320px;
 }
@@ -261,10 +262,10 @@
   animation: rwp-spin 1.6s linear 1;
   pointer-events: none;
 }
-.rwp-t { font-size: 1.375rem; font-weight: 700; }
+.rwp-t { font-size: 1.375rem; font-weight: 600; }
 .rwp-s { font-size: 1rem; opacity: 0.88; }
 .rwp-x {
-  margin-top: 6px;
+  margin-top: var(--s-2);
   min-height: 44px;
   min-width: 96px;
   padding: 0 20px;
@@ -272,7 +273,7 @@
   border: 0;
   background: #fff;
   color: var(--grey-900);
-  font-weight: 700;
+  font-weight: 600;
 }
 @keyframes rwp-spin { to { transform: rotate(360deg); } }
 html.motion-reduce .rwp-glow { display: none; animation: none; }

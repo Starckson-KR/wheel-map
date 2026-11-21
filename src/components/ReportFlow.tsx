@@ -18,6 +18,7 @@ import { prefersCalm } from '../lib/viewPrefs'
 import { Sentences } from './Sentences'
 import ReportTypeIcon from './ReportTypeIcon'
 import RulerSlider from './RulerSlider'
+import { fmtDay } from '../lib/format'
 import { CURB_RULER, WIDTH_RULER } from '../lib/ruler'
 import '../styles/review.css'
 
@@ -687,7 +688,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                         <strong>{d.label}</strong> · {d.type}
                         <br />
                         <span className="bm-meta">
-                          {dist(d.distanceM)} 떨어져 있어요{d.at ? ` · ${new Date(d.at).toLocaleDateString('ko-KR')} 제보` : ''}
+                          {dist(d.distanceM)} 떨어져 있어요{d.at ? ` · ${fmtDay(d.at)} 제보` : ''}
                         </span>
                       </span>
                       <button type="button" className="rf-primary rf-nowrap" disabled={busy} onClick={() => submit(d.id)}>

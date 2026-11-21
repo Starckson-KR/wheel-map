@@ -3,12 +3,11 @@
 import type { Report } from '../types'
 import { computeRewards, type PointEvent, type PointKind } from './rewards'
 import { isMockUser } from './realFirst'
+import { fmtDay } from './format'
 
 export type RankPeriod = 'week' | 'month'
 
 export type PeriodRange = { start: number; end: number; label: string } // [start, end) 밀리초
-
-const MD = (d: Date) => `${d.getMonth() + 1}월 ${d.getDate()}일`
 
 // 기준 시각이 속한 기간(주는 월~일, 월은 달력 월). offset 1이면 지난주·지난달.
 export function periodRange(period: RankPeriod, now: number, offset = 0): PeriodRange {
@@ -18,7 +17,7 @@ export function periodRange(period: RankPeriod, now: number, offset = 0): Period
     const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - sinceMon - 7 * offset)
     const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7)
     const last = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 1)
-    return { start: start.getTime(), end: end.getTime(), label: `${MD(start)} ~ ${MD(last)}` }
+    return { start: start.getTime(), end: end.getTime(), label: `${fmtDay(start.getTime(), now)} ~ ${fmtDay(last.getTime(), now)}` }
   }
   const start = new Date(d.getFullYear(), d.getMonth() - offset, 1)
   const end = new Date(start.getFullYear(), start.getMonth() + 1, 1)

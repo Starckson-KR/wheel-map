@@ -25,7 +25,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-2);
-  margin: 6px 0;
+  margin: var(--s-2) 0;
 }
 
 .verify-warn {
@@ -34,7 +34,7 @@
 }
 
 .verify button {
-  min-height: 36px;
+  min-height: var(--touch);
   padding: 0 var(--s-3);
   border: 0;
   border-radius: var(--r-sm);
@@ -94,7 +94,7 @@
 }
 
 .cands {
-  margin: 6px 0;
+  margin: var(--s-2) 0;
   padding: 0;
   list-style: none;
 }
@@ -151,7 +151,7 @@
 .row-id {
   flex: none;
   width: 36px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .row-name {
@@ -167,8 +167,8 @@
 
 .badge {
   flex: none;
-  padding: 1px 6px;
-  border-radius: 10px;
+  padding: var(--s-1) var(--s-2);
+  border-radius: 12px;
   background: var(--grey-200);
   color: var(--text-sub);
   font-size: 0.8125rem;
@@ -232,14 +232,14 @@
 
 .sub-add {
   display: flex;
-  gap: 6px;
+  gap: var(--s-2);
   margin-top: var(--s-3);
 }
 
 .sub-add input {
   flex: 1;
   min-width: 0;
-  padding: 6px;
+  padding: var(--s-2);
   border: 1px solid var(--grey-300);
   border-radius: var(--r-sm);
   font: inherit;
@@ -267,7 +267,7 @@
 
 .kind-seg {
   display: flex;
-  margin: 6px 0;
+  margin: var(--s-2) 0;
 }
 
 .verify button.seg {

@@ -8,6 +8,7 @@ import { coordText, useVisibleAddress } from '../lib/addressCache'
 import { isSampleReport } from '../lib/samplePhotos'
 import { realFirstReports } from '../lib/realFirst'
 import type { Report } from '../types'
+import { fmtDateTime } from '../lib/format'
 import { Sentences } from './Sentences'
 import '../styles/review.css'
 
@@ -18,12 +19,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'doing', label: '진행 중' },
   { id: 'done', label: '완료' },
 ]
-
-// 지도 목록의 '11/16 접수'와 같은 꼴: 11/18 오후 10:19
-const fmtShort = (iso: string) => {
-  const d = new Date(iso)
-  return `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`
-}
 
 // 목록 한 줄: 유형 · 주소(보이는 항목만 조회) · 접수일 · 상태가 모두 달라서 서로 구분된다.
 function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boolean; onOpen: (id: string) => void }) {
@@ -38,7 +33,7 @@ function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boole
           <span className="rv-addr">{place}</span>
           <span className="rp-desc">{r.description}</span>
           <span className="bm-meta">
-            {userName(r.userId)} · {fmtShort(r.createdAt)} 접수{isSampleReport(r) ? ' · 샘플 사진' : ''}
+            {userName(r.userId)} · {fmtDateTime(r.createdAt)} 접수{isSampleReport(r) ? ' · 샘플 사진' : ''}
           </span>
         </span>
         <span className={'rp-badge rp-' + r.status}><Swap k={r.status}>{STATUS_LABEL[r.status]}</Swap></span>

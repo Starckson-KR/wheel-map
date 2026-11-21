@@ -146,19 +146,23 @@
   color: var(--text-strong);
 }
 
+/* 칸마다 면을 깔지 않고 위아래 선과 칸 사이 세로선으로 나눈다 */
 .rw-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--s-2);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .rw-stats div {
   display: grid;
   justify-items: center;
-  gap: 2px;
-  padding: var(--s-3) var(--s-1);
-  border-radius: var(--r-lg);
-  background: var(--bg-sub);
+  gap: var(--s-1);
+  padding: var(--s-4) var(--s-1);
+}
+
+.rw-stats div + div {
+  border-left: 1px solid var(--line);
 }
 
 .rw-stats b {

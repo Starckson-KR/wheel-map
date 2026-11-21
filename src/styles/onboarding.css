@@ -55,19 +55,19 @@
 .ob-prog {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: var(--s-2);
   transition: opacity var(--t-sheet) var(--ease-out);
 }
 .ob-pd {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: var(--r-full);
   background: var(--grey-300);
   transition: background-color 240ms var(--ease-out);
 }
-/* 현재 점은 22px로 넓어진다. 넓어지는 움직임은 motion의 layout이 맡는다 */
+/* 현재 점은 24px로 넓어진다. 넓어지는 움직임은 motion의 layout이 맡는다 */
 .ob-pd.is-done { background: var(--blue-500); opacity: 0.5; }
-.ob-pd.is-cur { width: 22px; background: var(--primary); }
+.ob-pd.is-cur { width: 24px; background: var(--primary); }
 
 /* 화면 전환 무대 */
 .ob-stage {
@@ -103,7 +103,7 @@
   margin: 0 0 var(--s-2);
   font-size: 1.625rem;
   line-height: 1.35;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text-strong);
   outline: none;
@@ -141,7 +141,7 @@
   border-radius: var(--r-lg);
   font: inherit;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: background-color var(--t-fast) var(--ease-out), opacity var(--t-fast) var(--ease-out);
 }
@@ -173,7 +173,7 @@
   margin: 0 0 var(--s-2);
   font-size: 2.75rem;
   line-height: 4.2rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--text-strong);
   outline: none;
@@ -226,8 +226,8 @@
   transition: transform var(--t-press) var(--ease-out), border-color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
 }
 .ob-opt.is-on { border-color: var(--primary); background: var(--primary-weak); }
-.ob-opt-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ob-opt-main strong { font-size: var(--fs-sub); font-weight: 700; }
+.ob-opt-main { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.ob-opt-main strong { font-size: var(--fs-sub); font-weight: 600; }
 .ob-opt-main small { font-size: var(--fs-small); color: var(--text-sub); line-height: 1.4; }
 .ob-radio {
   flex: none;
@@ -336,7 +336,7 @@
   color: var(--text-strong);
   font: inherit;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
   transition: transform var(--t-press) var(--ease-out), border-color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
 }
@@ -369,15 +369,15 @@
 .ob-preview small { font-size: var(--fs-small); color: var(--text-sub); }
 .ob-badge {
   align-self: flex-start;
-  padding: 2px var(--s-2);
+  padding: var(--s-1) var(--s-2);
   border-radius: var(--r-full);
   background: var(--pg-agency-soft);
   color: var(--pg-agency-text);
   font-size: var(--fs-caption);
-  font-weight: 700;
+  font-weight: 600;
 }
 .ob-setrow { margin-bottom: var(--s-4); }
-.ob-setlabel { display: block; margin-bottom: var(--s-2); font-size: var(--fs-small); font-weight: 700; color: var(--text-sub); }
+.ob-setlabel { display: block; margin-bottom: var(--s-2); font-size: var(--fs-small); font-weight: 600; color: var(--text-sub); }
 .ob-seg { display: flex; gap: 4px; padding: 4px; border-radius: var(--r-md); background: var(--grey-100); }
 .ob-seg button {
   flex: 1;
@@ -434,7 +434,7 @@
 .ob-card-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); }
 .ob-card-head strong { display: block; color: var(--text-strong); }
 .ob-card-head small { color: var(--text-sub); font-size: var(--fs-caption); }
-.ob-card-avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-weight: 700; }
+.ob-card-avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-weight: 600; }
 .ob-card-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
 .ob-card-actions .ob-btn { flex: 1 1 auto; width: auto; min-width: max-content; white-space: nowrap; }
 
@@ -469,59 +469,65 @@
 /* 첫 화면: 아이콘 + 이름 + 시작하기! */
 .ob-welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-6); overflow: hidden; text-align: center; }
 .ob-welcome-icon { width: min(52vw, 200px); height: auto; aspect-ratio: 1; border-radius: 22%; }
-.ob-welcome-name { margin: 0; font-size: 2.25rem; line-height: 1.2; font-weight: 800; letter-spacing: -0.03em; color: var(--text-strong); }
+.ob-welcome-name { margin: 0; font-size: 2.25rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.03em; color: var(--text-strong); }
 
-/* 첫 화면 연출. 뒤 빛 덩어리는 미리 흐린 radial-gradient를 transform으로만 움직인다(filter 없음).
-   덩어리마다 가로(바깥 요소)와 세로·크기(::before)를 서로 다른 느린 주기로 왕복시켜 멈칫 없이 계속 일렁인다(한 번 오가는 데 22~34초).
-   화면이 숨겨지면(html[data-page-hidden]) 멈추고, 앱 설정의 움직임 줄이기(html.motion-reduce)가 켜졌으면 정지 화면. */
-.ob-welcome-bg { position: absolute; inset: 0; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 80px); mask-image: linear-gradient(to bottom, transparent, #000 80px); pointer-events: none; z-index: 0; --orb-blue: 49 130 246; --orb-red: 242 68 29; --orb-a: 0.2; --orb-c: 0.1; }
-:root[data-theme='dark'] .ob-welcome-bg { --orb-a: 0.3; --orb-c: 0.12; }
-.ob-orb { position: absolute; will-change: transform; }
-.ob-orb::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--orb-bg); will-change: transform; }
-.ob-orb-a { width: 420px; height: 420px; left: -140px; top: -90px; --orb-bg: radial-gradient(circle closest-side, rgb(var(--orb-blue) / var(--orb-a)), rgb(var(--orb-blue) / 0)); animation: ob-ox-a 13s ease-in-out infinite alternate; }
-.ob-orb-a::before { animation: ob-oy-a 17s ease-in-out infinite alternate; }
-.ob-orb-b { width: 460px; height: 460px; right: -200px; top: 38%; --orb-bg: radial-gradient(circle closest-side, rgb(var(--orb-blue) / calc(var(--orb-a) * 0.8)), rgb(var(--orb-blue) / 0)); animation: ob-ox-b 15s ease-in-out infinite alternate; }
-.ob-orb-b::before { animation: ob-oy-b 11s ease-in-out infinite alternate; }
-.ob-orb-c { width: 380px; height: 380px; left: -60px; bottom: -150px; --orb-bg: radial-gradient(circle closest-side, rgb(var(--orb-red) / var(--orb-c)), rgb(var(--orb-red) / 0)); animation: ob-ox-c 12s ease-in-out infinite alternate; }
-.ob-orb-c::before { animation: ob-oy-c 14s ease-in-out infinite alternate; }
-@keyframes ob-ox-a { from { transform: translate3d(-30px, 0, 0); } to { transform: translate3d(110px, 0, 0); } }
-@keyframes ob-oy-a { from { transform: translate3d(0, -20px, 0) scale(0.94); } to { transform: translate3d(0, 190px, 0) scale(1.12); } }
-@keyframes ob-ox-b { from { transform: translate3d(40px, 0, 0); } to { transform: translate3d(-120px, 0, 0); } }
-@keyframes ob-oy-b { from { transform: translate3d(0, 60px, 0) scale(0.92); } to { transform: translate3d(0, -90px, 0) scale(1.08); } }
-@keyframes ob-ox-c { from { transform: translate3d(-20px, 0, 0); } to { transform: translate3d(190px, 0, 0); } }
-@keyframes ob-oy-c { from { transform: translate3d(0, 30px, 0) scale(0.95); } to { transform: translate3d(0, -80px, 0) scale(1.1); } }
-html[data-page-hidden] .ob-orb, html[data-page-hidden] .ob-orb::before { animation-play-state: paused; }
+/* 첫 화면 연출(ms): 지도 0~280 / 길 100~800 / 시작하기 보임 600~900(처음부터 눌림) / 핀 780~1300 / 물결 890~1410 / 아이콘 1000~1560 / 이름 1150~1530 / 점 1300~1760 / 지도 흐려짐 1000~1700.
+   transform·opacity·stroke-dashoffset만 쓴다(filter 없음). 지도는 아이콘 중심이 기준이라 화면 높이가 달라도 길 끝이 아이콘에 맞는다.
+   화면이 숨겨지면(html[data-page-hidden]) 멈추고, 앱 설정의 움직임 줄이기(html.motion-reduce)가 켜졌으면 마지막 장면만 보인다(아래 기본값이 마지막 장면). */
+.ob-welcome-bg { position: absolute; inset: 0; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 80px); mask-image: linear-gradient(to bottom, transparent, #000 80px); pointer-events: none; z-index: 0; --map-a: 1; --map-z: 0.45; --ob-route: #3182f6; }
+:root[data-theme='dark'] .ob-welcome-bg { --map-a: 0.55; --map-z: 0.3; --ob-route: #4593fc; }
+/* 지도 한가운데(0,0)를 아이콘 중심에 둔다: 환영 화면 높이의 절반에서 71.6px 위(시작하기 영역 84px, 아이콘 200px, 간격 24px, 이름 약 44px로 계산) */
+.ob-w-map { position: absolute; left: 50%; top: calc(50% - 71.6px); width: 2400px; height: 2000px; margin: -1000px 0 0 -1200px; overflow: visible; }
+.ob-w-block { fill: var(--grey-100); }
+.ob-w-center { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 7 7; }
+.ob-w-zebra rect, .ob-w-tree circle { fill: var(--grey-300); }
+.ob-w-town { opacity: var(--map-z); animation: ob-w-town 1700ms linear both; }
+.ob-w-route { fill: none; stroke: var(--ob-route); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; opacity: 0.4; animation: ob-w-draw 700ms cubic-bezier(0.5, 0, 0.3, 1) 100ms both, ob-w-trace 700ms ease-in-out 1000ms both; }
+.ob-w-ripple { fill: none; stroke: var(--ob-route); stroke-width: 3; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; animation: ob-w-ripple 520ms cubic-bezier(0.2, 0.6, 0.3, 1) 890ms both; }
+.ob-w-pin { fill: var(--ob-route); opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: ob-w-pin 520ms linear 780ms both; }
+@keyframes ob-w-town {
+  0% { opacity: 0; animation-timing-function: ease-out; }
+  16.5% { opacity: var(--map-a); }
+  58.8% { opacity: var(--map-a); animation-timing-function: ease-in-out; }
+  100% { opacity: var(--map-z); }
+}
+@keyframes ob-w-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes ob-w-trace { from { opacity: 1; } to { opacity: 0.4; } }
+@keyframes ob-w-ripple { 0% { opacity: 0; transform: scale(0.08); } 8% { opacity: 0.6; } 100% { opacity: 0; transform: scale(1); } }
+@keyframes ob-w-pin {
+  0% { opacity: 0; transform: translateY(-80px); animation-timing-function: cubic-bezier(0.55, 0.06, 0.9, 0.5); }
+  22% { opacity: 1; transform: translateY(0) scale(1, 1); animation-timing-function: ease-out; }
+  34% { transform: scale(1.18, 0.8); animation-timing-function: ease-out; }
+  46% { transform: scale(1, 1); }
+  68% { opacity: 1; transform: scale(1, 1); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.4); }
+  100% { opacity: 0; transform: scale(0.3); }
+}
 
 .ob-welcome, .ob-welcome-foot { position: relative; z-index: 1; }
-.ob-welcome-icon { animation: ob-w-pop 620ms var(--ease-out) 60ms backwards; }
-.ob-welcome-name { animation: ob-w-up 380ms var(--ease-out) 320ms backwards; }
-.ob-welcome-foot { animation: ob-w-up 380ms var(--ease-out) 480ms backwards; }
-.ob-welcome-name .wordmark-bang circle { transform-box: fill-box; transform-origin: center; animation: ob-w-drop 460ms var(--ease-out) 420ms backwards; }
+.ob-welcome-icon { animation: ob-w-icon 560ms linear 1000ms both, ob-w-fade 140ms ease 1000ms both; }
+.ob-welcome-name { animation: ob-w-up 380ms var(--ease-out) 1150ms both; }
+.ob-welcome-foot { animation: ob-w-up 300ms var(--ease-out) 600ms both; }
+.ob-welcome-name .wordmark-bang circle { transform-box: fill-box; transform-origin: center; animation: ob-w-drop 460ms var(--ease-out) 1300ms both; }
+@keyframes ob-w-icon { from { transform: scale(0.35); } to { transform: scale(1); } }
+@keyframes ob-w-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ob-w-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes ob-w-pop { from { opacity: 0; transform: translateY(18px) scale(0.86); } to { opacity: 1; transform: none; } }
 @keyframes ob-w-drop { 0% { opacity: 0; transform: translateY(-46px) scale(0.6); } 55% { opacity: 1; transform: translateY(5px) scale(1.08, 0.92); } 100% { opacity: 1; transform: none; } }
 @supports (animation-timing-function: linear(0, 1)) {
-  .ob-welcome-icon { animation-timing-function: linear(0, 0.18 6%, 0.62 14%, 0.97 24%, 1.08 32%, 1.06 40%, 1.015 52%, 0.997 66%, 1); }
+  .ob-welcome-icon { animation-timing-function: linear(0, 0.4 8%, 0.9 17%, 1.1 27%, 1.08 36%, 1.02 48%, 0.995 62%, 1), ease; }
 }
+html[data-page-hidden] .ob-welcome-bg *, html[data-page-hidden] .ob-welcome, html[data-page-hidden] .ob-welcome *, html[data-page-hidden] .ob-welcome-foot { animation-play-state: paused; }
 @media all {
-  html.motion-reduce .ob-orb, html.motion-reduce .ob-orb::before { animation: none; }
-  html.motion-reduce .ob-welcome-icon,
-  html.motion-reduce .ob-welcome-name,
-  html.motion-reduce .ob-welcome-foot { animation: ob-w-fade 200ms ease backwards; }
+  html.motion-reduce .ob-welcome-bg *, html.motion-reduce .ob-welcome-icon, html.motion-reduce .ob-welcome-name, html.motion-reduce .ob-welcome-foot,
   html.motion-reduce .ob-welcome-name .wordmark-bang circle { animation: none; }
-  @keyframes ob-w-fade { from { opacity: 0; } to { opacity: 1; } }
 }
 @media (min-width: 520px) {
   .ob-welcome-bg { inset: 0 auto 0 50%; width: 100vw; transform: translateX(-50%); }
-  .ob-orb-a { left: calc(50% - 480px); }
-  .ob-orb-b { right: calc(50% - 560px); }
-  .ob-orb-c { left: calc(50% - 360px); }
 }
 
 /* 홈 화면 추가 안내: 번호 순서 목록 */
 .ob-steps { margin: var(--s-5) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s-3); }
 .ob-step { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--bg-sub); }
-.ob-step-n { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-small); font-weight: 700; }
+.ob-step-n { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-small); font-weight: 600; }
 .ob-step-t { flex: 1; min-width: 0; font-size: var(--fs-body); line-height: 1.5; color: var(--text); }
 .ob-step-t strong { color: var(--text-strong); }
 .ob-step-ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--bg); color: var(--primary); }

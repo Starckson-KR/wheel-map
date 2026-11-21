@@ -34,7 +34,7 @@ function Line({ row, me }: { row: RankRow; me: boolean }) {
         <span className="rk-sub">{row.counts.map((c) => `${c.label} ${c.n}`).join(' · ')}</span>
       </span>
       <span className="rk-pts">
-        <b>{row.points}</b>점
+        <span><b>{row.points}</b>점</span>
         <Change row={row} />
       </span>
     </>

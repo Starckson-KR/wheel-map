@@ -1085,6 +1085,36 @@
   overflow-wrap: anywhere;
 }
 
+/* 한 건물의 시설 목록: 이름(위) · 편의시설 항목(아래) */
+.pc-fac {
+  margin: var(--s-2) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pc-fac li {
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line, rgb(25 31 40 / 0.1));
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+
+.pc-fac li:first-child {
+  border-top: 0;
+}
+
+.pc-fac strong {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.pc-fac span {
+  color: var(--text-sub);
+  font-weight: 400;
+}
+
 /* ───── 가운데 뜨는 시트(레이어·시연 도구) ───── */
 .ms-dim {
   position: absolute;

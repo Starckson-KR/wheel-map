@@ -46,7 +46,10 @@ export default function PlaceSearchPanel({ k, query, onPlace, onPair }: Props) {
         setStatus(r.status === 'empty' ? 'empty' : 'error')
       }
     }, delay)
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      g.cancel() // 이미 보낸 옛 요청의 응답은 버린다
+    }
   }, [query, k])
 
   const view = searchView(query, status, items.length)

@@ -38,11 +38,14 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
     if (!cur) return
     const my = ++seq.current
     setLoading(true)
-    const [a, l] = await Promise.all([getArrivals(cur.stationId), lineName ? getLineLow(lineName) : Promise.resolve(null)])
-    if (my !== seq.current) return
-    setRes(a)
-    setLineLow(l)
-    setLoading(false)
+    try {
+      const [a, l] = await Promise.all([getArrivals(cur.stationId), lineName ? getLineLow(lineName) : Promise.resolve(null)])
+      if (my !== seq.current) return
+      setRes(a)
+      setLineLow(l)
+    } finally {
+      if (my === seq.current) setLoading(false)
+    }
   }, [cur, lineName])
 
   useEffect(() => {

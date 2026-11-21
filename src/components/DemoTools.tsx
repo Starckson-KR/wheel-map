@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
 import { DEMO_USERS, useReports } from '../lib/reportStore'
@@ -57,6 +57,12 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
   const [openSelf, setOpenSelf] = useState(false)
   const open = openProp ?? openSelf
   const setOpen = onOpenChange ?? setOpenSelf
+  useEffect(() => {
+    if (!open) return
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [open, setOpen])
   const [msg, setMsg] = useState('')
   const [motion, setMotion] = useState(getMotionReduce)
   const [ai, setAi] = useState(getAiEnabled)

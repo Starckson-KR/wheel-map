@@ -75,8 +75,8 @@ function applyRemote(remote: Record<string, string>, updatedAt: number, userId: 
   let needsReload = false
   for (const k of syncedKeysFor(isTouchDevice())) {
     if (k in queued) continue // 이 기기에서 방금 바꾼 값은 덮어쓰지 않는다(곧 올라간다)
-    const cur = localStorage.getItem(k)
     try {
+      const cur = localStorage.getItem(k)
       if (k in remote) {
         if (cur !== remote[k]) {
           localStorage.setItem(k, remote[k])

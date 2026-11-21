@@ -37,7 +37,7 @@
   grid-column: 2;
   margin: 0;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
 }
 
@@ -69,7 +69,7 @@
   grid-column: 1;
   text-align: left;
   font-size: var(--fs-head);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rp .rf-head > .bm-close,
@@ -108,20 +108,15 @@
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-title);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.03em;
 }
 
 .rf-q-sub {
-  margin-top: 6px;
+  margin-top: 8px;
   color: var(--text-sub);
   font-size: var(--fs-small);
-}
-
-.rf-who {
-  color: var(--text-sub);
-  font-size: var(--fs-caption);
 }
 
 /* 아래에 붙는 버튼 줄 */
@@ -170,7 +165,7 @@
   margin-bottom: var(--s-2);
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rf-types {
@@ -244,7 +239,7 @@
 .rf-sec h3 {
   margin: 0;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rf-pos {
@@ -288,16 +283,6 @@
 .bm .rf-photo button {
   min-height: var(--touch);
   font-size: var(--fs-small);
-}
-
-.rf-errors {
-  margin: 0;
-  padding: var(--s-3) var(--s-4) var(--s-3) 32px;
-  border-radius: var(--r-md);
-  background: var(--red-50);
-  color: var(--red-700);
-  font-size: var(--fs-small);
-  font-weight: 600;
 }
 
 .rf-dup {
@@ -370,7 +355,7 @@
 .rf-rate legend {
   padding: 0;
   margin-bottom: var(--s-2);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -496,13 +481,13 @@
 .ps h3 {
   margin: 0;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cg h4 {
   margin: var(--s-5) 0 var(--s-1);
   font-size: var(--fs-body);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cg-mock {
@@ -513,7 +498,7 @@
   background: var(--purple-50);
   color: var(--purple-700);
   font-size: var(--fs-caption);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.45;
 }
 
@@ -578,7 +563,7 @@
 
 .ps-steps {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   margin: var(--s-2) 0 0;
   padding: 0;
   list-style: none;
@@ -602,7 +587,7 @@
 .ps-steps li.on {
   background: var(--blue-600);
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ps-flag {
@@ -611,7 +596,7 @@
   background: var(--amber-50);
   color: var(--amber-700);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ps-by {
@@ -642,11 +627,6 @@
   border: 3px solid var(--bg);
   border-radius: 50%;
   background: var(--blue-500);
-}
-
-.rp-timeline {
-  margin: 4px 0 0;
-  padding-left: 18px;
 }
 
 @media (min-width: 768px) {
@@ -704,7 +684,7 @@
 
 .ex-stage {
   color: var(--text-strong);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ex-by {
@@ -715,7 +695,7 @@
 
 .ex-by.mock {
   color: var(--purple-700);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ex-recheck {
@@ -742,7 +722,7 @@
   padding: 0 var(--s-1);
   color: var(--text-strong);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rcpt {
@@ -793,6 +773,9 @@
 
 /* 위치 정하는 방법: 따로 떨어진 버튼 두 개 */
 .rf-locbtns { display: flex; gap: var(--s-2); }
-.bm .rf-locbtns button { flex: 1; min-height: 48px; border-radius: var(--r-md); background: var(--primary-weak); color: var(--primary); font-weight: 700; }
+.bm .rf-locbtns button { flex: 1; min-height: 48px; border-radius: var(--r-md); background: var(--primary-weak); color: var(--primary); font-weight: 500; }
 .bm .rf-locbtns button:hover:not(:disabled) { background: var(--primary-weak); }
 .bm .rf-locbtns button.on { background: var(--primary); color: var(--on-primary); }
+
+/* unslop-6: 제보하기 3단계 소제목(사진·설명·직접 잰 값)을 같은 크기로 */
+.rf-field-h { color: var(--text-strong); font-size: var(--fs-sub); font-weight: 600; }

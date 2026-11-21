@@ -46,9 +46,9 @@ const GPS_ERR: Record<number, string> = {
 }
 
 const STEP_Q: Record<Step, { q: string; sub?: string }> = {
-  1: { q: '어떤 문제를 만났나요?', sub: '가장 가까운 유형을 하나 골라 주세요.' },
-  2: { q: '어디에 있나요?', sub: '위치를 정확히 알려 주실수록 확인이 빨라요.' },
-  3: { q: '현장을 알려 주세요', sub: '사진과 설명이 있으면 다른 분들이 확인하기 쉬워요.' },
+  1: { q: '어떤 문제를 만났나요?', sub: '가장 가까운 유형을 하나 골라 주세요' },
+  2: { q: '어디에 있나요?', sub: '위치가 정확할수록 확인이 빨라요' },
+  3: { q: '현장을 알려 주세요', sub: '사진과 설명이 있으면 확인하기 쉬워요' },
   4: { q: '이 내용으로 등록할까요?' },
 }
 
@@ -468,7 +468,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   aria-invalid={!!errors.location}
                   aria-describedby={errors.location ? 'rf-e-location' : undefined}
                 >
-                  {location ? `위치를 정했어요 · ${placeText}` : '아직 위치를 정하지 않았어요.'}
+                  {location ? `위치를 정했어요 · ${placeText}` : '아직 위치를 정하지 않았어요'}
                 </div>
                 {errors.location && !location && (
                   <p id="rf-e-location" className="rf-err" role="alert">
@@ -508,7 +508,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     <Sentences as="span">{errors.locationKind}</Sentences>
                   </p>
                 ) : (
-                  <span className="bm-meta">어느 기관이 맡는 곳인지 안내하는 데 써요.</span>
+                  <span className="bm-meta">어느 기관이 맡는 곳인지 안내하는 데 써요</span>
                 )}
               </section>
 
@@ -533,7 +533,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   사진 <span className="rv-req">필수</span> <span className="bm-meta">1~{PHOTO_MAX_COUNT}장</span>
                 </h3>
                 <div className="rf-notice">
-                  <span className="sent"><strong>얼굴과 차량 번호판이 나오지 않게</strong> 찍어 주세요.</span>
+                  <span className="sent"><strong>얼굴과 차량 번호판이 나오지 않게</strong> 찍어 주세요</span>
                 </div>
                 {photos.length > 0 && (
                   <div className="rf-photos">
@@ -555,7 +555,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 )}
                 {photos.length < PHOTO_MAX_COUNT && (
                   <div className="rv-sample">
-                    <Sentences as="p">올릴 사진이 없나요? 체험용 그림으로 끝까지 해 볼 수 있어요. 제보에 &quot;샘플 사진&quot;이라고 표시돼요.</Sentences>
+                    <Sentences as="p">사진이 없으면 샘플 그림으로 해 볼 수 있어요. 제보에 &quot;샘플 사진&quot;이라고 표시돼요.</Sentences>
                     <div className="rv-sample-btns">
                       {SAMPLE_SCENES.map((s) => (
                         <button key={s.id} type="button" disabled={sampleBusy} onClick={() => addSample(s.id)}>
@@ -579,7 +579,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
               <section className="rf-sec">
                 <label className="rf-field">
-                  설명
+                  <span className="rf-field-h">설명</span>
                   <textarea
                     id="rf-f-description"
                     rows={3}

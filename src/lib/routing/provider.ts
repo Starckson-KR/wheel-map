@@ -2,7 +2,7 @@ import demo from '../../../data/routes/demo.json'
 import pairsData from '../../../data/routes/demoPairs.json'
 import { viaKey, type Pt, type RouteData } from './engine.ts'
 
-// 경로 가져오기. 배포(빌드)에서는 미리 저장한 시연 경로(data/routes/demo.json)만 쓰고,
+// 시연 쌍의 저장 경로(TMAP 보행자 경로) 가져오기. 배포(빌드)에서는 미리 저장한 시연 경로(data/routes/demo.json)만 쓰고,
 // 개발 서버에서는 저장본이 없을 때만 개발 서버 중계(vite.config.ts)를 통해 TMAP을 부른다. 키는 브라우저에 없다.
 
 export type Place = { name: string; lat: number; lng: number; address?: string; id?: string }

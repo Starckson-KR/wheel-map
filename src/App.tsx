@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import BarrierMap from './pages/BarrierMap'
-import AdminPage from './pages/AdminPage'
-import SeedVerify from './pages/SeedVerify'
 import HomePage from './pages/HomePage'
 import { AlertsTab, MeTab, ReportTab } from './pages/TabPages'
 import { m } from 'motion/react'
@@ -14,6 +12,10 @@ import OnboardingGate from './components/onboarding/OnboardingGate'
 import UsageGuide from './components/UsageGuide'
 import { parseHash } from './lib/nav'
 import { FADE, PAGE_SHIFT, SPRING, TAB_ORDER } from './lib/motionTokens'
+
+// 행정·개발 화면은 일반 이용자 경로에 없으므로 들어갈 때만 내려받는다.
+const AdminPage = lazy(() => import('./pages/AdminPage'))
+const SeedVerify = lazy(() => import('./pages/SeedVerify'))
 
 // 지도는 한 번 만든 뒤 탭을 바꿔도 남겨 두고 숨기기만 한다(위치·확대·고른 지점·길찾기 결과 유지).
 // 진입 옵션(#/map?go=...)이 있으면 그 옵션을 새로 적용하려고 지도를 다시 만든다.
@@ -77,7 +79,7 @@ export default function App() {
           )}
           {body && (
             <m.div className="app-view" key={page} initial={pageIn} animate={{ opacity: 1, x: 0 }} transition={pageTr}>
-              {body}
+              <Suspense fallback={null}>{body}</Suspense>
             </m.div>
           )}
         </div>

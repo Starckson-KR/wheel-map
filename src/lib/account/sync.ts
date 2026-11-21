@@ -84,7 +84,11 @@ function loadState() {
   pending = new Set(Array.isArray(p) ? p.filter((x): x is string => typeof x === 'string') : [])
   const h = readJson<unknown>(SYNC_HASHES_KEY, {})
   hashes = typeof h === 'object' && h !== null && !Array.isArray(h) ? (h as Record<string, string>) : {}
-  cursor = Number(localStorage.getItem(SYNC_CURSOR_KEY)) || 0
+  try {
+    cursor = Number(localStorage.getItem(SYNC_CURSOR_KEY)) || 0
+  } catch {
+    cursor = 0
+  }
   const lo = readJson<unknown>(SYNC_LOCALONLY_KEY, [])
   localOnly = new Set(Array.isArray(lo) ? lo.filter((x): x is string => typeof x === 'string') : [])
 }

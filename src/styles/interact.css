@@ -83,7 +83,7 @@
   gap: 2px;
   border-radius: inherit;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.15;
   text-align: center;
   word-break: keep-all;
@@ -177,7 +177,7 @@ html.motion-reduce .rf-done .rv-steps li { animation: none; opacity: 1; }
   color: var(--text-strong);
   box-shadow: var(--shadow-1), inset 0 0 0 1px var(--line);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   opacity: 0;
   transform: translate(-50%, -48px);
@@ -206,3 +206,6 @@ html.vt-circle::view-transition-new(root) { animation: vt-circle-in 380ms var(--
 html.motion-reduce .pr-ind[data-phase='busy'] .pr-ic { animation: none; }
 html.motion-reduce .pr-ic { transform: none; }
 html.motion-reduce.vt-circle::view-transition-new(root) { animation: none; }
+
+/* unslop-7: 길게 누르기 고리는 진행이 없을 때(길이 0) 둥근 끝이 점으로 남지 않게 숨긴다 */
+.fabm-ring circle[stroke-dashoffset='100'] { opacity: 0; }

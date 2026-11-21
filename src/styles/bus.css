@@ -50,13 +50,13 @@
   border-color: var(--primary);
   background: var(--primary-weak);
   color: var(--blue-700);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bus-load {
   border-color: var(--primary);
   color: var(--blue-700);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bus-refresh {
@@ -66,7 +66,7 @@
 .bus-mode {
   margin: 0;
   font-size: var(--fs-caption);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bus-mode-live {
@@ -107,7 +107,7 @@
 }
 
 .bus-row-mark {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bus-tag {
@@ -117,7 +117,7 @@
   padding: 0 var(--s-2);
   border-radius: var(--r-sm);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bus-low {
@@ -169,7 +169,7 @@
   color: var(--text-sub);
   font: inherit;
   font-size: var(--fs-body);
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -177,13 +177,6 @@
   background: var(--seg-on);
   color: var(--text-strong);
   box-shadow: var(--shadow-1);
-}
-
-.tr-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-1);
 }
 
 .tr-chip {
@@ -195,9 +188,8 @@
   background: var(--r-n-soft);
   color: var(--r-n-text);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
 }
-
 
 /* 버스 번호 칩: 노선 종류 색 배경(인라인)에 흰 글자 */
 .tr-chip-line {

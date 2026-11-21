@@ -57,4 +57,3 @@ export function saveCoordinator(routeId: string, agencyId: string) {
     /* 저장 실패 시 화면 상태만 유지 */
   }
 }
-export const COORDINATOR_KEY = KEY

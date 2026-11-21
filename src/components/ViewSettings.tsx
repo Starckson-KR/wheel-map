@@ -29,6 +29,12 @@ export default function ViewSettings({ floating = false, row = false, open: open
   const [openSelf, setOpenSelf] = useState(false)
   const open = openProp ?? openSelf
   const setOpen = onOpenChange ?? setOpenSelf
+  useEffect(() => {
+    if (!open) return
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [open, setOpen])
   const [view, setV] = useState(getView)
   const [theme, setT] = useState(getTheme)
   const [text, setTx] = useState(getTextSize)
@@ -102,7 +108,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
-                <p className="bm-meta">지도 바탕은 그대로 밝게 보여요.</p>
+                <p className="bm-meta">지도 바탕은 그대로 밝게 보여요</p>
               </div>
               <div className="ms-sec">
                 <h3>글자 크기</h3>

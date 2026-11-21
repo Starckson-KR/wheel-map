@@ -26,20 +26,21 @@ export type PointEvent = {
 
 // ───── 엠블럼·칭호 정의 ─────
 export type EmblemTone = 'green' | 'blue' | 'purple' | 'amber'
-export type EmblemDef = { id: string; name: string; glyph: string; tone: EmblemTone; how: string; grade?: number }
+/** icon: Icon.tsx의 선 아이콘 이름 */
+export type EmblemDef = { id: string; name: string; icon: string; tone: EmblemTone; how: string; grade?: number }
 
 // 등급 1~4 + 특별은 칭호이자 엠블럼이다(이름 같음). 이름은 명세서의 "안"이며 팀 회의에서 확정한다.
 export const GRADE_EMBLEMS: EmblemDef[] = [
-  { id: 'g1', grade: 1, name: '길 살핌이', glyph: '🌱', tone: 'green', how: '검증된 제보 1건' },
-  { id: 'g2', grade: 2, name: '길 지킴이', glyph: '🌿', tone: 'green', how: '검증된 제보 5건 또는 확인 투표 20회' },
-  { id: 'g3', grade: 3, name: '길 잇는 사람', glyph: '🌳', tone: 'blue', how: '검증된 제보 15건, 조치 완료 제보 3건' },
-  { id: 'g4', grade: 4, name: '동네 무장애 파수꾼', glyph: '🏅', tone: 'amber', how: '동행 점검 3회 참여' },
+  { id: 'g1', grade: 1, name: '길 살핌이', icon: 'sprout', tone: 'green', how: '검증된 제보 1건' },
+  { id: 'g2', grade: 2, name: '길 지킴이', icon: 'shield', tone: 'green', how: '검증된 제보 5건 또는 확인 투표 20회' },
+  { id: 'g3', grade: 3, name: '길 잇는 사람', icon: 'link', tone: 'blue', how: '검증된 제보 15건, 조치 완료 제보 3건' },
+  { id: 'g4', grade: 4, name: '동네 무장애 파수꾼', icon: 'medal', tone: 'amber', how: '동행 점검 3회 참여' },
 ]
-export const SPECIAL_EMBLEM: EmblemDef = { id: 'special', name: '경로 개척자', glyph: '🧭', tone: 'purple', how: '한 경로의 장애요소 모두 조치 완료' }
+export const SPECIAL_EMBLEM: EmblemDef = { id: 'special', name: '경로 개척자', icon: 'compass', tone: 'purple', how: '한 경로의 장애요소 모두 조치 완료' }
 export const TYPE_EMBLEMS: EmblemDef[] = [
-  { id: 'stop', name: '정류장 탐험가', glyph: '🚏', tone: 'blue', how: `정류장 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
-  { id: 'cross', name: '횡단보도 감시자', glyph: '🚸', tone: 'amber', how: `횡단보도 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
-  { id: 'temp', name: '일시 장애물 해결사', glyph: '🧹', tone: 'green', how: `일시적인 장애물 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
+  { id: 'stop', name: '정류장 탐험가', icon: 'bus', tone: 'blue', how: `정류장 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
+  { id: 'cross', name: '횡단보도 감시자', icon: 'zebra', tone: 'amber', how: `횡단보도 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
+  { id: 'temp', name: '일시 장애물 해결사', icon: 'cone', tone: 'green', how: `일시적인 장애물 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
 ]
 export const ALL_EMBLEMS: EmblemDef[] = [...GRADE_EMBLEMS, SPECIAL_EMBLEM, ...TYPE_EMBLEMS]
 export const EMBLEM_BY_ID = new Map(ALL_EMBLEMS.map((e) => [e.id, e]))

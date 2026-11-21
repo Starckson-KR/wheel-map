@@ -19,12 +19,6 @@ export const PHOTO_QUALITY = 0.85
 export const canVote = (m: VerifyMode = VERIFY_MODE) => m === 'either' || m === 'votes'
 export const canVerifierConfirm = (m: VerifyMode = VERIFY_MODE) => m === 'either' || m === 'verifier'
 
-export const VERIFY_MODE_TEXT: Record<VerifyMode, string> = {
-  either: `다른 시민 ${VOTES_REQUIRED}명 이상의 확인 또는 검증자의 현장 확인 중 먼저 충족되는 쪽으로 검증됩니다.`,
-  votes: `다른 시민 ${VOTES_REQUIRED}명 이상이 확인하면 검증됩니다. 검증자는 ○△X 판정을 더합니다.`,
-  verifier: '검증자(동행 점검단)의 현장 확인으로 검증됩니다.',
-}
-
 // 3단계: 민원 접수 방식.
 //  'link' : 문안 복사 + 공식 채널 링크로 이동 → 사용자가 접수번호를 입력 (실제 방식)
 //  'mock' : 발표 시연용 모의 접수(src/lib/mockComplaintApi.ts). 실제 국민신문고·안전신문고에는 접수되지 않는다.

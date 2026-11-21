@@ -221,7 +221,7 @@ export default function VerifyDeck() {
         </>
       ) : (
         <div className="vd-empty">
-          <p>{hadSkipped ? '넘긴 제보만 남았어요.' : '지금 확인할 제보가 없어요.'}</p>
+          <p>{hadSkipped ? '넘긴 제보만 남았어요' : '지금 확인할 제보가 없어요'}</p>
           {hadSkipped && (
             <button type="button" onClick={() => setSkipped(new Set())}>
               넘긴 제보 다시 보기

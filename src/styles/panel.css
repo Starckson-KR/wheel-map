@@ -6,20 +6,6 @@
 }
 
 /* 작은 부품 */
-.lr-kind {
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  min-width: 20px;
-  height: 20px;
-  margin-left: -6px;
-  border-radius: 10px;
-  background: #333d4b;
-  color: #fff;
-  font-size: 0.8125rem;
-  font-style: normal;
-  font-weight: 700;
-}
 
 .hm-legend i.hm-leg-kind {
   background: #333d4b;

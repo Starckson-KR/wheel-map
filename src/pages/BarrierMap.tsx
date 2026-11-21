@@ -431,7 +431,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           const b = map.getBounds()
           const sw = b.getSouthWest()
           const ne = b.getNorthEast()
-          setView({ level: map.getLevel(), b: [sw.getLat(), sw.getLng(), ne.getLat(), ne.getLng()] })
+          const level = map.getLevel()
+          const box: [number, number, number, number] = [sw.getLat(), sw.getLng(), ne.getLat(), ne.getLng()]
+          // 같은 자리에서 멈췄으면 상태를 바꾸지 않아 공공 핀을 다시 그리지 않는다
+          setView((prev) => (prev && prev.level === level && prev.b[0] === box[0] && prev.b[1] === box[1] && prev.b[2] === box[2] && prev.b[3] === box[3] ? prev : { level, b: box }))
         }
         k.maps.event.addListener(map, 'idle', readView)
         // 다른 탭에 다녀와도 같은 자리를 보여 주려고 마지막 위치를 기억해 둔다
@@ -897,22 +900,29 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   }, [layers])
 
   // 화면 범위 안의 공공데이터 항목(레벨이 넓으면 그리지 않음)
-  const pubVisible = useMemo(() => {
-    const out: { layer: PubLayerId; items: PubItem[]; total: number; inView: number }[] = []
+  // 켜진 레이어의 표시 대상(화면 범위와 무관해서 지도를 움직일 때는 다시 거르지 않는다)
+  const pubPools = useMemo(() => {
+    const out: { id: PubLayerId; pool: PubItem[] }[] = []
     for (const l of PUB_LAYERS) {
       const d = pubData[l.id]
       if (!layers[l.id] || !d) continue
-      const pool = d.items.filter((i) => i.lat != null && i.lng != null && pubItemShown(l.id, i, layers))
+      out.push({ id: l.id, pool: d.items.filter((i) => i.lat != null && i.lng != null && pubItemShown(l.id, i, layers)) })
+    }
+    return out
+  }, [pubData, layers])
+  const pubVisible = useMemo(() => {
+    const out: { layer: PubLayerId; items: PubItem[]; total: number; inView: number }[] = []
+    for (const { id, pool } of pubPools) {
       if (!view) {
-        out.push({ layer: l.id, items: [], total: pool.length, inView: 0 })
+        out.push({ layer: id, items: [], total: pool.length, inView: 0 })
         continue
       }
       const [s, w, n, e] = view.b
       const inView = pool.filter((i) => (i.lat as number) >= s && (i.lat as number) <= n && (i.lng as number) >= w && (i.lng as number) <= e)
-      out.push({ layer: l.id, items: view.level > PUB_MAX_LEVEL ? [] : inView.slice(0, PUB_MAX_DRAW), total: pool.length, inView: inView.length })
+      out.push({ layer: id, items: view.level > PUB_MAX_LEVEL ? [] : inView.slice(0, PUB_MAX_DRAW), total: pool.length, inView: inView.length })
     }
     return out
-  }, [pubData, layers, view])
+  }, [pubPools, view])
 
   useEffect(() => {
     const k = kRef.current

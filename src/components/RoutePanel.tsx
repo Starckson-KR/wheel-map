@@ -77,8 +77,8 @@ type Result = {
   extras: Extras | null
   extrasError: boolean
   stats: NetStats
-  own: OwnSearch | null // 자체 보행망으로 찾았으면 그 결과(턴바이턴·피해 간 곳). TMAP으로 찾았으면 null
-  fallback: boolean // 자체 보행망으로 못 찾아 TMAP으로 넘어왔는가
+  own: OwnSearch | null // 자체 보행망으로 찾았으면 그 결과(턴바이턴·피해 간 곳). 저장 경로·개발용 TMAP 비교로 찾았으면 null
+  fallback: boolean // 자체 보행망으로 못 찾아 다른 방식(저장 경로·개발용 TMAP)으로 넘어왔는가
   pool: LayerPool | null // 길찾기가 스스로 쓴 공공데이터(육교·침수·화장실·그늘막·정류장·스쿨존). 못 받았으면 null
   wet: boolean // 이 결과를 구할 때 비·눈이었는가(침수 이력을 경로 계산에 넣었는가)
   start: Place
@@ -164,7 +164,7 @@ function PlacePicker(props: {
   return (
     <fieldset className="rt-place">
       <legend>{label}</legend>
-      <p className="rt-val">{value ? <strong>{value.name}</strong> : pendingName ? <><strong>{pendingName}</strong>{pendingNote && <span className="bm-meta"> {pendingNote}</span>}</> : <span className="bm-meta">{emptyText ?? '아직 정하지 않았어요.'}</span>}</p>
+      <p className="rt-val">{value ? <strong>{value.name}</strong> : pendingName ? <><strong>{pendingName}</strong>{pendingNote && <span className="bm-meta"> {pendingNote}</span>}</> : <span className="bm-meta">{emptyText ?? '아직 정하지 않았어요'}</span>}</p>
       <div className="rt-row">
         <input
           type="search"
@@ -239,6 +239,7 @@ export default function RoutePanel(props: Props) {
   const formHidden = !boot && !formOpen && !pairsOpen && !!from && !!to
   const [destQ, setDestQ] = useState(props.presetTo ?? '') // 도착 입력칸에 쓴 말(비어 있을 때만 추천 경로를 보인다)
   const typingOff = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(typingOff.current), [])
   const [typing, setTyping] = useState(false) // 입력칸에 커서가 있는 동안: 휴대폰에서는 시트를 키워 키보드에 가려지지 않게 한다
   const topRef = useRef<HTMLDivElement>(null)
   const [collapsed, setCollapsed] = useState(false)
@@ -368,7 +369,7 @@ export default function RoutePanel(props: Props) {
     try {
       const citizen = reports.filter((r) => !r.seedId && SHOWN_ON_MAP.includes(r.status) && !isExpired(r))
       const obstacles = buildObstacles(barriers, seedRatings, citizen)
-      // 1순위: 자체 보행망(키·서버 없이 브라우저 안에서 계산). 못 찾으면(보행망 밖·연결 끊김) TMAP 방식으로 넘어간다.
+      // 1순위: 자체 보행망(키·서버 없이 브라우저 안에서 계산). 못 찾으면(보행망 밖·연결 끊김) 저장 경로 방식(개발 모드는 TMAP 중계)으로 넘어간다.
       let own: OwnSearch | null = null
       let pool: LayerPool | null = null
       let why: 'load' | 'outside' | 'no-path' = 'load'
@@ -1076,7 +1077,7 @@ export default function RoutePanel(props: Props) {
             <p className="rt-avoid" role="status">
               <b>{avoidedNames.join(', ')}</b> 때문에 돌아가요
               <br />
-              <span className="bm-meta">가장 짧은 길보다 {fmtDist(extraM)} 더 걸어요.</span>
+              <span className="bm-meta">가장 짧은 길보다 {fmtDist(extraM)} 더 걸어요</span>
             </p>
           )}
           {result.res.unresolved.length > 0 && (

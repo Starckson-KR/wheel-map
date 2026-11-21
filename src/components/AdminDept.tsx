@@ -16,9 +16,9 @@ import { useRecurrence } from '../lib/useRecurrence'
 import type { Barrier, Report } from '../types'
 import { isMockReport } from '../lib/realFirst'
 import { Sentences } from './Sentences'
+import { won } from '../lib/format'
 
 const PLAN_PREVIEW = 8
-const won = (n: number) => n.toLocaleString('ko-KR')
 const isTodo = (s: string) => s.startsWith('TODO')
 
 const GROUPS = ['기한 경과', '기한 임박', '신규', '처리 중'] as const

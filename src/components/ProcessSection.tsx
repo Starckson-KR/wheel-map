@@ -10,9 +10,9 @@ import { agencyOf, flagsOf, pendingTransfer } from '../lib/caseMetrics'
 import { listAgencies } from '../lib/agencyGuide'
 import type { Report } from '../types'
 import { Sentences } from './Sentences'
+import { fmtDateTime as fmt } from '../lib/format'
 
 const DAY = 86400000
-const fmt = (iso: string | number) => new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
 
 const STEPS: { label: string; on: (s: Report['status']) => boolean }[] = [
   { label: '검증 완료', on: (s) => s === 'verified' },

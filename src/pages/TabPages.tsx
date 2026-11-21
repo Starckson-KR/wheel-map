@@ -83,23 +83,23 @@ export function ReportTab({ query }: { query: string }) {
     <Page title="제보">
       <section className="pg-card">
         <h2>길에서 만난 불편</h2>
-        <p className="bm-meta">위치와 사진을 함께 남겨요.</p>
+        <p className="bm-meta">위치와 사진을 함께 남겨요</p>
         <button type="button" className="rf-primary pg-wide" onClick={() => go(TO.newReport)}>
           문제 제보하기
         </button>
       </section>
       <VerifyDeck />
-      <section className="pg-card" id="pg-receipt">
+      <section className="pg-card pg-flat" id="pg-receipt">
         <h2>접수번호로 찾기</h2>
         <ReceiptLookup onOpen={(id) => go(TO.openReport(id))} />
       </section>
-      <section className="pg-card" id="pg-mine">
+      <section className="pg-card pg-flat" id="pg-mine">
         <h2>내 제보 진행 상황</h2>
         <ReportsPanel embedded onOpen={(id) => go(TO.openReport(id))} />
       </section>
-      <section className="pg-card" id="pg-agency" tabIndex={-1}>
+      <section className="pg-card pg-flat" id="pg-agency" tabIndex={-1}>
         <h2>담당 기관 안내</h2>
-        <Sentences as="p" className="bm-meta">제보를 남기면 내 제보 상세에서 담당 기관과 접수 방법을 볼 수 있어요.</Sentences>
+        <Sentences as="p" className="bm-meta">제보하면 담당 기관과 접수 방법을 알려 드려요</Sentences>
         <ul className="pg-agencies">
           {(allAg ? agencies : agencies.slice(0, 5)).map((a) => (
             <li key={a.id}>
@@ -133,7 +133,6 @@ export function MeTab() {
               <Icon name="help" size={20} />
               <span className="pg-line-t">
                 <strong>이용 안내</strong>
-                <span>이렇게 해 보세요</span>
               </span>
               <Icon name="chev" size={16} />
             </button>

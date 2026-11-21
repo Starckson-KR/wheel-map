@@ -20,8 +20,6 @@ export type Stats = {
   recurRate: number | null // 재발률 = 재발 ÷ 제보 수
 }
 
-export const EMPTY_STATS: Stats = { received: 0, filed: 0, done: 0, rate: null, avgDays: null, overdue: 0, long: 0, recur: 0, recurRate: null }
-
 export const inPeriod = (reports: Report[], p: PeriodRange) => reports.filter((r) => inRange(new Date(r.createdAt).getTime(), p))
 
 export function statsOf(list: Report[], now: number, rec: RecurrenceResult): Stats {

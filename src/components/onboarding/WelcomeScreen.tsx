@@ -18,7 +18,7 @@ export default function WelcomeScreen({ onStart }: { onStart: () => void }) {
       </div>
       <div className="ob-foot ob-welcome-foot">
         <PressButton type="button" className="ob-btn ob-btn-primary" onClick={onStart}>
-          시작하기!
+          시작하기
         </PressButton>
       </div>
     </>

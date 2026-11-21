@@ -19,7 +19,11 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'done', label: '완료' },
 ]
 
-const fmtShort = (iso: string) => new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+// 지도 목록의 '11/16 접수'와 같은 꼴: 11/18 오후 10:19
+const fmtShort = (iso: string) => {
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`
+}
 
 // 목록 한 줄: 유형 · 주소(보이는 항목만 조회) · 접수일 · 상태가 모두 달라서 서로 구분된다.
 function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boolean; onOpen: (id: string) => void }) {

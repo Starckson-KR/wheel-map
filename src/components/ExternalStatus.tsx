@@ -7,8 +7,8 @@ import { getMockStatus } from '../lib/mockComplaintApi'
 import { nowMs, useReports, userName } from '../lib/reportStore'
 import type { ExternalStage, Report } from '../types'
 import { Sentences } from './Sentences'
+import { fmtDay } from '../lib/format'
 
-const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('ko-KR', { dateStyle: 'medium' })
 
 // "바깥 처리 상황" 카드: 국민신문고·안전신문고 같은 앱 밖에서 진행된 처리를 시민이 적어 두는 곳. 앱 안의 처리 상태는 바꾸지 않는다.
 // readOnly(행정 화면)이면 기록이 있을 때만 읽기용으로 보여 준다.

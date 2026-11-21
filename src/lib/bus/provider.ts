@@ -16,7 +16,6 @@ type SnapStation = { name: string; collectedAt: string; arrivals: Arrival[] }
 type Snap = { collectedAt: string; stations: Record<string, SnapStation>; lines: Record<string, LineLow> }
 const SNAP = snap as unknown as Snap
 
-export const SNAPSHOT_AT: string = SNAP.collectedAt
 export const hasSnapshot = (stationId: string) => stationId in SNAP.stations
 
 const RELAY_ENV = (import.meta.env as Record<string, string | undefined>).VITE_BUS_RELAY_URL
@@ -53,9 +52,11 @@ async function relayJson(path: string): Promise<{ ok: true; json: unknown } | { 
 export async function getArrivals(stationId: string): Promise<ArrivalResult> {
   if (relayBase === null) return fromSnapshot(stationId, '실시간 정보는 준비 중이에요.')
   const r = await relayJson(`/arrive?station=${encodeURIComponent(stationId)}`)
-  if (!r.ok) {
-    const fb = fromSnapshot(stationId, r.message)
-    return fb.ok ? fb : { ok: false, reason: r.status === 429 ? 'limit' : 'error', message: r.message }
+  const bad = r.ok && !Array.isArray((r.json as { arrivals?: unknown } | null)?.arrivals) // 응답 모양이 이상하면 실패와 같게 다룬다
+  if (!r.ok || bad) {
+    const message = r.ok ? '실시간 정보를 받지 못했어요.' : r.message
+    const fb = fromSnapshot(stationId, message)
+    return fb.ok ? fb : { ok: false, reason: !r.ok && r.status === 429 ? 'limit' : 'error', message }
   }
   const j = r.json as { collectedAt: string; arrivals: Arrival[] }
   return { ok: true, mode: 'live', stationId, collectedAt: j.collectedAt, arrivals: j.arrivals }

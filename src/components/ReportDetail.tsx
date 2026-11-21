@@ -15,6 +15,7 @@ import { isSampleReport } from '../lib/samplePhotos'
 import type { Barrier, Rating } from '../types'
 import { Sentences } from './Sentences'
 import '../styles/review.css'
+import { fmtDateTime as fmt } from '../lib/format'
 
 type Props = {
   reportId: string
@@ -25,8 +26,6 @@ type Props = {
   onOpenSeed: (id: string) => void
   readOnlyExternal?: boolean // 행정 화면에서는 바깥 처리 상황을 읽기만 한다
 }
-
-const fmt = (iso: string) => new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
 
 // 위치 한 줄: 주소(없으면 동 이름, 그것도 없으면 좌표)
 function ReportPlace({ lat, lng, kind }: { lat: number; lng: number; kind?: string }) {

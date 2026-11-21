@@ -122,7 +122,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="ms-dim" onClick={onClose} />
-      <div ref={ref} className="ms" data-sheet role="dialog" aria-modal="true" aria-label="설정">
+      <div ref={ref} className="ms ms-settings" data-sheet role="dialog" aria-modal="true" aria-label="설정">
         <SheetHandle onDown={onClose} />
         <div className="ms-head">
           <div>
@@ -235,7 +235,7 @@ export default function HomePage() {
   return (
     <div className="bm pg">
       <div className="pr-ind" ref={indRef} role="status" aria-live="polite" data-phase="idle">
-        <svg className="pr-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+        <svg className="pr-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
           <path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" />
         </svg>
         <span data-pr-label />

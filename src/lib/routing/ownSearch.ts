@@ -1,5 +1,5 @@
 // 자체 보행망 길찾기 한 번: 기본 길(장애요소 벌점 없음)과 피해 가는 길(장애요소 벌점 있음)을 같은 보행망에서 구하고,
-// 기존 TMAP 방식과 같은 모양(SearchResult)으로 돌려준다. 그래서 화면의 카드·판정·타임라인을 그대로 쓴다.
+// 저장 경로·개발용 TMAP 비교와 같은 모양(SearchResult)으로 돌려준다. 그래서 화면의 카드·판정·타임라인을 그대로 쓴다.
 import { analyze, summarize, type Hit, type Obstacle, type Pt, type RouteCfg, type SearchResult } from './engine.ts'
 import { findWalkRoute, type OwnRoute, type SoftSpot, type WalkCfg } from './walkRoute.ts'
 import { spotsNearRoute } from './layerRoute.ts'

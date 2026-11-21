@@ -21,7 +21,7 @@ body {
   font-family: var(--font);
   font-size: var(--fs-body);
   line-height: 1.5;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -49,7 +49,7 @@ h2,
 h3,
 h4 {
   color: var(--text-strong);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .sr-only {
@@ -93,8 +93,8 @@ h4 {
   color: var(--grey-800);
   font: inherit;
   font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: 500;
+  letter-spacing: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -132,7 +132,7 @@ h4 {
 .bm button.rf-primary {
   background: var(--blue-600);
   color: var(--on-primary);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -175,7 +175,7 @@ h4 {
   background: var(--blue-50);
   color: var(--blue-700);
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
   text-decoration: none;
   transition: transform var(--t-press) var(--ease-out);
@@ -284,8 +284,8 @@ h4 {
 .rf-card > h3 {
   color: var(--text-strong);
   font-size: var(--fs-sub);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .rf-card p {
@@ -386,8 +386,7 @@ h4 {
 .adm-flag,
 .adm-demo,
 .adm-ext,
-.adm-recur,
-.bm-unplaced {
+.adm-recur {
   display: inline-flex;
   align-items: center;
   box-sizing: border-box;
@@ -395,7 +394,7 @@ h4 {
   padding: 0 var(--s-2);
   border-radius: var(--r-sm);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   font-style: normal;
   white-space: nowrap;
   letter-spacing: 0;
@@ -454,8 +453,7 @@ h4 {
   color: var(--amber-700);
 }
 
-.adm-flag,
-.bm-unplaced {
+.adm-flag {
   background: var(--amber-50);
   color: var(--amber-700);
 }
@@ -483,7 +481,7 @@ h4 {
   height: 28px;
   border-radius: var(--r-full);
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* 요약 목록(이름 | 값) */
@@ -624,9 +622,9 @@ h4 {
   border-radius: 0 0 8px 8px;
   background: rgb(255 255 255 / 0.92);
   color: #b3261e;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  line-height: 14px;
+  line-height: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -697,7 +695,7 @@ html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(9):last-child) { grid
 html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(7):last-child),
 html :is(.pgp-chips, .lp-extra .hm-tools):has(> :nth-child(8):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .hp-ai-chips > li > button { width: 100%; justify-content: center; }
-html .hm-counts > .hm-count { height: auto; min-height: 32px; padding: 4px 12px 4px 6px; }
+html .hm-counts > .hm-count { height: auto; min-height: 32px; padding: 4px 12px 4px 8px; }
 
 /* 문장 단위 줄바꿈: <Sentences> — 한 문장이 끝나면 다음 문장은 새 줄 */
 .sent { display: block; }
@@ -706,7 +704,7 @@ html .hm-counts > .hm-count { height: auto; min-height: 32px; padding: 4px 12px 
 .bn-sum, .bn-dl dd, .ob-sub, .ob-feat small { text-wrap: balance; }
 /* 오류 문구 앞 "!" 표시는 첫 문장 줄 안에 둔다(문장이 블록이라 따로 한 줄이 되지 않게) */
 .rf-err:has(> .sent)::before { content: none; }
-.rf-err > .sent:first-child::before { content: '! '; font-weight: 700; }
+.rf-err > .sent:first-child::before { content: '! '; font-weight: 600; }
 /* 좁은 폭의 혜택 카드: 항목 이름을 위에 두고 내용을 한 줄 전체 폭으로 보여 줘 3~4줄로 늘어지지 않게 */
 @media (max-width: 480px) {
   .bn-dl > div:is(div) { flex-direction: column; gap: 0; }
@@ -738,7 +736,9 @@ html[data-text='large'] .bn-sum { font-size: var(--fs-small); }
 
 /* 상태 필터는 칩 모양(위 세그먼트와 구분) */
 .rp-tabs.rp-tabs--chips { gap: var(--s-2); border-bottom: 0; }
-.bm .rp-tabs--chips button { min-height: 36px; padding: 0 var(--s-3); border-radius: var(--r-full); border-bottom: 0; margin-bottom: 0; font-size: var(--fs-small); }
+.bm .rp-tabs--chips button { position: relative; min-height: 36px; padding: 0 var(--s-3); border-radius: var(--r-full); border-bottom: 0; margin-bottom: 0; font-size: var(--fs-small); }
+/* 보이는 높이는 36px, 누르는 영역은 위아래로 넓혀 44px */
+.bm .rp-tabs--chips button::after { content: ''; position: absolute; inset: -4px 0; }
 .bm .rp-tabs--chips button.on { background: var(--bg); box-shadow: inset 0 0 0 2px var(--primary); color: var(--blue-700); }
 .pg-agencies strong, .pg-agencies .bm-meta { word-break: keep-all; }
 
@@ -747,3 +747,15 @@ html[data-text='large'] .bn-sum { font-size: var(--fs-small); }
 .bm-thumbs::-webkit-scrollbar { display: none; }
 .bm .bm-thumbs .bm-thumb { flex: none; width: 46%; scroll-snap-align: start; }
 .ba .bm-thumbs .bm-thumb { width: 46%; }
+
+/* ───── unslop-5 글꼴 정리(11/21): 굵기 제목 600·버튼 500·본문 400, 작은 글자 자간 0, 숫자 폭 고정 ─────
+   :where()로 감싸 우선순위를 올리지 않는다(각 화면의 규칙이 그대로 이긴다). */
+:where(strong, b) { font-weight: 600; }
+:where(.hs-head h2, .rp .rf-head h2, .ms-head h2, .cs-sheet h2, .rw-hero-text h3) { letter-spacing: -0.01em; }
+.hp-mine-n, .hp-mine-s, .rc-time, .rc-sub, .rc-near-s, .tl-sub, .tl-mini, .rw-score, .rw-stats b, .hm-count, .hm-title, .rf-step, .bm-meta { font-variant-numeric: tabular-nums; }
+/* 행정 화면(.bm.adm)은 이번 정리 대상이 아니라 예전 값 그대로 둔다 */
+:where(.bm.adm) { letter-spacing: -0.01em; }
+:where(.bm.adm) button { font-weight: 600; letter-spacing: -0.01em; }
+:where(.bm.adm) :is(h2, h3, h4) { letter-spacing: -0.02em; }
+:where(.bm.adm) :where(strong, b) { font-weight: bolder; }
+:where(.bm.adm) :is(.bm-badge, .rp-badge, .rf-cat, .cg-tag, .adm-flag, .adm-demo, .adm-ext, .adm-recur) { font-weight: 700; }

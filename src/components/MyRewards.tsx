@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { go, TO } from '../lib/nav'
 import CountUp from './CountUp'
+import Icon from './Icon'
 import RewardEmblem from './RewardEmblem'
 import { SegBg } from './motionKit'
 import { DEMO_USERS, useReports, userName } from '../lib/reportStore'
@@ -57,7 +58,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
       )}
 
       <section className="rw-hero" aria-label="칭호와 점수">
-        {titleEmb ? <RewardEmblem def={titleEmb} size="lg" /> : <span className="emb emb-lg is-empty" aria-hidden="true">🌱</span>}
+        {titleEmb ? <RewardEmblem def={titleEmb} size="lg" /> : <span className="emb emb-lg is-empty" aria-hidden="true"><Icon name="sprout" size={36} /></span>}
         <div className="rw-hero-text">
           <p className="bm-meta">{userName(userId)}</p>
           <h3>{rw.title || '아직 칭호가 없어요'}</h3>
@@ -67,7 +68,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
         </div>
       </section>
       {role === 'officer' && <Sentences as="p" className="bm-meta">담당 공무원은 점수를 쌓지 않아요.</Sentences>}
-      {rw.grade === 0 && role !== 'officer' && <Sentences as="p" className="rw-lead">검증된 제보가 생기면 첫 칭호를 받아요.</Sentences>}
+      {rw.grade === 0 && role !== 'officer' && <Sentences as="p" className="rw-lead">검증된 제보가 생기면 첫 칭호를 받아요</Sentences>}
 
       <div className="rf-seg" role="tablist" aria-label="내 기여 보기">
         {TABS.map((t) => (
@@ -90,7 +91,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
                 <div key={p.label} className="rw-bar">
                   <span>{p.label}</span>
                   <span className="rw-bar-t" role="progressbar" aria-valuemin={0} aria-valuemax={p.need} aria-valuenow={Math.min(p.now, p.need)} aria-label={p.label}>
-                    <i style={{ width: `${Math.min(100, (p.now / p.need) * 100)}%` }} />
+                    <i style={{ transform: `scaleX(${Math.min(1, p.now / p.need)})` }} />
                   </span>
                   <b>
                     {Math.min(p.now, p.need)}/{p.need}

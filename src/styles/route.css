@@ -53,7 +53,7 @@
 .rt-head-btns {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .bm .rt-head-btns button:not(.bm-close) {
@@ -71,7 +71,7 @@
 .rt-sec h3 {
   margin: 0;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rt-sec p {
@@ -89,7 +89,7 @@
 }
 
 .rt-plain {
-  gap: 6px;
+  gap: 8px;
   font-size: var(--fs-small);
 }
 
@@ -109,11 +109,6 @@
 
 .bm button.rt-pair.on .lr-chev {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 14 14' fill='none' stroke='%231b64da' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5l2.8 2.8L11 4.8'/%3E%3C/svg%3E");
-}
-
-.bm button.lr.rt-on {
-  background: var(--blue-50);
-  box-shadow: -12px 0 0 var(--blue-50), 12px 0 0 var(--blue-50);
 }
 
 /* 입력칸에 커서가 있는 동안 휴대폰에서는 시트를 위쪽까지 키워, 도착 입력칸과 결과가 키보드에 가려지지 않게 한다 */
@@ -147,7 +142,7 @@
 /* 직접 검색 */
 .rt-place {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   padding: var(--s-3) var(--s-4) var(--s-4);
   border: 0;
@@ -163,7 +158,7 @@
   padding: 0;
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 .rt-place legend + * {
   clear: both;
@@ -175,7 +170,7 @@
 
 .rt-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -234,80 +229,6 @@
 }
 
 /* 구간 막대 */
-.rt-seg h4 {
-  margin: 0 0 var(--s-2);
-  font-size: var(--fs-body);
-  font-weight: 700;
-}
-
-.rt-track {
-  position: relative;
-  height: 56px;
-  margin: var(--s-1) 14px;
-}
-
-.rt-track::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 18px;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--grey-200);
-}
-
-.rt-end {
-  position: absolute;
-  top: 36px;
-  color: var(--text-sub);
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-.rt-end-s {
-  left: -8px;
-}
-
-.rt-end-e {
-  right: -8px;
-}
-
-.bm .rt-dot {
-  position: absolute;
-  top: 8px;
-  width: 28px;
-  min-height: 28px;
-  height: 28px;
-  margin-left: -14px;
-  padding: 0;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1;
-  box-shadow: 0 1px 4px rgb(25 31 40 / 0.35);
-}
-
-.bm .rt-dot::after {
-  content: '';
-  position: absolute;
-  inset: -8px;
-}
-
-.bm .rt-dot.on {
-  box-shadow: 0 0 0 3px var(--blue-500);
-  z-index: 2;
-}
-
-.rt-legend {
-  line-height: 1.7;
-}
-
-.rt-legend span {
-  white-space: nowrap;
-}
 
 /* 지도 보기로 접었을 때 */
 .rt-mini {
@@ -332,7 +253,7 @@
   padding-left: var(--s-2);
   color: var(--text-strong);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 @media (min-width: 768px) {
@@ -485,7 +406,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   min-height: 0;
   padding: var(--s-4);
@@ -506,7 +427,7 @@
 .rc-time {
   color: var(--text-strong);
   font-size: 1.375rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
@@ -533,10 +454,10 @@
   display: inline-flex;
   align-items: center;
   height: 20px;
-  padding: 0 6px;
+  padding: 0 8px;
   border-radius: 6px;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
@@ -575,14 +496,14 @@
   background: transparent;
   color: var(--primary);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .bm button.rt-back::before {
   content: '';
   width: 8px;
   height: 8px;
-  margin-right: 6px;
+  margin-right: 8px;
   border-bottom: 2px solid currentColor;
   border-left: 2px solid currentColor;
   transform: rotate(45deg);
@@ -604,8 +525,8 @@
   min-width: 0;
   color: var(--text-strong);
   font-size: var(--fs-sub);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .bm .rt-pair-sum button {
@@ -667,7 +588,7 @@
 }
 
 .tl-mini {
-  padding-bottom: 14px;
+  padding-bottom: 16px;
 }
 
 .tl-mini::before {
@@ -694,8 +615,8 @@
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-body);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: 0;
   line-height: 1.4;
 }
 
@@ -707,7 +628,7 @@
 }
 
 .tl-note {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--text-sub);
   font-size: var(--fs-small);
 }
@@ -743,7 +664,7 @@
 .tl-hit-name {
   color: var(--text-strong);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
 }
 
@@ -755,15 +676,15 @@
 
 .tl .bus-warn,
 .tl .tr-alt {
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 /* 버스 단계 안의 실시간 정보: 한 줄과 작은 새로 고침 */
 .bus-one {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .bus-one-row {
@@ -783,7 +704,7 @@
 .bm button.bus-one-btn {
   flex: none;
   min-height: 28px;
-  padding: 0 10px;
+  padding: 0 12px;
   border-radius: var(--r-full);
   background: var(--bg-page);
   color: var(--text-sub);
@@ -791,24 +712,11 @@
   font-weight: 600;
 }
 
-.rt-foot {
-  color: var(--text-sub);
-  font-size: var(--fs-caption);
-}
-
-.rt-foot summary {
-  cursor: pointer;
-}
-
-.rt-foot p {
-  margin: 6px 0 0;
-}
-
 details.rt-more > summary {
   cursor: pointer;
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rt-more-in {
@@ -873,7 +781,7 @@ details.rt-more > summary {
   border-radius: var(--r-sm, 4px);
   background: rgba(255, 255, 255, 0.78);
   color: #4e5968;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   line-height: 1.5;
   text-decoration: none;
 }
@@ -896,13 +804,13 @@ details.rt-more > summary {
   display: inline-block;
   min-width: 1.2em;
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
 }
 
 .tl-note.rt-s-avoid {
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bm button.rf-primary.rt-g-start {
@@ -953,7 +861,7 @@ details.rt-more > summary {
   background: var(--primary-weak);
   color: var(--primary);
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rt-g-text {
@@ -965,7 +873,7 @@ details.rt-more > summary {
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-body);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
 }
 
@@ -979,14 +887,14 @@ details.rt-more > summary {
   flex: none;
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rt-g-note {
   margin: 0;
   color: var(--primary);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.45;
 }
 
@@ -1020,7 +928,7 @@ details.rt-more > summary {
   background: none;
   color: var(--primary);
   font: inherit;
-  font-weight: 700;
+  font-weight: 500;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -1031,7 +939,7 @@ details.rt-more > summary {
   place-items: center;
   min-width: 32px;
   height: 32px;
-  padding: 0 6px;
+  padding: 0 8px;
   border: 3px solid #fff;
   border-radius: 50%;
   background: #ff8a00;
@@ -1082,7 +990,7 @@ details.rt-more > summary {
 
 /* 안내 카드: 단계가 바뀔 때 글자가 짧게 떠오른다 */
 .rt-g-main {
-  animation: rt-g-in 180ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: rt-g-in 180ms var(--ease-out) both;
 }
 
 @keyframes rt-g-in {
@@ -1104,7 +1012,7 @@ details.rt-more > summary {
 .bm button.rf-recenter {
   background: var(--primary-weak);
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 @media all {
@@ -1145,7 +1053,7 @@ details.rt-more > summary {
   right: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .bm .gl-ctl button {

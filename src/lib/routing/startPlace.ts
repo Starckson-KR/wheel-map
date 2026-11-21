@@ -45,4 +45,4 @@ export function pickStart(pos: StartPos | null | undefined, inPilot: boolean, de
 }
 
 /** 비운 이유를 알리는 짧은 한 줄 */
-export const START_HINT = '출발지를 골라 주세요.'
+export const START_HINT = '출발지를 골라 주세요'

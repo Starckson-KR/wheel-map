@@ -9,12 +9,12 @@ import { nowMs, useReports } from '../lib/reportStore'
 import { usePriority } from '../lib/usePriority'
 import type { Barrier } from '../types'
 import { Sentences } from './Sentences'
+import { won } from '../lib/format'
 
 const PROGRAM_EXAMPLES = ['교통약자 이동편의 증진계획', '보도 정비사업', '장애인 편의시설 개선'] // 예시일 뿐 입력을 제한하지 않는다
 type Filter = 'all' | Stage
 type Row = { c: Cand; rank: number; dong: string }
 
-const won = (n: number) => n.toLocaleString('ko-KR')
 const nameOf = (c: Cand) => c.pt.seed?.name ?? c.pt.label
 
 function download(text: string, name: string) {

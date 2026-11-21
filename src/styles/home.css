@@ -53,7 +53,7 @@
 }
 .tabbar-btn[aria-current='page'] {
   color: var(--tab-on);
-  font-weight: 700;
+  font-weight: 600;
 }
 .tabbar-btn:focus-visible {
   outline: none;
@@ -98,9 +98,9 @@
   background: var(--primary);
   color: var(--on-primary);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.1;
-  box-shadow: 0 0 0 4px var(--bg), 0 6px 14px -2px rgb(31 109 227 / 0.5);
+  box-shadow: 0 0 0 4px var(--bg), 0 6px 14px -2px rgb(25 31 40 / 0.22);
   transition: transform var(--t-press) var(--ease-out), background-color var(--t-press) var(--ease-out);
 }
 :root[data-theme='dark'] .tabbar-fab-c { box-shadow: 0 0 0 4px var(--bg), 0 6px 14px -2px rgb(0 0 0 / 0.5); }
@@ -228,7 +228,6 @@
   letter-spacing: -0.03em;
   color: var(--text-strong);
 }
-.bm button.pg-brand-btn,
 .pg-brand button {
   min-height: var(--touch);
   padding: 0;
@@ -243,7 +242,7 @@
 .pg-title {
   margin: 0;
   font-size: var(--fs-title);
-  font-weight: 700;
+  font-weight: 600;
 }
 .pg-card {
   display: flex;
@@ -252,28 +251,19 @@
   padding: var(--s-5);
   border-radius: var(--r-lg);
   background: var(--bg);
-  box-shadow: var(--shadow-1);
   scroll-margin-top: var(--s-4);
 }
 .pg-card > h2 {
   margin: 0;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
 }
 .pg-wide {
   width: 100%;
 }
-.pg-score {
-  color: var(--text-strong);
-  font-size: var(--fs-sub);
-}
-.pg-score b {
-  font-size: var(--fs-title);
-}
 
-.pg-tiles,
-.pg-news,
-.pg-chips,
+
+
 .pg-lines,
 .pg-set,
 .pg-agencies {
@@ -336,6 +326,7 @@
   text-align: left;
 }
 .pg-line-t {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -352,8 +343,6 @@
 /* ───── 홈(.hp): 정부24 모바일 홈의 배치만 참고 ───── */
 .hp {
   --hp-panel: #eaf3ff;
-  --hp-g1: #14b8a6;
-  --hp-g2: #3182f6;
   --hp-ink: var(--blue-700);
   gap: 28px;
   padding-bottom: calc(var(--s-8) + var(--s-6));
@@ -400,13 +389,14 @@
   background: var(--hp-panel);
   color: var(--hp-ink);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
 }
-/* 검색창 테두리: 파랑 바탕에 가장자리를 따라 붉은 주황 빛(앱 아이콘과 같은 느낌). 주황은 이 검색창에만 쓴다.
-   빛은 큰 원뿔 그라디언트 판(::before)을 transform으로 천천히 돌려 만든다(16초에 한 바퀴, 다시 그리기 없음).
-   그 위에 ::after가 안쪽을 채워 테두리 2px만 보이게 한다. 움직임 줄이기(시연 스위치 꺼짐)면 멈춘다. */
+/* 검색창 테두리: 평소에는 정지한 얇은 파랑 테두리. 눌러서 입력을 시작하면(포커스) 파랑 바탕의 붉은 주황 빛(앱 아이콘과 같은 느낌)이
+   한 바퀴만 돌고 멈춘다(포커스가 유지되는 동안 반복하지 않음). 주황은 이 검색창에만 쓴다.
+   빛은 큰 원뿔 그라디언트 판(::before)을 transform으로 돌려 만든다(다시 그리기 없음).
+   그 위에 ::after가 안쪽을 채워 테두리 2px만 보이게 한다. 움직임 줄이기(앱 설정·시연 스위치, html.motion-reduce)면 돌지 않고 바로 멈춘다. 기기 설정은 따르지 않는다(viewPrefs 규칙). */
 .hp-ask {
   --ask-blue: #3182f6;
   --ask-orange: #f2441d;
@@ -422,7 +412,6 @@
   padding: 0 6px 0 var(--s-5);
   border-radius: var(--r-full);
   background: var(--ask-fill);
-  box-shadow: 0 0 14px -4px rgb(242 68 29 / 0.28);
 }
 .hp-ask::before,
 .hp-ask::after { content: ''; position: absolute; z-index: -1; pointer-events: none; }
@@ -431,22 +420,22 @@
   top: 50%;
   width: calc(100% + 40px);
   aspect-ratio: 1;
-  background: conic-gradient(var(--ask-blue) 0deg 120deg, var(--ask-orange) 190deg 245deg, var(--ask-blue) 315deg 360deg);
+  background: var(--ask-blue);
   transform: translate(-50%, -50%) rotate(0deg);
-  animation: ask-turn 16s linear infinite;
-  will-change: transform;
 }
 .hp-ask::after { inset: 2px; border-radius: var(--r-full); background: var(--ask-fill); }
-:root[data-theme='dark'] .hp-ask { --ask-blue: #4593fc; --ask-fill: var(--bg-sub); box-shadow: 0 0 16px -4px rgb(242 68 29 / 0.4); }
+:root[data-theme='dark'] .hp-ask { --ask-blue: #4593fc; --ask-fill: var(--bg-sub); }
 .hp-ask:focus-within {
   box-shadow: var(--focus-ring), 0 0 18px -2px rgb(242 68 29 / 0.4);
 }
 .hp-ask:focus-within::before {
   background: conic-gradient(var(--ask-blue) 0deg 100deg, var(--ask-orange) 185deg 250deg, var(--ask-blue) 325deg 360deg);
+  animation: ask-turn 1.1s var(--ease-out) 1 both;
+  will-change: transform;
 }
 @keyframes ask-turn { to { transform: translate(-50%, -50%) rotate(360deg); } }
 @media all {
-  html.motion-reduce .hp-ask::before { animation: none; }
+  html.motion-reduce .hp-ask:focus-within::before { animation: none; }
 }
 html[data-page-hidden] .hp-ask::before { animation-play-state: paused; }
 .bm .hp-ask .hp-ask-in:focus, .bm .hp-ask .hp-ask-in:focus-visible { box-shadow: none; outline: none; border: 0; background: none; }
@@ -531,7 +520,7 @@ html[data-page-hidden] .hp-ask::before { animation-play-state: paused; }
 }
 .hp-ai-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); margin: 0; font-size: var(--fs-small); color: var(--text-sub); }
 .hp-ai-lead { margin: 0; font-size: var(--fs-small); color: var(--text-sub); }
-.hp-ai-what { margin: 0; font-size: var(--fs-sub); font-weight: 700; color: var(--text-strong); overflow-wrap: anywhere; }
+.hp-ai-what { margin: 0; font-size: var(--fs-sub); font-weight: 600; color: var(--text-strong); overflow-wrap: anywhere; }
 .hp-ai-slots { margin: 0; font-size: var(--fs-small); color: var(--text); overflow-wrap: anywhere; }
 .bm button.hp-ai-go { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1); width: 100%; }
 .hp-ai-cands { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
@@ -597,7 +586,7 @@ html[data-page-hidden] .hp-ask::before { animation-play-state: paused; }
   box-shadow: var(--shadow-sheet);
 }
 .hs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-2); }
-.hs-head h2 { margin: 0; font-size: var(--fs-head); font-weight: 700; color: var(--text-strong); }
+.hs-head h2 { margin: 0; font-size: var(--fs-head); font-weight: 600; color: var(--text-strong); }
 .bm button.hs-x {
   width: var(--touch);
   height: var(--touch);
@@ -619,7 +608,7 @@ html[data-page-hidden] .hp-ask::before { animation-play-state: paused; }
   padding: 0 var(--s-1);
   background: none;
   color: var(--text-strong);
-  font-weight: 700;
+  font-weight: 500;
   text-align: left;
 }
 .hs-item > span:nth-child(2) { flex: 1; }
@@ -664,19 +653,19 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 .bm button.bn-set {
   display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
   width: 100%; min-height: var(--touch); padding: 0 var(--s-4); border-radius: var(--r-md);
-  background: var(--bg-sub, var(--blue-50)); text-align: left; font-weight: 700; color: var(--text-strong);
+  background: var(--bg-sub, var(--blue-50)); text-align: left; font-weight: 500; color: var(--text-strong);
 }
 .bn-set small, .bn-q small { color: var(--text-sub); font-size: var(--fs-caption); font-weight: 400; margin-left: var(--s-2); }
 .bn-panel { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-4); border-radius: var(--r-md); border: 1px solid var(--line); }
-.bn-q { margin: 0 0 var(--s-2); font-weight: 700; color: var(--text-strong); }
-.bn-priv { margin: 0; }
-.bn-gh { margin: var(--s-2) 0 0; font-size: var(--fs-body); font-weight: 700; color: var(--text-strong); }
+.bn-q { margin: 0 0 var(--s-2); font-weight: 600; color: var(--text-strong); }
+
+.bn-gh { margin: var(--s-2) 0 0; font-size: var(--fs-body); font-weight: 600; color: var(--text-strong); }
 .bn-list { display: flex; flex-direction: column; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
 .bn-card { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-4); border-radius: var(--r-md); border: 1px solid var(--line); }
-.bn-card h3 { margin: 0; font-size: var(--fs-body); font-weight: 700; color: var(--text-strong); }
+.bn-card h3 { margin: 0; font-size: var(--fs-body); font-weight: 600; color: var(--text-strong); }
 .bn-sum { margin: 0; color: var(--text-strong); line-height: 1.55; }
 .bn-tags { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.bn-tag { padding: 2px var(--s-3); border-radius: var(--r-full); font-size: var(--fs-caption); font-weight: 700; background: var(--blue-50); color: var(--blue-700); }
+.bn-tag { padding: 2px var(--s-3); border-radius: var(--r-full); font-size: var(--fs-caption); font-weight: 600; background: var(--blue-50); color: var(--blue-700); }
 .bn-tag-device { background: var(--green-50); color: var(--green-700); }
 .bn-tag-welfare { background: var(--purple-50); color: var(--purple-700); }
 .bn-tag-culture, .bn-tag-need { background: var(--amber-50); color: var(--amber-700); }
@@ -685,11 +674,11 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 .bn-dl > div { display: flex; gap: var(--s-3); }
 .bn-dl dt { flex: none; width: 4.5em; color: var(--text-sub); }
 .bn-dl dd { margin: 0; min-width: 0; color: var(--text-strong); overflow-wrap: anywhere;  text-wrap: balance; }
-.bn-unk { margin: 0; color: var(--amber-700); font-size: var(--fs-small); }
-.bn-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-3); }
+
+
 .bn-link, .bn-open {
   display: inline-flex; align-items: center; gap: var(--s-1); min-height: var(--touch); padding: 0 var(--s-4);
-  border-radius: var(--r-full); background: var(--primary-weak); color: var(--blue-700); font-weight: 700; text-decoration: none;
+  border-radius: var(--r-full); background: var(--primary-weak); color: var(--blue-700); font-weight: 600; text-decoration: none;
 }
 :root[data-theme='dark'] .bn-link, :root[data-theme='dark'] .bn-open { color: var(--primary); }
 .bn-link:focus-visible, .bn-open:focus-visible { outline: none; box-shadow: var(--focus-ring); }
@@ -698,7 +687,7 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 /* ───── 첫 화면: 앱 목적 한 줄, 체험 데이터 카드, 이용 안내 3단계 ───── */
 
 .hp-trial { display: grid; gap: var(--s-2); padding: var(--card-pad); border-radius: var(--card-radius); background: var(--card-bg); }
-.hp-trial h2 { margin: 0; color: var(--text-strong); font-size: var(--fs-sub); font-weight: 700; }
+.hp-trial h2 { margin: 0; color: var(--text-strong); font-size: var(--fs-sub); font-weight: 600; }
 .hp-trial p { margin: 0; color: var(--text-strong); font-size: var(--fs-small); line-height: 1.5; word-break: keep-all; }
 .hp-trial-act { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin-top: var(--s-1); }
 .hp-trial-act button { min-height: var(--touch); padding: 0 var(--s-2); border-radius: var(--r-md); font-size: var(--fs-small); white-space: nowrap; }
@@ -712,18 +701,22 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 
 /* 혜택알림 구역 탭 */
 .al-seg { margin-bottom: var(--s-3); }
-.bm .al-seg button { padding: 0 var(--s-1); font-size: var(--fs-small); font-weight: 700; white-space: nowrap; }
+.bm .al-seg button { padding: 0 var(--s-1); font-size: var(--fs-small); font-weight: 500; white-space: nowrap; }
 .al-panel { display: grid; gap: var(--s-3); }
 
 /* 혜택 카드 대상 칸 괄호 설명 접기 */
-.bn-fold { display: block; min-height: 44px; margin: 0; padding: 0; background: none; border: 0; color: var(--blue-700); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.bn-fold { display: block; min-height: 44px; margin: 0; padding: 0; background: none; border: 0; color: var(--blue-700); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .bn-fold-body[hidden] { display: none; }
 
 /* 혜택 카드: 이름과 얻는 혜택만 보이고, 대상·기간·문의는 "자세히 보기" 안에 */
 .bn-card { border: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: var(--s-4) 0; }
 .bn-list > .bn-card:last-child { border-bottom: 0; }
-.bm button.bn-more { align-self: flex-start; min-height: 32px; padding: 0 var(--s-3); border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-small); font-weight: 700; }
+.bm button.bn-more { position: relative; align-self: flex-start; min-height: 32px; padding: 0 var(--s-3); border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-small); font-weight: 500; }
 .bm button.bn-more:hover:not(:disabled) { background: var(--primary-weak); }
+/* 보이는 높이는 32px, 누르는 영역은 위아래로 넓혀 44px */
+.bm button.bn-more::after { content: ''; position: absolute; inset: -6px 0; }
+/* 보이는 높이는 32px, 누르는 영역은 위아래로 넓혀 44px */
+.bm button.bn-more::after { content: ''; position: absolute; inset: -6px 0; }
 .bn-detail { display: flex; flex-direction: column; gap: var(--s-3); padding-top: var(--s-1); }
 .bn-detail[hidden] { display: none; }
 .bn-sum { word-break: keep-all; }
@@ -784,12 +777,13 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 
 .bm button.hp-link {
   flex: none;
+  min-width: var(--touch);
   min-height: var(--touch);
   padding: 0 var(--s-2);
   background: none;
   color: var(--hp-ink);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 
@@ -825,7 +819,7 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 .hp-tile-slot { position: relative; }
 .hp-tile-swap { display: block; }
 .hp-ask-wrap { display: grid; gap: var(--s-4); }
-.hp-q { font-size: 1.75rem; font-weight: 800; line-height: 1.3; letter-spacing: -0.02em; color: var(--text-strong); word-break: keep-all; }
+.hp-q { font-size: 1.75rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.02em; color: var(--text-strong); word-break: keep-all; }
 .hp-ask.hp-ask-big { min-height: 68px; padding: 0 8px 0 var(--s-6); }
 .bm .hp-ask.hp-ask-big .hp-ask-in { height: 60px; font-size: 1.0625rem; font-weight: 600; }
 .bm .hp-ask.hp-ask-big .hp-ask-in::placeholder { font-weight: 400; }
@@ -836,16 +830,16 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
   display: grid;
   gap: var(--s-1);
   width: 100%;
-  padding: var(--card-pad) 56px var(--card-pad) var(--card-pad);
+  padding: var(--s-6) 56px var(--s-6) var(--card-pad);
   border-radius: var(--card-radius);
-  background: var(--card-bg);
-  color: var(--text-strong);
+  background: var(--blue-600);
+  color: #fff;
   text-align: left;
 }
-.hp-mine-t { color: var(--text-sub); font-size: var(--fs-small); font-weight: 600; }
-.hp-mine-n { color: var(--text-strong); font-size: 1.5rem; font-weight: 700; line-height: 1.35; font-variant-numeric: tabular-nums; }
-.hp-mine-s { color: var(--text-sub); font-size: var(--fs-small); }
-.hp-mine-chev { position: absolute; right: var(--card-pad); bottom: var(--card-pad); display: grid; color: var(--text-sub); }
+.hp-mine-t { color: rgb(255 255 255 / 0.85); font-size: var(--fs-small); font-weight: 600; }
+.hp-mine-n { color: #fff; font-size: 2.25rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.hp-mine-s { color: rgb(255 255 255 / 0.85); font-size: var(--fs-small); font-weight: 400; }
+.hp-mine-chev { position: absolute; right: var(--card-pad); bottom: var(--card-pad); display: grid; color: #fff; }
 .bm button.hp-mine-re {
   position: absolute;
   top: var(--s-2);
@@ -857,11 +851,11 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
   padding: 0;
   border-radius: var(--r-full);
   background: none;
-  color: var(--text-sub);
+  color: rgb(255 255 255 / 0.85);
 }
 
 .hp-sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-2); }
-.hp-sh h2 { font-size: var(--fs-sub); font-weight: 700; color: var(--text-strong); }
+.hp-sh h2 { font-size: var(--fs-sub); font-weight: 600; color: var(--text-strong); }
 .hp-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
 .bm button.hp-tile {
   display: flex;
@@ -873,13 +867,14 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
   min-height: 96px;
   padding: var(--s-3) var(--s-2);
   border-radius: var(--card-radius);
-  background: var(--card-bg);
+  background: var(--grey-200);
+  box-shadow: none;
   color: var(--text-strong);
   text-align: center;
 }
 .hp-tile-ic { display: grid; color: var(--hp-ink); }
 .hp-tile-t { font-size: var(--fs-small); font-weight: 600; line-height: 1.3; word-break: keep-all; text-wrap: balance; }
-.bm button.hp-tile-add { box-shadow: inset 0 0 0 1.5px var(--line); color: var(--text-sub); }
+.bm button.hp-tile-add { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); color: var(--text-sub); }
 .hp-tile-add .hp-tile-ic { color: var(--text-sub); }
 .hs-item[aria-current] > svg:last-child { color: var(--primary); }
 .bm button.hs-clear { color: var(--text-sub); }
@@ -896,3 +891,51 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
   font-weight: 500;
 }
 .pg-src > ul { margin: 0; padding: 0 16px 12px 32px; color: var(--text-sub, #4e5968); font-size: 0.875rem; line-height: 1.6; }
+
+/* ───── 차분한 굵기·카드(홈 + 제보·내 정보·혜택알림 탭, .bm.pg 안에서만) ─────
+   (.bm.pg.pg: 다른 화면 CSS의 굵기 규칙보다 앞서게 클래스를 겹쳐 쓴다)
+   제목 600, 버튼 500, 배지·라벨 600, 본문 400. 위계는 크기와 색으로 준다. 워드마크는 700 그대로. */
+.bm.pg.pg :is(h2, h3, h4, strong, b) { font-weight: 600; }
+.bm.pg.pg :is([class*="badge"], [class*="-tag"], [class*="chip"], .bn-link, .ob-card-avatar, .fx-swap-in) { font-weight: 600; }
+.bm.pg.pg button { font-weight: 500; }
+.bm.pg.pg button.rf-primary,
+.bm.pg.pg .hp-tile-t,
+.bm.pg.pg .hp-mine-t { font-weight: 600; }
+.bm.pg.pg .pg-brand,
+.bm.pg.pg .pg-brand button { font-weight: 700; }
+.bm.pg.pg :is(p, li, small, .bm-meta, .hp-mine-s) { font-weight: 400; }
+
+/* 제보·내 정보 탭에서 중요한 카드 하나만 크게: 「문제 제보하기」 카드, 계정 카드 */
+.pg-title + .pg-card:has(> .rf-primary.pg-wide) {
+  gap: var(--s-4);
+  padding: var(--s-6);
+}
+.pg-title + .pg-card:has(> .rf-primary.pg-wide) > h2 { font-size: var(--fs-head); }
+.bm .pg-title + .pg-card > button.rf-primary.pg-wide { min-height: 56px; font-size: var(--fs-body); }
+.pg-title + .ob-card { padding: var(--s-6); }
+.pg-title + .ob-card .ob-card-head { gap: var(--s-4); margin-bottom: var(--s-4); }
+.pg-title + .ob-card .ob-card-avatar { width: 56px; height: 56px; font-size: var(--fs-head); }
+.pg-title + .ob-card .ob-card-head strong { font-size: var(--fs-head); }
+
+/* ───── unslop-6 배치(11/21) ───── */
+/* 설정 시트가 열려 있는 동안 하단 탭 바(가운데 버튼 포함)를 숨겨 시트 아래쪽이 가려지지 않게 한다. PC 보기의 위쪽 내비는 그대로 */
+/* 탭 바 자리의 면(시트와 같은 색)은 남겨 시트가 화면 끝까지 이어져 보이게 하고, 버튼만 숨긴다 */
+body:has(.ms-settings) .tabbar { border-top-color: transparent; }
+body:has(.ms-settings) .tabbar > * { visibility: hidden; }
+@media (min-width: 768px) {
+  :root:not([data-view='mobile']) body:has(.ms-settings) .tabbar { border-top-color: var(--line); }
+  :root:not([data-view='mobile']) body:has(.ms-settings) .tabbar > * { visibility: visible; }
+}
+:root[data-view='desktop'] body:has(.ms-settings) .tabbar { border-top-color: var(--line); }
+:root[data-view='desktop'] body:has(.ms-settings) .tabbar > * { visibility: visible; }
+/* 제보 탭 아래 묶음(접수번호·내 제보·담당 기관): 카드 면 없이 위 구분선만. 안쪽 입력칸·버튼은 흰 면으로 */
+.pg-card.pg-flat {
+  padding: var(--s-5) var(--s-1) var(--s-2);
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.bm .pg-flat input,
+.bm .pg-flat button.pg-wide,
+.bm .pg-flat form button { background: var(--bg); }
+.pg-flat .rf-seg { background: var(--grey-200); }

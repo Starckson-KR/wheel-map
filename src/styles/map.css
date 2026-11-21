@@ -50,7 +50,7 @@
   z-index: var(--z-map-ui);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: calc(var(--safe-top) + 8px) 8px 0;
   pointer-events: none;
 }
@@ -169,10 +169,10 @@
   right: 8px;
   display: grid;
   grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
   max-height: min(50vh, 360px);
   margin: 0;
-  padding: 10px;
+  padding: 12px;
   border-radius: var(--r-lg);
   background: var(--bg);
   box-shadow: var(--shadow-2);
@@ -187,7 +187,7 @@
 .hm-legend li {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
   min-height: 28px;
   padding: 2px 8px 2px 4px;
@@ -212,7 +212,7 @@
   color: #fff;
   font-size: 0.75rem;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 }
 
@@ -220,7 +220,7 @@
   min-width: 28px;
   padding: 0 4px;
   border-radius: 6px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
 }
 
 .hm-focus {
@@ -253,7 +253,7 @@
   background: var(--purple-700);
   color: #fff;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
   text-align: center;
   box-shadow: var(--shadow-1);
@@ -665,9 +665,9 @@
   overflow: hidden;
   color: var(--text-strong);
   font-size: var(--fs-body);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -739,7 +739,7 @@
 .hm-counts {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -748,14 +748,14 @@
 .hm-count {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   height: 32px;
-  padding: 0 12px 0 6px;
+  padding: 0 12px 0 8px;
   border-radius: var(--r-full);
   background: var(--grey-100);
   color: var(--text-strong);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bm button.hm-cta-sub {
@@ -789,7 +789,7 @@
 .hm-more h3 {
   margin: 0 0 4px;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bm button.hm-locate {
@@ -953,7 +953,7 @@
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-head);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.03em;
 }
@@ -1030,7 +1030,7 @@
 .pc h2 {
   margin: 0;
   font-size: var(--fs-sub);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .pc-addr {
@@ -1124,7 +1124,7 @@
 .ms-head h2 {
   margin: 0;
   font-size: var(--fs-head);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ms-sub {
@@ -1144,7 +1144,7 @@
 .ms-sec > h3 {
   margin: 0;
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-sub);
 }
 
@@ -1157,79 +1157,23 @@
 }
 
 /* 레이어 카드 */
-.bm button.lp-card {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  width: 100%;
-  min-height: 64px;
-  padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-lg);
-  background: var(--grey-100);
-  text-align: left;
-}
 
-.bm button.lp-card.on {
-  background: var(--grey-100);
-}
 
-.lp-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-md);
-  background: var(--bg);
-  font-size: 1.375rem;
-  color: var(--primary);
-}
 
-.lp-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  color: var(--text-strong);
-}
 
-.lp-text span {
-  color: var(--text-sub);
-  font-size: var(--fs-caption);
-  font-weight: 400;
-}
 
-.lp-state {
-  flex: none;
-  position: relative;
-  width: 44px;
-  height: 26px;
-  border-radius: var(--r-full);
-  background: var(--grey-300);
-  font-size: 0;
-  transition: background-color var(--t-fast) var(--ease-out);
-}
 
-.lp-state::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(25 31 40 / 0.3);
-  transition: transform var(--t-fast) var(--ease-out);
-}
 
-.on .lp-state {
-  background: var(--blue-600);
-}
 
-.on .lp-state::after {
-  transform: translateX(18px);
-}
+
+
+
+
+
+
+
+
+
 
 .lp-check {
   display: flex;
@@ -1613,7 +1557,7 @@ html[data-text='large'] .ms .rf-actions button {
   gap: 8px;
   margin: 0 0 var(--s-3);
   color: var(--text-strong);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bm-impact .hm-cat {
@@ -1626,43 +1570,13 @@ html[data-text='large'] .ms .rf-actions button {
   font-style: normal;
 }
 
-.bm-pin-t {
-  margin-left: 3px;
-  padding: 0 4px;
-  border-radius: var(--r-full);
-  background: #fff;
-  color: #4e5968;
-  font-size: 0.625rem;
-  font-weight: 700;
-  line-height: 14px;
-}
 
-.hm-legend i.hm-leg-prov {
-  min-width: 20px;
-  padding: 0 2px;
-  border: 1.5px dashed #4e5968;
-  background: #e5e8eb;
-  color: #4e5968;
-  font-size: 0.625rem;
-}
 
-.hm-prov-note {
-  margin: 6px 0 0;
-  color: var(--text-sub, #6b7684);
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
 
-.bm-prov-box {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border: 1.5px dashed #8b95a1;
-  border-radius: 12px;
-  background: #f2f4f6;
-  color: #4e5968;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-}
+
+
+
+
 
 /* 시민 화면의 개선계획 표시(금액·사업명은 넣지 않는다) */
 .bm-plan {
@@ -1672,7 +1586,7 @@ html[data-text='large'] .ms .rf-actions button {
   background: var(--primary-weak);
   color: var(--primary);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ───── 개선 현황 ───── */
@@ -1773,7 +1687,7 @@ html[data-text='large'] .ms .rf-actions button {
   align-items: center;
   gap: 6px;
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -1800,7 +1714,7 @@ html[data-text='large'] .ms .rf-actions button {
   color: #fff;
   font-size: 0.75rem;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 }
 
@@ -1888,7 +1802,7 @@ html[data-text='large'] .ms .rf-actions button {
   margin-bottom: 4px;
   color: var(--text-sub);
   font-size: var(--fs-caption);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ba .bm-thumbs {
@@ -2022,7 +1936,7 @@ html[data-text='large'] .ms .rf-actions button {
 .lp-extra h3 {
   margin: 0;
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-sub);
 }
 
@@ -2220,7 +2134,7 @@ html[data-text='large'] .ms .rf-actions button {
   display: flex;
   gap: var(--s-2);
   margin: 0 -8px;
-  padding: 2px 8px 6px;
+  padding: 2px 8px 8px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
@@ -2234,10 +2148,10 @@ html[data-text='large'] .ms .rf-actions button {
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   height: 40px;
   min-height: 40px;
-  padding: 0 14px;
+  padding: 0 16px;
   border: 1px solid var(--line);
   border-radius: var(--r-full);
   background: var(--bg);
@@ -2308,7 +2222,7 @@ html[data-text='large'] .ms .rf-actions button {
 }
 .sc-sum strong {
   color: var(--text-strong);
-  font-weight: 700;
+  font-weight: 600;
 }
 .sc-sum-ic {
   display: inline-flex;
@@ -2338,7 +2252,7 @@ html[data-text='large'] .ms .rf-actions button {
   margin: var(--s-2) 0;
   color: var(--text-sub);
   font-size: var(--fs-caption);
-  font-weight: 700;
+  font-weight: 600;
 }
 .lp-grid {
   display: grid;

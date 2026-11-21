@@ -1,5 +1,6 @@
 import type { Report } from '../types'
 import { INSPECT_FIXED_MONTHS, INSPECT_TEMP_MONTHS, LONG_UNRESOLVED_DAYS } from './config'
+import { fmtDay } from './format'
 
 export const DAY = 86400000
 
@@ -65,4 +66,4 @@ export function nextInspection(r: Report, now: number): { lastMs: number; dueMs:
 }
 
 export const pct = (v: number | null) => (v === null ? '산정 불가' : `${Math.round(v * 100)}%`)
-export const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('ko-KR', { dateStyle: 'medium' })
+export const fmtDate = (ms: number) => fmtDay(ms)

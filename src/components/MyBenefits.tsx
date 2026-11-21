@@ -90,6 +90,8 @@ export default function MyBenefits() {
   const [showRest, setShowRest] = useState(false)
   const view = useMemo(() => buildView(BENEFITS, prefs, nowMs()), [prefs])
   const total = view.matched.length + view.groups.reduce((n, g) => n + g.items.length, 0)
+  // 맞는 혜택이 모두 같은 분류면 분류 딱지를 카드마다 되풀이하지 않고 목록 위에 한 번만 보인다
+  const oneCategory = view.matched.length > 1 && view.matched.every((b) => b.category === view.matched[0].category) ? view.matched[0].category : null
 
   const update = (p: BenefitPrefs) => {
     setPrefs(p)
@@ -155,7 +157,14 @@ export default function MyBenefits() {
           {view.matched.length === 0 ? (
             <Sentences as="p" className="bm-meta">설정에 맞는 혜택이 아직 없어요. 아래에서 다른 혜택을 볼 수 있어요.</Sentences>
           ) : (
-            <ul key={view.matched.map((b) => b.id).join()} className="bn-list">{view.matched.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} showTag />)}</ul>
+            <>
+              {oneCategory && (
+                <div className="bn-tags">
+                  <span className={'bn-tag bn-tag-' + oneCategory}>{categoryLabel(oneCategory)}</span>
+                </div>
+              )}
+              <ul key={view.matched.map((b) => b.id).join()} className="bn-list">{view.matched.map((b, i) => <BenefitCard key={b.id} b={b} i={i} first={riseBn} showTag={!oneCategory} />)}</ul>
+            </>
           )}
           {view.groups.length > 0 && (
             <button type="button" className="pg-wide" aria-expanded={showRest || view.matched.length === 0} onClick={() => setShowRest((v) => !v)}>

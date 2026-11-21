@@ -1,6 +1,7 @@
 // 동행지도 상황 칩(길 가기·버스 타기…)과 「직접 고르기」 묶음. 순수 함수만 둔다(시험: tests/layerPresets.test.ts).
 // 칩은 따로 저장하지 않는다: 지금 켜진 레이어가 어떤 칩의 묶음과 똑같으면 그 칩이 고른 것으로 보인다(직접 바꾸면 저절로 풀린다).
 import type { LayerState, PubItem, PubLayerId } from './publicLayers'
+import { distanceM } from './geo'
 import { HIGH_TEMP_C, isWet, type WeatherNow } from './weather/model.ts'
 
 export type ChipId = 'walk' | 'bus' | 'toilet' | 'rain' | 'child' | 'hot'
@@ -65,12 +66,8 @@ export const NEAR_M = 1500 // 「N곳」을 세는 반경(지도 가운데 기�
 export const BUS_NEAR_M = 500 // 가까운 정류장
 
 type Pt = { lat: number; lng: number }
-const RAD = Math.PI / 180
 function distM(a: Pt, b: Pt): number {
-  const dLat = (b.lat - a.lat) * RAD
-  const dLng = (b.lng - a.lng) * RAD
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * RAD) * Math.cos(b.lat * RAD) * Math.sin(dLng / 2) ** 2
-  return 2 * 6371000 * Math.asin(Math.sqrt(h))
+  return distanceM(a.lat, a.lng, b.lat, b.lng)
 }
 const placed = (items: PubItem[]) => items.filter((i): i is PubItem & Pt => i.lat != null && i.lng != null)
 

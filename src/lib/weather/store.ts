@@ -41,7 +41,6 @@ export function setDemoWeather(d: DemoWeather) {
   }
   set({ demo: d })
 }
-export const getDemoWeather = () => state.demo
 
 export async function loadWeather(force = false): Promise<void> {
   const age = Date.now() - state.at

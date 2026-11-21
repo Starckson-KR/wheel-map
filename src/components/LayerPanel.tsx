@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import Icon from './Icon'
 import { PUB_LAYERS, type LayerState, type PubLayerId } from '../lib/publicLayers'
 import SheetHandle from './SheetHandle'
@@ -29,6 +30,11 @@ function tileOf(k: LayerKey) {
 
 /** 직접 고르기: 레이어를 다섯 묶음, 두 줄 타일로 켜고 끈다. 켜진 타일은 파란 테두리와 체크로 보인다. */
 export default function LayerPanel({ layers, loading, onChange, onClose, filter, onFilter, extra }: Props) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [onClose])
   const failed = PUB_LAYERS.filter((l) => layers[l.id] && loading[l.id] === 'error')
   return (
     <>

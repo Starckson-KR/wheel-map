@@ -9,6 +9,9 @@ export function loadBisStops(): Promise<BisStop[]> {
   cache ??= import('../../../data/public/bus-stops.bis.json').then((m) => {
     const d = m.default as unknown as { items: { id: string; name: string; lat: number; lng: number; fields: { ARS_ID?: string; NEXT_BUSSTOP?: string } }[] }
     return d.items.map((x) => ({ id: x.id, name: x.name, lat: x.lat, lng: x.lng, ars: x.fields.ARS_ID, next: x.fields.NEXT_BUSSTOP }))
+  }).catch((e) => {
+    cache = null // 한 번 받지 못해도 다음에 다시 시도한다
+    throw e
   })
   return cache
 }

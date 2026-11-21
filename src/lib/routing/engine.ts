@@ -266,7 +266,6 @@ export type Attempt = { targetId: string; offsetLabel: string; via: Pt[]; opt?: 
 export type NearStop = { o: Obstacle; distM: number; where: 'route' | 'start' | 'end' }
 
 export type Verdict = 'pass' | 'caution' | 'blocked'
-export const VERDICT_LABEL: Record<Verdict, string> = { pass: '통과 가능', caution: '주의', blocked: '어려움' }
 
 export type RouteSummary = {
   verdict: Verdict // 지나가기 기준(passage·zone): X 없음&△·구역 없음=pass, △·구역만=caution, 우회 못 한 X=blocked
@@ -444,8 +443,3 @@ export async function searchRoute(opts: {
   return res
 }
 
-export function pathLenM(coords: Pt[]): number {
-  let s = 0
-  for (let i = 1; i < coords.length; i++) s += distM(coords[i - 1], coords[i])
-  return s
-}

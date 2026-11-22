@@ -23,6 +23,7 @@ const TABS: { id: Tab; label: string }[] = [
 // 목록 한 줄: 유형 · 주소(보이는 항목만 조회) · 접수일 · 상태가 모두 달라서 서로 구분된다.
 function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boolean; onOpen: (id: string) => void }) {
   const [ref, addr] = useVisibleAddress<HTMLLIElement>(r.lat, r.lng)
+  const me = useReports((s) => s.userId)
   const place = addr.short ?? (addr.status === 'loading' ? '주소를 찾고 있어요…' : (r.locationKind ?? coordText(r.lat, r.lng)))
   return (
     <RiseLi ref={ref} first={first} i={i}>
@@ -33,7 +34,7 @@ function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boole
           <span className="rv-addr">{place}</span>
           <span className="rp-desc">{r.description}</span>
           <span className="bm-meta">
-            {userName(r.userId)} · {fmtDateTime(r.createdAt)} 접수{isSampleReport(r) ? ' · 샘플 사진' : ''}
+            {r.userId === me ? userName(r.userId) : '이웃 제보'} · {fmtDateTime(r.createdAt)} 접수{isSampleReport(r) ? ' · 샘플 사진' : ''}
           </span>
         </span>
         <span className={'rp-badge rp-' + r.status}><Swap k={r.status}>{STATUS_LABEL[r.status]}</Swap></span>

@@ -506,6 +506,7 @@
 .ob-welcome, .ob-welcome-foot { position: relative; z-index: 1; }
 .ob-welcome-icon { animation: ob-w-icon 560ms linear 1000ms both, ob-w-fade 140ms ease 1000ms both; }
 .ob-welcome-name { animation: ob-w-up 380ms var(--ease-out) 1150ms both; }
+.ob-welcome-about { margin: 0; position: absolute; left: var(--gutter); right: var(--gutter); top: calc(50% + 134px + var(--s-5)); font-size: var(--fs-body); line-height: 1.5; color: var(--text-sub, var(--text)); animation: ob-w-up 380ms var(--ease-out) 1450ms both; }
 .ob-welcome-foot { animation: ob-w-up 300ms var(--ease-out) 600ms both; }
 .ob-welcome-name .wordmark-bang circle { transform-box: fill-box; transform-origin: center; animation: ob-w-drop 460ms var(--ease-out) 1300ms both; }
 @keyframes ob-w-icon { from { transform: scale(0.35); } to { transform: scale(1); } }
@@ -517,7 +518,7 @@
 }
 html[data-page-hidden] .ob-welcome-bg *, html[data-page-hidden] .ob-welcome, html[data-page-hidden] .ob-welcome *, html[data-page-hidden] .ob-welcome-foot { animation-play-state: paused; }
 @media all {
-  html.motion-reduce .ob-welcome-bg *, html.motion-reduce .ob-welcome-icon, html.motion-reduce .ob-welcome-name, html.motion-reduce .ob-welcome-foot,
+  html.motion-reduce .ob-welcome-bg *, html.motion-reduce .ob-welcome-icon, html.motion-reduce .ob-welcome-name, html.motion-reduce .ob-welcome-about, html.motion-reduce .ob-welcome-foot,
   html.motion-reduce .ob-welcome-name .wordmark-bang circle { animation: none; }
 }
 @media (min-width: 520px) {

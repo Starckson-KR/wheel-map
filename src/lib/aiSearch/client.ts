@@ -2,7 +2,9 @@ import { guardIntent, isBlockedQuestion, keywordIntent, keywordSlots, candidates
 import type { AiIntent, MovableIntent, Slots } from './intents'
 import { cleanQuestion, verifyResponse } from './validate'
 
-export const AI_TIMEOUT_MS = 4000
+export const AI_TIMEOUT_MS = 6500 // 모델 답이 가끔 5초 넘게 걸린다(Worker는 6초에 포기하고 알려 준다). 첫 시도와 다시 시도를 합친 제한
+const RETRY_WAIT_MS = 400
+const RETRY_MIN_LEFT_MS = 2500 // 남은 시간이 이보다 적으면 다시 시도하지 않는다
 const CACHE_MS = 5 * 60_000
 const CACHE_MAX = 40
 
@@ -40,19 +42,36 @@ async function callWorker(question: string, o: Options): Promise<Understood> {
     timedOut = true
     ctl.abort()
   }, o.timeoutMs ?? AI_TIMEOUT_MS)
+  const started = Date.now()
+  const total = o.timeoutMs ?? AI_TIMEOUT_MS
   try {
-    const res = await f(o.url, {
-      method: 'POST',
-      headers: o.token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${o.token}` } : { 'Content-Type': 'application/json' }, // 로그인한 경우에만 토큰을 붙인다(개발자 계정의 사용 한도 면제용)
-      body: JSON.stringify({ question }),
-      signal: ctl.signal,
-    })
-    if (res.status === 429) return byKeyword(question, 'limit')
+    let res: Response
     let body: unknown = null
-    try {
-      body = await res.json()
-    } catch {
-      return byKeyword(question, 'error')
+    // 일시적인 오류(네트워크 끊김·모델 오류·깨진 답)는 시간이 남으면 한 번만 다시 시도한다. 한도(429)·시간 초과는 다시 하지 않는다.
+    for (let attempt = 0; ; attempt++) {
+      let retryable = false
+      try {
+        res = await f(o.url, {
+          method: 'POST',
+          headers: o.token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${o.token}` } : { 'Content-Type': 'application/json' }, // 로그인한 경우에만 토큰을 붙인다(개발자 계정의 사용 한도 면제용)
+          body: JSON.stringify({ question }),
+          signal: ctl.signal,
+        })
+      } catch (e) {
+        if (timedOut || attempt >= 1 || Date.now() - started > total - RETRY_MIN_LEFT_MS) throw e
+        await new Promise((r) => setTimeout(r, RETRY_WAIT_MS))
+        continue
+      }
+      if (res.status === 429) return byKeyword(question, 'limit')
+      try {
+        body = await res.json()
+      } catch {
+        body = null
+      }
+      const b = body as { ok?: unknown; fallback?: unknown } | null
+      retryable = !b || (b.ok !== true && b.fallback === true) || res.status >= 500
+      if (!retryable || attempt >= 1 || Date.now() - started > total - RETRY_MIN_LEFT_MS) break
+      await new Promise((r) => setTimeout(r, RETRY_WAIT_MS))
     }
     const v = verifyResponse(body, question)
     if (!v) return byKeyword(question, 'error')

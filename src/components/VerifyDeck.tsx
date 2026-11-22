@@ -6,7 +6,7 @@ import { canVote } from '../lib/config'
 import { coordText, useAddress } from '../lib/addressCache'
 import { haptic } from '../lib/haptic'
 import { SPRING } from '../lib/motionTokens'
-import { DEMO_USERS, useReports, userName } from '../lib/reportStore'
+import { DEMO_USERS, useReports } from '../lib/reportStore'
 import { snack, toast } from '../lib/uiStore'
 import { usePhotoUrls } from '../lib/usePhotoUrls'
 import { prefersCalm } from '../lib/viewPrefs'
@@ -34,7 +34,7 @@ function CardBody({ r, shown }: { r: Report; shown: boolean }) {
         <strong>{r.type}</strong>
         <span className="vd-place">{place || '위치는 사진·위치 보기 뒤에 보여요'}</span>
         <span className="vd-desc">{r.description}</span>
-        <span className="bm-meta">{userName(r.userId)}님의 제보</span>
+        <span className="bm-meta">이웃 제보</span>
       </div>
     </>
   )

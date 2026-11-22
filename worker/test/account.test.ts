@@ -209,7 +209,7 @@ test('실시간 확인: 이름표는 요청할 때만, 내 설정 변경 시각(
   assert.deepEqual(older.body.data, { 'wheelmap.textSize': 'large' })
 })
 
-test('두 기기가 같은 제보를 동시에 고친다: 기록·투표는 합집합, 다른 필드는 나중에 도착한 쪽이 이긴다', async () => {
+test('작성자 기기와 이웃 기기가 같은 제보를 동시에 고친다: 투표는 합쳐지고 남의 설명·기록은 반영되지 않는다', async () => {
   const { call, signup } = setup()
   const a = await signup('가가가')
   const b = await signup('나나나', '2222')
@@ -223,9 +223,9 @@ test('두 기기가 같은 제보를 동시에 고친다: 기록·투표는 합�
   assert.equal((await call('PUT', '/reports/r-1', { token: a.token, json: dev1 })).status, 200)
   clock += 1000
   const last = await call('PUT', '/reports/r-1', { token: b.token, json: dev2 })
-  assert.equal(last.body.report.description, '기기2') // 마지막으로 쓴 쪽 승리
+  assert.equal(last.body.report.description, '기기1') // 작성자가 아닌 쪽의 설명 변경은 무시된다
   assert.deepEqual(last.body.report.verification.voterIds, [b.id])
-  assert.deepEqual(last.body.report.history.map((h: J) => h.memo).filter(Boolean), ['검증 대기', '기기1 메모', '기기2 메모']) // 기록은 둘 다 남는다
+  assert.deepEqual(last.body.report.history.map((h: J) => h.memo).filter(Boolean), ['검증 대기', '기기1 메모']) // 남의 기록은 받지 않는다
 })
 
 test('제보 검증: 시연 데이터 거부, 주소 id 불일치, 64KB 초과 413', async () => {

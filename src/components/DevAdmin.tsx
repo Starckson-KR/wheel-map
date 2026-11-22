@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useSheetHost } from '../lib/sheetHost'
 import { logOut, useAccount } from '../lib/account/api'
+import { isRealtimeUp, onRealtime } from '../lib/account/realtime'
+import { fmtAgo } from '../lib/format'
 import { clearAllLocks, deleteReport, deleteUser, loadReports, loadSummary, loadUsers, resetPin, unlockUser } from '../lib/account/admin'
 import type { AdminReport, AdminSummary, AdminUser } from '../lib/account/admin'
 import { confirmSheet, toast } from '../lib/uiStore'
@@ -45,6 +47,10 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
   const [users, setUsers] = useState<AdminUser[]>([])
   const [reports, setReports] = useState<AdminReport[]>([])
   const [more, setMore] = useState({ users: false, reports: false })
+  const [live, setLive] = useState<{ online: number | null; today: number } | null>(null) // 지금 접속 중·오늘 접속 수
+  const [, setTick] = useState(0) // 「N분 전」을 다시 그리기 위한 값
+  const [visible, setVisible] = useState(() => document.visibilityState === 'visible')
+  const countRef = useRef(0)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(true)
   // 새 임시 PIN: 이 화면 상태에만 두고, 닫으면 지운다(다시 볼 수 없다)
@@ -74,6 +80,7 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
       setErr('')
       setSum(s.value)
       setUsers(u.value.items)
+      setLive({ online: u.value.onlineUsers, today: u.value.todayUsers })
       setReports(r.value.items)
       setMore({ users: u.value.more, reports: r.value.more })
     })
@@ -81,6 +88,65 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
       alive = false
     }
   }, [stamp])
+  countRef.current = users.length
+  useEffect(() => {
+    const f = () => setVisible(document.visibilityState === 'visible')
+    document.addEventListener('visibilitychange', f)
+    return () => document.removeEventListener('visibilitychange', f)
+  }, [])
+  // 접속 현황 실시간: 계정 탭이 보이고 상세가 닫혀 있고 화면이 보일 때만. 신호가 오면 디바운스해 다시 불러오고,
+  // 실시간이 없으면 10초·있어도 60초마다 안전망으로 불러온다. 실패는 조용히 무시한다(기존 목록 유지).
+  const watching = tab === 'users' && !detail && visible
+  const firstWatch = useRef(true)
+  useEffect(() => {
+    if (!watching) return
+    let alive = true
+    let last = Date.now()
+    let busyNow = false
+    let debounce: ReturnType<typeof setTimeout> | undefined
+    let safety: ReturnType<typeof setInterval> | undefined
+    const run = async () => {
+      if (busyNow) return
+      busyNow = true
+      last = Date.now()
+      try {
+        const r = await loadUsers(0, Math.min(100, Math.max(30, countRef.current)))
+        if (alive && r.ok) {
+          setUsers(r.value.items)
+          setMore((m) => ({ ...m, users: r.value.more }))
+          setLive({ online: r.value.onlineUsers, today: r.value.todayUsers })
+        }
+      } finally {
+        busyNow = false
+      }
+    }
+    const poke = () => {
+      clearTimeout(debounce)
+      debounce = setTimeout(() => void run(), Math.max(1000, last + 3000 - Date.now()))
+    }
+    const arm = () => {
+      clearInterval(safety)
+      safety = setInterval(() => void run(), isRealtimeUp() ? 60_000 : 10_000)
+    }
+    const off = onRealtime({
+      signal: (t) => t === 'presence' && poke(),
+      state: () => {
+        arm()
+        poke()
+      },
+    })
+    arm()
+    const tick = setInterval(() => setTick((n) => n + 1), 30_000)
+    if (firstWatch.current) firstWatch.current = false
+    else poke() // 상세에서 돌아오거나 다시 보일 때 한 번 새로고침
+    return () => {
+      alive = false
+      off()
+      clearTimeout(debounce)
+      clearInterval(safety)
+      clearInterval(tick)
+    }
+  }, [watching])
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === 'Escape' && (detail ? setDetail(null) : onClose())
     window.addEventListener('keydown', k)
@@ -92,7 +158,11 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
     if (tab === 'users') {
       const r = await loadUsers(users.length)
       if (r.ok) {
-        setUsers((p) => [...p, ...r.value.items])
+        setUsers((p) => {
+          const had = new Set(p.map((u) => u.id)) // 순서가 실시간으로 바뀌어 겹칠 수 있다
+          return [...p, ...r.value.items.filter((u) => !had.has(u.id))]
+        })
+        setLive({ online: r.value.onlineUsers, today: r.value.todayUsers })
         setMore((m) => ({ ...m, users: r.value.more }))
       } else setErr(r.message)
     } else {
@@ -217,6 +287,9 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
             {err}
           </p>
         )}
+        {tab === 'users' && live && (
+          <p className={live.online ? 'dv-live on' : 'dv-live'}>{live.online === null ? `오늘 접속 ${live.today}명` : `지금 접속 중 ${live.online}명 · 오늘 접속 ${live.today}명`}</p>
+        )}
         <ul className="dv-list">
           {tab === 'users' &&
             users.map((u) => (
@@ -227,6 +300,9 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
                       {u.name}
                       {u.role === 'dev' && <span className="dv-tag">개발자</span>}
                     </strong>
+                    <small>
+                      {u.online ? <span className="dv-now">접속 중</span> : u.lastAt ? fmtAgo(u.lastAt) : '접속 기록 없음'} · 30일 {u.visits30 >= 200 ? '200회+' : `${u.visits30}회`} · {u.city ?? '—'}
+                    </small>
                     <small>
                       가입 {shortDate(u.createdAt)} · 신고 {u.reportCount}건
                     </small>

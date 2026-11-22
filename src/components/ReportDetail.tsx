@@ -14,6 +14,8 @@ import { coordText, useAddress } from '../lib/addressCache'
 import { isSampleReport } from '../lib/samplePhotos'
 import type { Barrier, Rating } from '../types'
 import { Sentences } from './Sentences'
+import { useAccount } from '../lib/account/api'
+import { canEditReport } from '../lib/account/canEdit'
 import '../styles/review.css'
 import { fmtDateTime as fmt } from '../lib/format'
 
@@ -25,6 +27,8 @@ type Props = {
   onOpenReport: (id: string) => void
   onOpenSeed: (id: string) => void
   readOnlyExternal?: boolean // 행정 화면에서는 바깥 처리 상황을 읽기만 한다
+  /** 시민 화면: 남의 제보에서는 제보자·확인한 사람 이름을 숨기고 「이웃」으로만 보인다(내 제보·행정 화면은 그대로) */
+  hideNames?: boolean
 }
 
 // 위치 한 줄: 주소(없으면 동 이름, 그것도 없으면 좌표)
@@ -39,7 +43,7 @@ function ReportPlace({ lat, lng, kind }: { lat: number; lng: number; kind?: stri
   )
 }
 
-export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpenReport, onOpenSeed, readOnlyExternal }: Props) {
+export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpenReport, onOpenSeed, readOnlyExternal, hideNames }: Props) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const vote = useReports((s) => s.vote)
@@ -49,6 +53,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
   const [reason, setReason] = useState<string>(REJECT_REASONS[0])
   const [msg, setMsg] = useState('')
   const recurrence = useRecurrence()
+  const account = useAccount((s) => s.user)
 
   const r = reports.find((x) => x.id === reportId)
   if (!r) {
@@ -64,6 +69,13 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
   }
 
   const me = DEMO_USERS.find((u) => u.id === userId) ?? DEMO_USERS[0]
+  // 이름을 보일 사람: 나는 그대로, 남은 숨긴다(검증자·공무원은 역할 이름만)
+  const who = (id: string) => {
+    if (!hideNames || id === me.id) return userName(id)
+    const role = DEMO_USERS.find((u) => u.id === id)?.role
+    return role === 'verifier' ? '검증자' : role === 'officer' ? '담당 공무원' : '이웃'
+  }
+  const theirs = !!hideNames && r.userId !== me.id
   const merged = reports.filter((x) => x.status === 'merged' && x.barrierId === r.id)
   const target = r.barrierId ? (reports.find((x) => x.id === r.barrierId) ?? null) : null
   const seedLabel = r.barrierId && !target ? seedName(r.barrierId) : null
@@ -73,16 +85,18 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
   const act = (res: { ok: boolean; message?: string }) => setMsg(res.ok ? '' : (res.message ?? '처리하지 못했어요.'))
 
   const canVoteNow = canVote() && r.status === 'pending' && me.role === 'citizen' && r.userId !== me.id && !v.voterIds.includes(me.id)
-  const canConfirm = me.role === 'verifier' && r.status === 'pending' && canVerifierConfirm()
-  const canRate = me.role === 'verifier' && r.status === 'verified' && !v.rating
-  const canReject = me.role === 'verifier' && r.status === 'pending'
+  // 서버는 작성자·개발자의 변경만 받으므로 검증자 시연 버튼도 같은 조건일 때만
+  const editable = canEditReport(r, account)
+  const canConfirm = editable && me.role === 'verifier' && r.status === 'pending' && canVerifierConfirm()
+  const canRate = editable && me.role === 'verifier' && r.status === 'verified' && !v.rating
+  const canReject = editable && me.role === 'verifier' && r.status === 'pending'
 
   return (
     <aside className="bm-detail rd" data-sheet aria-label="제보 상세">
       <SheetHandle onDown={onClose} />
       <div className="bm-detail-head">
         <h2>
-          {r.seedId ? `${seedName(r.seedId) ?? '팀 조사 지점'} · ${r.type}` : `시민 제보 · ${r.type}`}
+          {r.seedId ? `${seedName(r.seedId) ?? '팀 조사 지점'} · ${r.type}` : `${theirs ? '이웃' : '시민'} 제보 · ${r.type}`}
         </h2>
         <button type="button" className="bm-close" onClick={onClose} aria-label="닫기">
           닫기
@@ -119,7 +133,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
           <span className="sent">이 제보는 기존 건에 합쳐졌어요.</span>
           {target ? (
             <button type="button" onClick={() => onOpenReport(target.id)}>
-              {target.type} 제보 ({userName(target.userId)})
+              {target.type} 제보 ({who(target.userId)})
             </button>
           ) : (
             <button type="button" onClick={() => r.barrierId && onOpenSeed(r.barrierId)}>
@@ -143,9 +157,9 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       )}
 
       <dl>
-        <dt>제보한 사람과 시간</dt>
+        <dt>{theirs ? '제보와 시간' : '제보한 사람과 시간'}</dt>
         <dd>
-          {userName(r.userId)} · {fmt(r.createdAt)}
+          {theirs ? '이웃 제보' : userName(r.userId)} · {fmt(r.createdAt)}
         </dd>
         <dt>위치</dt>
         <dd>
@@ -173,13 +187,13 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
           {canVote() && r.status !== 'merged' && (
             <>
               시민 {v.votes}/{VOTES_REQUIRED}명이 확인했어요
-              {v.voterIds.length > 0 && <> ({v.voterIds.map(userName).join(', ')})</>}
+              {v.voterIds.length > 0 && !theirs && <> ({v.voterIds.map(who).join(', ')})</>}
               <br />
             </>
           )}
           {v.result === 'rejected' && <>반려 사유: {v.reason}</>}
           {r.status === 'verified' && !v.rating && <><span className="sent">검증자 판정을 기다리고 있어요.</span></>}
-          {v.rating && <>검증자 판정: {RATING_STYLE[v.rating].label} ({userName(v.verifierId ?? 'verifier')})</>}
+          {v.rating && <>검증자 판정: {RATING_STYLE[v.rating].label} ({who(v.verifierId ?? 'verifier')})</>}
         </dd>
       </dl>
 
@@ -265,7 +279,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
             {merged.map((m) => (
               <li key={m.id}>
                 <button type="button" onClick={() => onOpenReport(m.id)}>
-                  {userName(m.userId)} · {fmt(m.createdAt)}
+                  {who(m.userId)} · {fmt(m.createdAt)}
                 </button>
                 <br />
                 <span className="bm-meta">{m.description}</span>
@@ -276,7 +290,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       )}
 
       {r.status === 'verified' && <ComplaintGuide report={r} seeds={seeds} />}
-      <ProcessSection report={r} readOnlyExternal={readOnlyExternal} />
+      <ProcessSection report={r} readOnlyExternal={readOnlyExternal} nameOf={hideNames ? who : undefined} />
     </aside>
   )
 }

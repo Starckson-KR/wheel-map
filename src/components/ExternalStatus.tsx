@@ -1,3 +1,4 @@
+import { useCanEdit } from '../lib/account/canEdit'
 import { useState } from 'react'
 import { channelHome } from '../lib/agencyGuide'
 import { findAgencyName } from '../lib/agencyName'
@@ -14,6 +15,7 @@ import { fmtDay } from '../lib/format'
 // readOnly(행정 화면)이면 기록이 있을 때만 읽기용으로 보여 준다.
 export default function ExternalStatus({ report: r, readOnly = false }: { report: Report; readOnly?: boolean }) {
   const userId = useReports((s) => s.userId)
+  const canEdit = useCanEdit(r) // 남의 제보에는 기록할 수 없다(서버가 받지 않는다)
   const offset = useReports((s) => s.offsetDays)
   void offset // 시간 앞당기기가 바뀌면 다시 그려진다
   const add = useReports((s) => s.addExternalUpdate)
@@ -84,7 +86,7 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
                 {u.agencyName ? ` · ${u.agencyName}` : ''}
               </span>
               {u.memo && <div>{u.memo}</div>}
-              <span className={'ex-by' + (u.by === 'mock-api' ? ' mock' : '')}>{u.by === 'mock-api' ? '모의 조회 결과(시연)' : `시민이 기록한 내용 · ${userName(u.by)}`}</span>
+              <span className={'ex-by' + (u.by === 'mock-api' ? ' mock' : '')}>{u.by === 'mock-api' ? '모의 조회 결과(시연)' : u.by === userId ? `시민이 기록한 내용 · ${userName(u.by)}` : '시민이 기록한 내용'}</span>
             </li>
           ))}
         </ol>
@@ -121,7 +123,7 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
 
       {!readOnly && officer && <Sentences as="p" className="bm-meta">바깥 처리 상황은 시민이 기록해요.</Sentences>}
 
-      {!readOnly && !officer && isMock && (
+      {!readOnly && canEdit && !officer && isMock && (
         <div className="rf-actions">
           <button type="button" disabled={busy} onClick={fetchMock}>
             {busy ? '불러오고 있어요…' : '처리 상황 불러오기(시연)'}
@@ -129,7 +131,7 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
         </div>
       )}
 
-      {!readOnly && !officer && !isMock && (
+      {!readOnly && canEdit && !officer && !isMock && (
         <fieldset className="ex-form">
           <legend>처리 상황 기록하기</legend>
           <label className="rf-field">

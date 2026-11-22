@@ -20,6 +20,7 @@ import { initRealtime, isRealtimeUp } from './realtime'
 //    서버가 형식 문제로 거절하면(4xx) 마지막으로 서버와 맞춘 모습으로 되돌린다(서버에 올라간 적 없는 제보는 이 기기에 그대로 둔다).
 //  - 삭제: 관리자가 서버에서 지운 제보는 서버가 삭제 표시(report_deletions)로 남겨, 받기 응답의 deleted로 내려온다 → 이 기기에서도 지운다.
 //    삭제 표시가 생기기 전에 지워진 제보는 계정마다 처음 한 번 서버의 제보 id 전체(/reports?ids=1)와 맞춰, 「서버와 맞춘 적 있는」 제보 중 서버에 없는 것만 지운다(reconcile.ts).
+//  - 남의 제보: 서버는 작성자(와 개발자 계정)가 아니면 이웃 확인(본인 투표 하나)만 받아들이고 서버 값을 돌려준다(restricted). 이때는 내 쪽 변경을 버리고 서버 값으로 맞춘다.
 //  - 충돌: 같은 제보를 두 기기가 동시에 고치면 기록(history)·확인 투표자는 합집합, 나머지 필드는 서버에 나중에 도착한 쪽이 이긴다(account/merge.ts, worker/src/merge.ts).
 //    아직 못 올린 내 변경이 있는 제보는 서버에서 받은 값보다 내 쪽 필드를 우선해 합쳐 다시 올린다.
 // reportStore와는 SyncHost로만 이어져(순환 import 없음), 이 파일은 reportStore를 import하지 않는다.
@@ -291,13 +292,24 @@ async function flush(): Promise<boolean> {
       await uploadPhotos(r)
       const sent = hashOf(r)
       const res = await apiCall(`/reports/${encodeURIComponent(id)}`, { method: 'PUT', json: r })
-      const b = res.body as { ok?: boolean; report?: Report } | null
+      const b = res.body as { ok?: boolean; report?: Report; restricted?: boolean } | null
       if (res.status === 200 && b?.ok && b.report) {
         sentAny = true
         pending.delete(id)
         const cur = host.getReports().find((x) => x.id === id)
         if (!cur || hashOf(cur) !== sent) pending.add(id) // 보내는 사이 또 바뀌었다 → 내 쪽 값을 우선해 다시 보낸다
-        applyList([b.report])
+        if (b.restricted && pending.has(id) === false) {
+          // 남의 제보라 서버는 이웃 확인만 받아들이고 나머지는 서버 값을 그대로 돌려줬다 → 내 쪽 변경을 버리고 서버 값으로 맞춘다(같은 변경을 다시 올리지 않는다)
+          applying = true
+          try {
+            host.restore(b.report)
+          } finally {
+            applying = false
+          }
+          hashes[id] = hashOf(b.report)
+          serverCopy.set(id, b.report)
+          saveHashes()
+        } else applyList([b.report])
       } else if (res.status === 410) {
         pending.delete(id) // 서버에서 이미 지워진 제보: 다시 올리지 않고 이 기기에서도 지운다
         removeLocal([id])

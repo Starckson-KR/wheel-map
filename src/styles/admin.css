@@ -22,8 +22,7 @@
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-sub);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -82,7 +81,7 @@
   background: none;
   color: var(--text-strong);
   font-size: var(--fs-body);
-  font-weight: 700;
+  font-weight: 500;
   text-align: left;
 }
 
@@ -121,8 +120,8 @@
 .adm-head h2 {
   margin: 0;
   font-size: var(--fs-title);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .adm-sec {
@@ -208,8 +207,7 @@
 .adm-kpis strong {
   color: var(--text-strong);
   font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -231,7 +229,7 @@
   border-radius: var(--r-sm);
   color: #fff;
   font-size: var(--fs-caption);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .adm-bar span,
@@ -315,7 +313,7 @@
   border-radius: var(--r-sm);
   color: #fff;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -376,7 +374,7 @@
   background: var(--blue-600);
   color: #fff;
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .adm-body select {
@@ -527,7 +525,7 @@
   margin-top: var(--s-2);
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .adm-dept-dl dd {
@@ -631,8 +629,8 @@
   margin: 0;
   color: var(--text-strong);
   font-size: var(--fs-title);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .adm-report-head .rf-notice {
@@ -674,7 +672,7 @@
 .adm-delta {
   color: var(--text-sub);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .adm-formula {
@@ -703,7 +701,7 @@
 .adm-report-table thead th {
   color: var(--text-sub);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .adm-report-table th:first-child {
@@ -713,7 +711,7 @@
 
 .adm-report-table tbody th {
   color: var(--text-strong);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .adm-report-sites {
@@ -830,7 +828,7 @@
   background: none;
   color: var(--text-sub);
   font-size: var(--fs-body);
-  font-weight: 700;
+  font-weight: 500;
   white-space: nowrap;
 }
 .bm button.adm-more {
@@ -852,7 +850,7 @@
 @media (max-width: 767px) {
   html[data-text='large'] .adm-brand-name { display: none; }
 }
-.bm button.adm-fill { min-height: 44px; padding: 0 var(--s-4); border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-weight: 700; }
+.bm button.adm-fill { min-height: 44px; padding: 0 var(--s-4); border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-weight: 500; }
 .bm button.adm-fill:hover:not(:disabled) { background: var(--primary-weak); }
 /* 탭이 더 있다는 걸 오른쪽 끝을 옅게 해서 알린다 */
 .rp-tabs.adm-sections { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }

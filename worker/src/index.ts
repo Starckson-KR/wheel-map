@@ -21,8 +21,8 @@ import { handleWeather, isWeatherPath } from './weather.ts'
 import type { ApiBody } from './intents.ts'
 import type { Env } from './types'
 
-const DEFAULT_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8'
-const MODEL_TIMEOUT_MS = 8000 // 첫 호출과 재시도를 합친 총 제한
+const DEFAULT_MODEL = '@cf/google/gemma-4-26b-a4b-it' // 이전 모델(qwen3-30b-a3b-fp8)은 2026-11-20에 종료됐다(오류 5028)
+const MODEL_TIMEOUT_MS = 6000 // 첫 호출과 재시도를 합친 총 제한(앱은 6.5초까지 기다린다)
 const MIN_RETRY_MS = 1500 // 남은 시간이 이보다 적으면 재시도하지 않는다
 
 type Limiter = ReturnType<typeof createRateLimiter>
@@ -46,9 +46,10 @@ function json(body: ApiBody | { ok: false; error: string }, status: number, orig
   return new Response(JSON.stringify(body), { status, headers })
 }
 
-function logError(kind: string) {
-  // 질문 원문·IP는 남기지 않고 오류 종류만 남긴다.
-  console.log(`wheelmap-ai error: ${kind}`)
+function logError(kind: string, e?: unknown) {
+  // 질문 원문·IP는 남기지 않고 오류 종류와(모델 오류일 때) 오류 번호·메시지 앞부분만 남긴다.
+  const why = e instanceof Error && e.message && e.message !== 'timeout' ? ` (${e.message.replace(/\s+/g, ' ').slice(0, 120)})` : ''
+  console.log(`wheelmap-ai error: ${kind}${why}`)
 }
 
 async function isDevRequest(request: Request, env: Env, now: number): Promise<boolean> {
@@ -81,7 +82,7 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
   const path = new URL(request.url).pathname
   if (isRtPath(path)) return handleRt(request, env, origin as string, { now: deps.now })
   if (isAdminPath(path)) return handleAdmin(request, env, origin as string, { now: deps.now, waitUntil: deps.waitUntil })
-  if (isActivityPath(path)) return handleActivity(request, env, origin as string, { now: deps.now })
+  if (isActivityPath(path)) return handleActivity(request, env, origin as string, { now: deps.now, waitUntil: deps.waitUntil })
   if (isBisPath(path)) return handleBis(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
   if (isTransitPath(path)) return handleTransit(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
   if (isWeatherPath(path)) return handleWeather(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
@@ -152,7 +153,7 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
   try {
     output = await ask(false, MODEL_TIMEOUT_MS)
   } catch (e) {
-    logError(e instanceof Error && e.message === 'timeout' ? 'model_timeout' : 'model_error')
+    logError(e instanceof Error && e.message === 'timeout' ? 'model_timeout' : 'model_error', e)
     return json(fallbackBody('model_error'), 200, origin)
   }
 
@@ -167,7 +168,7 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
       try {
         result = parseModelOutput(await ask(true, left), cleaned)
       } catch (e) {
-        logError(e instanceof Error && e.message === 'timeout' ? 'model_timeout' : 'model_error')
+        logError(e instanceof Error && e.message === 'timeout' ? 'model_timeout' : 'model_error', e)
       }
     }
     if (!result) {

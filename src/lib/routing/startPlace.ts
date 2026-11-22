@@ -30,11 +30,10 @@ export function resolveStart(pos: StartPos | null | undefined, inPilot: boolean)
 export type DemoStartSrc = { fromName: string; from: { stopId: string; lat: number; lng: number } }
 export type StartPick = { place: { id?: string; name: string; lat: number; lng: number }; demo: boolean }
 
-/** 시연 출발점: 추천 경로 「전남대 → 용봉2휴먼시아아파트」의 출발 「전남대」와 같은 정류장·좌표 */
-export const DEMO_START_LABEL = '(시연 출발점)'
+/** 위치를 못 얻었을 때의 출발점(이름은 그대로 「전남대」): 추천 경로 「전남대 → 용봉2휴먼시아아파트」의 출발 「전남대」와 같은 정류장·좌표 */
 export function demoStartOf(pairs: (DemoStartSrc & { toName: string })[]): StartPick['place'] | null {
   const p = pairs.find((x) => x.fromName === '전남대' && x.toName.startsWith('용봉2휴먼시아'))
-  return p ? { id: p.from.stopId, name: `${p.fromName}${DEMO_START_LABEL}`, lat: p.from.lat, lng: p.from.lng } : null
+  return p ? { id: p.from.stopId, name: p.fromName, lat: p.from.lat, lng: p.from.lng } : null
 }
 
 /** 검색바에서 도착지를 골랐을 때 출발지: 위치를 쓸 수 있고 시범 지역 안이면 '내 위치', 아니면 시연 출발점 */

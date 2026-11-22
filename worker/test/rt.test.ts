@@ -192,3 +192,60 @@ test('허브 /publish: 형식 검사 후 보내고, 알 수 없는 신호는 400
   assert.equal((await hub.fetch(new Request('https://hub/rt'))).status, 404) // 업그레이드가 아니면 연결하지 않는다
   assert.equal((await hub.fetch(new Request('https://hub/rt', { headers: { upgrade: 'websocket', 'x-rt-user': 'a b' } }))).status, 400)
 })
+
+test('허브 /close: 그 사용자의 연결만 닫고, 형식이 틀리면 400, POST만 받는다', async () => {
+  const closed: string[] = []
+  const ws = (name: string) => ({ send() {}, close: (code?: number, reason?: string) => void closed.push(`${name}:${code}:${reason}`) })
+  const hub = new RealtimeHub(fakeCtx({ [userTag('a')]: [ws('a1'), ws('a2')], [userTag('b')]: [ws('b1')] }) as never)
+  const post = (q: string, method = 'POST') => hub.fetch(new Request('https://hub/close' + q, { method }))
+  const r = await post('?user=a')
+  assert.equal(r.status, 200)
+  assert.equal(await r.text(), '2')
+  assert.deepEqual(closed, ['a1:1008:gone', 'a2:1008:gone'])
+  assert.equal((await post('?user=a b')).status, 400)
+  assert.equal((await post('')).status, 400)
+  assert.equal((await post('?user=a', 'GET')).status, 404)
+  assert.equal(closed.length, 2)
+})
+
+test('바깥에서는 허브 /close에 닿지 못한다: /close는 Worker 경로가 아니고, /rt는 WebSocket 연결만 전달한다', async () => {
+  const { call, signup, hub, db } = setup()
+  const a = await signup('가나')
+  assert.equal((await call('POST', '/close?user=' + a.id, { token: a.token })).status, 404)
+  assert.equal((await call('POST', '/rt?user=' + a.id, { token: a.token })).status, 426)
+  assert.equal((await call('GET', '/rt?ticket=' + 'a'.repeat(32))).status, 426) // 업그레이드 없이는 전달 안 됨
+  assert.ok(!hub.connects.length)
+  assert.ok(db)
+})
+
+test('계정 삭제·PIN 다시 정하기 뒤 그 사용자의 허브 연결을 닫는다(제보 삭제는 닫지 않는다)', async () => {
+  const { call, signup, hub, db } = setup()
+  const closes: string[] = []
+  const inner = hub.ns.get
+  hub.ns.get = ((id: unknown, opts?: unknown) => {
+    const s = inner(id, opts)
+    return {
+      fetch: async (input: string | Request, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input.url
+        if (url.includes('/close')) {
+          closes.push(`${init?.method}:${url}`)
+          return new Response('1')
+        }
+        return s.fetch(input, init)
+      },
+    }
+  }) as never
+  const dev = await signup('개발자')
+  db.raw.prepare("UPDATE users SET role = 'dev' WHERE id = ?").run(dev.id)
+  const a = await signup('작성자')
+  const b = await signup('다른이')
+  await call('PUT', '/reports/r1', { token: a.token, json: report('r1', a.id) })
+  assert.equal((await call('DELETE', '/admin/reports/r1', { token: dev.token })).status, 200)
+  assert.deepEqual(closes, [])
+  assert.equal((await call('POST', `/admin/users/${a.id}/reset-pin`, { token: dev.token })).status, 200)
+  assert.deepEqual(closes, [`POST:https://hub/close?user=${a.id}`])
+  assert.equal((await call('DELETE', `/admin/users/${b.id}`, { token: dev.token })).status, 200)
+  assert.deepEqual(closes, [`POST:https://hub/close?user=${a.id}`, `POST:https://hub/close?user=${b.id}`])
+  assert.equal((await call('DELETE', '/admin/users/nope', { token: dev.token })).status, 404)
+  assert.equal(closes.length, 2)
+})

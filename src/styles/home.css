@@ -686,11 +686,11 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 
 /* ───── 첫 화면: 앱 목적 한 줄, 체험 데이터 카드, 이용 안내 3단계 ───── */
 
-.hp-trial { display: grid; gap: var(--s-2); padding: var(--card-pad); border-radius: var(--card-radius); background: var(--card-bg); }
+.hp-trial { display: grid; gap: var(--s-1); padding: var(--s-3) var(--s-4); border-radius: var(--card-radius); background: var(--card-bg); }
 .hp-trial h2 { margin: 0; color: var(--text-strong); font-size: var(--fs-sub); font-weight: 600; }
 .hp-trial p { margin: 0; color: var(--text-strong); font-size: var(--fs-small); line-height: 1.5; word-break: keep-all; }
 .hp-trial-act { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin-top: var(--s-1); }
-.hp-trial-act button { min-height: var(--touch); padding: 0 var(--s-2); border-radius: var(--r-md); font-size: var(--fs-small); white-space: nowrap; }
+.hp-trial-act button { min-height: 40px; padding: 0 var(--s-2); border-radius: var(--r-md); font-size: var(--fs-small); white-space: nowrap; }
 .bm .hp-trial-act button:not(.rf-primary) { background: var(--grey-100); color: var(--text-strong); }
 .hp-trial .hp-trial-msg { color: var(--text-sub); }
 
@@ -812,32 +812,32 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 /* ───── 홈 D안: 질문 · 내 제보 · 자주 쓰는 서비스 ───── */
 /* .hp-rest: 검색·내 제보·자주 쓰는 서비스를 묶는다(「처음이세요?」 카드가 닫히면 motion이 이 묶음을 미끄러뜨린다). 간격은 .hp와 같다 */
 .hp { position: relative; }
-.hp-rest { display: flex; flex-direction: column; gap: 28px; }
+.hp-rest { display: flex; flex-direction: column; gap: var(--s-4); }
 .hp-rest > .hp-ask-wrap, .hp-rest > .hp-mine, .hp-rest > .hp-svc { animation: hp-rise 0.5s var(--ease-out) both; }
 .hp-rest > .hp-mine { animation-delay: 0.06s; }
 .hp-rest > .hp-svc { animation-delay: 0.12s; }
 .hp-tile-slot { position: relative; }
 .hp-tile-swap { display: block; }
-.hp-ask-wrap { display: grid; gap: var(--s-4); }
-.hp-q { font-size: 1.75rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.02em; color: var(--text-strong); word-break: keep-all; }
-.hp-ask.hp-ask-big { min-height: 68px; padding: 0 8px 0 var(--s-6); }
-.bm .hp-ask.hp-ask-big .hp-ask-in { height: 60px; font-size: 1.0625rem; font-weight: 600; }
+.hp-ask-wrap { display: grid; gap: var(--s-3); }
+.hp-q { font-size: 1.5rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.02em; color: var(--text-strong); word-break: keep-all; }
+.hp-ask.hp-ask-big { min-height: 60px; padding: 0 8px 0 var(--s-5); }
+.bm .hp-ask.hp-ask-big .hp-ask-in { height: 52px; font-size: 1.0625rem; font-weight: 600; }
 .bm .hp-ask.hp-ask-big .hp-ask-in::placeholder { font-weight: 400; }
-.bm .hp-ask.hp-ask-big button.hp-ask-go { width: 52px; min-width: 52px; height: 52px; }
+.bm .hp-ask.hp-ask-big button.hp-ask-go { width: 46px; min-width: 46px; height: 46px; }
 
 .hp-mine { position: relative; }
 .bm button.hp-mine-go {
   display: grid;
   gap: var(--s-1);
   width: 100%;
-  padding: var(--s-6) 56px var(--s-6) var(--card-pad);
+  padding: var(--s-4) 56px var(--s-4) var(--card-pad);
   border-radius: var(--card-radius);
   background: var(--blue-600);
   color: #fff;
   text-align: left;
 }
 .hp-mine-t { color: rgb(255 255 255 / 0.85); font-size: var(--fs-small); font-weight: 600; }
-.hp-mine-n { color: #fff; font-size: 2.25rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.hp-mine-n { color: #fff; font-size: 1.5rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; }
 .hp-mine-s { color: rgb(255 255 255 / 0.85); font-size: var(--fs-small); font-weight: 400; }
 .hp-mine-chev { position: absolute; right: var(--card-pad); bottom: var(--card-pad); display: grid; color: #fff; }
 .bm button.hp-mine-re {
@@ -864,8 +864,8 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
   justify-content: center;
   gap: var(--s-2);
   width: 100%;
-  min-height: 96px;
-  padding: var(--s-3) var(--s-2);
+  min-height: 72px;
+  padding: var(--s-2);
   border-radius: var(--card-radius);
   background: var(--grey-200);
   box-shadow: none;
@@ -939,3 +939,34 @@ body:has(.ms-settings) .tabbar > * { visibility: hidden; }
 .bm .pg-flat button.pg-wide,
 .bm .pg-flat form button { background: var(--bg); }
 .pg-flat .rf-seg { background: var(--grey-200); }
+
+/* 설정 시트의 스위치(접속 지역 기록) */
+.bm .pg-set button.cr-sw { position: relative; flex: none; width: 52px; min-width: 52px; padding: 0; background: none; }
+.bm .pg-set button.cr-sw::before { content: ''; position: absolute; left: 2px; top: 50%; width: 48px; height: 28px; margin-top: -14px; border-radius: var(--r-full); background: var(--grey-200); }
+.bm .pg-set button.cr-sw::after { content: ''; position: absolute; left: 5px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.15s; }
+.bm .pg-set button.cr-sw[aria-checked='true']::before { background: var(--primary); }
+.bm .pg-set button.cr-sw[aria-checked='true']::after { transform: translateX(20px); }
+.bm .pg-set button.cr-sw:active:not(:disabled) { transform: none; }
+@media (hover: hover) and (pointer: fine) { .bm .pg-set button.cr-sw:hover:not(:disabled) { background-color: transparent; } }
+@media (prefers-reduced-motion: reduce) { .bm .pg-set button.cr-sw::after { transition: none; } }
+
+/* 홈 한 화면: 아래 여백을 줄여(하단 탭 위 16px) 390×844에서 스크롤 없이 보이게 한다 */
+.hp-scroll > .pg-col.hp { padding-top: calc(var(--safe-top) + var(--s-3)); padding-bottom: var(--s-4); }
+
+/* 전체메뉴 묶음 */
+.hs-group + .hs-group { margin-top: var(--s-2); }
+.hs-gh { margin: var(--s-2) var(--s-1) 0; font-size: var(--fs-caption); font-weight: 600; color: var(--text-sub); }
+.hs-sheet.hs-grouped { max-height: 96%; }
+.bm .hs-group button.hs-item { min-height: 42px; }
+.hs-group .hs-ic { width: 32px; height: 32px; }
+
+/* 혜택 관심 설정 「확인」 */
+.bn-ok { margin-top: var(--s-1); }
+
+/* 개인정보 처리 안내 */
+.pv-list { margin: 0; display: grid; gap: var(--s-3); }
+.pv-item { display: grid; gap: 2px; padding-bottom: var(--s-3); border-bottom: 1px solid var(--line); }
+.pv-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.pv-item dt { font-size: var(--fs-small); font-weight: 600; color: var(--text-strong); }
+.pv-item dd { margin: 0; font-size: var(--fs-small); line-height: 1.5; color: var(--text); word-break: keep-all; }
+.pv-item dd.pv-sub { color: var(--text-sub); }

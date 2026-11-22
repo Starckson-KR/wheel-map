@@ -1,6 +1,6 @@
 import { LOCK_FAILS, SESSION_DAYS, afterFailure, hashPin, isLocked, nameKey, normalizeName, randomHex, safeEqual, sha256Hex, validPin } from './auth.ts'
 import type { Throttle } from './auth.ts'
-import { mergeReport } from './merge.ts'
+import { mergeReport, neighborConfirm } from './merge.ts'
 import { MAX_PREFS_BYTES, cleanPrefs } from './prefs.ts'
 import { notify } from './notify.ts'
 import type { NotifyDeps } from './notify.ts'
@@ -68,11 +68,23 @@ async function recordFailure(db: D1Db, key: string, now: number, limit: number):
   return t
 }
 
+// 잘못된 퍼센트 부호면 null(예외 대신 400으로 답하려고)
+const safeDecode = (s: string): string | null => {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return null
+  }
+}
+
 // ---- 세션 ----
 async function newSession(db: D1Db, userId: string, now: number): Promise<string> {
   const token = randomHex(32)
   await db.prepare('INSERT INTO sessions(token_hash, user_id, expires_at) VALUES(?,?,?)').bind(await sha256Hex(token), userId, now + SESSION_DAYS * 86400000).run()
   await db.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now).run()
+  // 오래된 제한 기록·쓰기 횟수도 함께 정리(throttle은 하루 지나고 잠금이 풀린 것, write_quota는 7일 지난 날짜)
+  await db.prepare('DELETE FROM throttle WHERE window_start < ? AND locked_until < ?').bind(now - 86400000, now).run()
+  await db.prepare('DELETE FROM write_quota WHERE day < ?').bind(new Date(now - 7 * 86400000).toISOString().slice(0, 10)).run()
   return token
 }
 export type AuthedUser = { id: string; name: string; role: string }
@@ -191,6 +203,10 @@ async function handlePrefs(request: Request, env: Env, db: D1Db, user: AuthedUse
   const text = JSON.stringify(cur)
   if (new TextEncoder().encode(text).length > MAX_PREFS_BYTES) return fail(413, 'too_large', '설정이 너무 커요.', origin)
   await db.prepare('INSERT INTO prefs(user_id, data, updated_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at').bind(user.id, text, now).run()
+  // 접속 지역 동의를 거두면(yes가 아닌 값·지우기) 저장된 지역을 바로 지운다.
+  if ('wheelmap.cityConsent' in incoming && incoming['wheelmap.cityConsent'] !== 'yes') {
+    for (const t of ['visits', 'user_devices']) await db.prepare(`UPDATE ${t} SET city = NULL, region_code = NULL, country = NULL WHERE user_id = ?`).bind(user.id).run()
+  }
   await notify(env, deps, 'prefs', user.id) // 같은 계정의 다른 기기에만
   return reply({ ok: true, data: cur, updatedAt: now }, 200, origin)
 }
@@ -206,10 +222,17 @@ export function validateReport(v: unknown, id: string): string | null {
   if (r.demo || r.demoSet) return '시연 데이터는 서버에 올리지 않아요.'
   if (typeof r.userId !== 'string' || typeof r.createdAt !== 'string') return '제보 형식이 올바르지 않아요.'
   if (typeof r.lat !== 'number' || typeof r.lng !== 'number' || !Number.isFinite(r.lat) || !Number.isFinite(r.lng)) return '위치가 올바르지 않아요.'
+  if (r.lat < 33 || r.lat > 39 || r.lng < 124 || r.lng > 132) return '위치가 올바르지 않아요.' // 한국 범위 밖
   if (typeof r.type !== 'string' || typeof r.status !== 'string') return '제보 형식이 올바르지 않아요.'
   if (!Array.isArray(r.history) || r.history.length > 300) return '기록 형식이 올바르지 않아요.'
   if (!Array.isArray(r.photos) || r.photos.length > 20 || r.photos.some((p) => typeof p !== 'string' || p.length > 100)) return '사진 목록이 올바르지 않아요.'
   if (typeof r.verification !== 'object' || r.verification === null) return '검증 정보가 올바르지 않아요.'
+  // 장소: 없거나 짧은 글. 「기타」는 「기타: 직접 입력한 글(30자 이하)」 꼴만 받는다.
+  if (r.locationKind !== undefined) {
+    const k = r.locationKind
+    if (typeof k !== 'string' || [...k].length > 60 || /[\u0000-\u001F\u007F-\u009F\u2028\u2029]/.test(k)) return '장소 정보가 올바르지 않아요.'
+    if (k.startsWith('기타') && !/^기타(: \S[^\n]{0,29})?$/u.test(k)) return '장소 정보가 올바르지 않아요.'
+  }
   return null
 }
 
@@ -250,8 +273,8 @@ async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedU
       origin,
     )
   }
-  const id = decodeURIComponent(path.slice('/reports/'.length))
-  if (!ID_RE.test(id)) return fail(400, 'bad_input', '제보 id가 올바르지 않아요.', origin)
+  const id = safeDecode(path.slice('/reports/'.length))
+  if (id === null || !ID_RE.test(id)) return fail(400, 'bad_input', '제보 id가 올바르지 않아요.', origin)
   if (request.method !== 'PUT') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
   const body = await readJson(request, MAX_REPORT_BYTES)
   if (!body.ok) return fail(body.res === 'too_large' ? 413 : 400, body.res === 'too_large' ? 'too_large' : 'bad_input', body.res === 'too_large' ? '제보가 너무 커요(64KB 이하).' : '제보 형식이 올바르지 않아요.', origin)
@@ -265,16 +288,21 @@ async function handleReports(request: Request, env: Env, db: D1Db, user: AuthedU
     if (gone) return fail(410, 'gone', '이미 지워진 제보예요.', origin)
   }
   if (!row && incoming.userId !== user.id) return fail(400, 'bad_input', '내 계정으로 만든 제보만 새로 올릴 수 있어요.', origin)
-  if (!(await takeQuota(db, user, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
-  const merged = mergeReport(row ? JSON.parse(row.data) : null, incoming)
+  // 이미 있는 제보는 작성자(와 개발자 계정)만 고칠 수 있다. 그 밖의 계정은 이웃 확인(본인 투표 하나)만 합쳐진다.
+  const existing = row ? (JSON.parse(row.data) as Record<string, unknown>) : null
+  const full = !existing || existing.userId === user.id || isDev(user)
+  const merged = full ? mergeReport(existing, incoming) : neighborConfirm(existing, incoming, user.id)
   const text = JSON.stringify(merged)
   if (new TextEncoder().encode(text).length > MAX_REPORT_BYTES) return fail(413, 'too_large', '제보가 너무 커요(64KB 이하).', origin)
+  // 이웃 확인으로 바뀐 게 없으면 저장도 알림도 횟수 차감도 하지 않고 서버 값을 돌려준다.
+  if (!full && merged === existing) return reply({ ok: true, report: merged, serverTime: now, restricted: true }, 200, origin)
+  if (!(await takeQuota(db, user, now, writeLimit(env)))) return fail(429, 'quota', '오늘 저장 횟수를 다 썼어요. 내일 다시 해 주세요.', origin)
   await db
     .prepare('INSERT INTO reports(id, author_id, data, updated_at) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at')
     .bind(id, user.id, text, now)
     .run()
   await notify(env, deps, 'reports') // 로그인해 연결된 모든 기기에
-  return reply({ ok: true, report: merged, serverTime: now }, 200, origin)
+  return reply({ ok: true, report: merged, serverTime: now, ...(full ? {} : { restricted: true }) }, 200, origin)
 }
 
 // ---- 사진 ----
@@ -293,12 +321,12 @@ function fromBase64(b64: string): Uint8Array {
 }
 
 async function handlePhotos(request: Request, env: Env, db: D1Db, user: AuthedUser, path: string, origin: string, now: number): Promise<Response> {
-  const id = decodeURIComponent(path.slice('/photos/'.length))
-  if (!PHOTO_ID_RE.test(id)) return fail(400, 'bad_input', '사진 id가 올바르지 않아요.', origin)
+  const id = safeDecode(path.slice('/photos/'.length))
+  if (id === null || !PHOTO_ID_RE.test(id)) return fail(400, 'bad_input', '사진 id가 올바르지 않아요.', origin)
   if (request.method === 'GET') {
     const row = await db.prepare('SELECT mime, data FROM photos WHERE id = ?').bind(id).first<{ mime: string; data: string }>()
     if (!row) return fail(404, 'not_found', '사진이 없어요.', origin)
-    return new Response(fromBase64(row.data).buffer as ArrayBuffer, { status: 200, headers: { 'content-type': row.mime, 'cache-control': 'private, max-age=3600', 'access-control-allow-origin': origin, vary: 'Origin' } })
+    return new Response(fromBase64(row.data).buffer as ArrayBuffer, { status: 200, headers: { 'content-type': row.mime, 'x-content-type-options': 'nosniff', 'cache-control': 'private, max-age=3600', 'access-control-allow-origin': origin, vary: 'Origin' } })
   }
   if (request.method !== 'PUT') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
   const mime = (request.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()

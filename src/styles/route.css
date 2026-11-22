@@ -50,6 +50,16 @@
     min-height: 44px;
   }
 
+/* 모바일 시트: 맨 아래까지 스크롤하면 하단 탭과 가운데 [제보] 원에 가리지 않고 다 보인다 */
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .rp.rt {
+    padding-bottom: calc(var(--tabbar-h) + var(--s-8, 32px));
+  }
+}
+:root[data-view='mobile'] .rp.rt {
+  padding-bottom: calc(var(--tabbar-h) + var(--s-8, 32px));
+}
+
 .rt-head-btns {
   display: inline-flex;
   align-items: center;
@@ -121,7 +131,7 @@
   height: calc(100% - var(--safe-top) - 8px);
 }
 
-/* 검색 카드: 도착 → 출발 순서. 추천 경로는 입력이 비어 있을 때만 그 아래에 작게 */
+/* 검색 카드: 출발 → 도착 순서. 추천 경로는 입력이 비어 있을 때만 그 아래에 작게 */
 .rt-search {
   gap: var(--s-2);
   padding: 0;
@@ -331,9 +341,31 @@
   background: #1e6fb5;
 }
 
+/* 아이콘 원: 흰 테두리 + 어두운 바깥 선이라 라이트·다크 지도 모두에서 또렷하다 */
+.rt-m.rt-m-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  padding: 0 5px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.3), 0 1px 4px rgb(0 0 0 / 0.35);
+  line-height: 1;
+}
+.rt-m.rt-m-ic svg {
+  flex: none;
+}
+.rt-m.rt-m-ic b {
+  font: 700 11px/1 var(--font);
+}
+
 /* 길찾기가 쓴 공공데이터 지점(색은 지도 레이어 색과 같다) */
 .rt-m-toilet { background: #5e35b1; }
-.rt-m-shade { background: #3949ab; }
+.rt-m-shade { background: #827717; }
 .rt-m-overpass { background: #00838f; }
 .rt-m-flood { background: #0277bd; }
 
@@ -529,6 +561,12 @@
   letter-spacing: 0;
 }
 
+/* 위치를 못 얻어 전남대에서 출발했을 때만 보이는 한 줄 */
+.rt-pair-name .rt-noloc {
+  display: block;
+  font-weight: 400;
+}
+
 .bm .rt-pair-sum button {
   flex: none;
   min-height: var(--touch);
@@ -702,6 +740,7 @@
 }
 
 .bm button.bus-one-btn {
+  position: relative;
   flex: none;
   min-height: 28px;
   padding: 0 12px;
@@ -710,6 +749,13 @@
   color: var(--text-sub);
   font-size: 0.8125rem;
   font-weight: 600;
+}
+
+/* 보이는 높이는 28px, 누르는 영역은 위아래로 넓혀 44px */
+.bm button.bus-one-btn::after {
+  content: '';
+  position: absolute;
+  inset: -8px 0;
 }
 
 details.rt-more > summary {
@@ -1057,6 +1103,7 @@ details.rt-more > summary {
 }
 
 .bm .gl-ctl button {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1069,6 +1116,13 @@ details.rt-more > summary {
   box-shadow: var(--shadow-2);
   color: var(--text);
   font: 700 14px/1 var(--font);
+}
+
+/* 보이는 높이는 40px, 누르는 영역은 위아래로 넓혀 44px(버튼 사이 간격 8px 안이라 겹치지 않는다) */
+.bm .gl-ctl button::after {
+  content: '';
+  position: absolute;
+  inset: -2px 0;
 }
 
 .bm .gl-ctl button[aria-pressed='true'] {
@@ -1185,7 +1239,7 @@ html.motion-reduce .rc-list.rc-snap {
   color: #fff;
 }
 .rc-near-toilet { background: #5e35b1; }
-.rc-near-shade { background: #3949ab; }
+.rc-near-shade { background: #827717; }
 .rc-near-stop { background: #1e6fb5; }
 .rc-near-school { background: #6a4c93; }
 .rc-near-t {

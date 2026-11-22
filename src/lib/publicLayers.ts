@@ -38,21 +38,29 @@ export const ALL_PUB_LAYERS: PubLayerInfo[] = [
   { id: 'welfare', label: '장애인시설', color: '#8e24aa', icon: 'heart', desc: '장애인 복지시설 위치와 운영기관' },
   { id: 'yellow', label: '옐로카펫', color: '#a15c00', icon: 'zebra', desc: '어린이 보호구역 옐로카펫 위치' },
   { id: 'flood', label: '침수 이력', color: '#0277bd', icon: 'drop', desc: '2025년 침수 피해가 있었던 곳' },
-  { id: 'shade', label: '그늘막', color: '#3949ab', icon: 'umbrella', desc: '고정형·스마트형 그늘막 위치' },
+  { id: 'shade', label: '그늘막', color: '#827717', icon: 'umbrella', desc: '고정형·스마트형 그늘막 위치' },
   { id: 'airSignal', label: '대기질 신호등', color: '#00695c', icon: 'wind', desc: '대기질 신호등이 있는 교차로' },
   // 광주 C-ITS(2026-11-19). 기본은 꺼짐.
   { id: 'schoolZone', label: '어린이보호구역', color: '#6a4c93', icon: 'school', desc: '스쿨존 위치' },
   { id: 'parkingZone', label: '주정차 단속구간', color: '#37474f', icon: 'parking', desc: '불법 주정차 단속 구간 위치' },
 ]
 
+/** 낯선 지도 용어의 뜻 한 줄(누르면 보인다). 옐로카펫: 서울시 교통 안내, 어린이보호구역: 도로교통법 제12조, 대기질 신호등: 서울시 환경 안내, 나머지는 이 지도의 자료 설명을 풀어 쓴 것 */
+export const PUB_MEANING: Partial<Record<PubLayerId, string>> = {
+  yellow: '횡단보도 앞 어린이 대기 공간을 노랗게 칠한 곳이에요. 운전자 눈에 잘 띄어요.',
+  schoolZone: '학교 같은 시설 주변 도로에서 차가 시속 30km 안으로 달리도록 정한 구역이에요.',
+  airSignal: '미세먼지 정도를 신호등 색으로 보여 주는 표시등이에요.',
+  flood: '2025년에 비로 물이 찬 피해가 있었던 곳이에요.',
+  parkingZone: '불법 주정차를 단속하는 구간이에요.',
+}
+
 // 기본 지도는 「길 가기」 묶음(장애요소·육교·장애인화장실)이다(2026-11-19, lib/layerPresets.ts).
 // 횡단보도는 길찾기에서만 쓴다 — 데이터와 로더는 유지. 버스 정류장은 「버스 타기」·「비 오는 날」 칩과 직접 고르기에서 켠다.
-// 북구 6종(육교·장애인시설·옐로카펫·침수 이력·그늘막·대기질 신호등)도 기본은 꺼짐 — 켜면 북구 전체를 보이되 그림 개수 상한(PUB_MAX_DRAW)이 있다.
+// 북구 6종(육교·장애인시설·옐로카펫·침수 이력·그늘막·대기질 신호등)도 기본은 꺼짐 — 켜면 북구 전체를 보이되 그림 개수 상한(전체 합계 PUB_TOTAL_DRAW, lib/pubDraw.ts)이 있다.
 // 상품권 가맹점(2026-11-17)은 용봉동만, 기본은 꺼짐. 편의시설(AI 검색 카드의 「편의시설 지도 보기」용)도 기본은 꺼짐.
 export const PUB_LAYERS: PubLayerInfo[] = ALL_PUB_LAYERS.filter((l) => l.id !== 'crosswalk')
 
 export const PUB_MAX_LEVEL = 5 // 이 레벨보다 넓게 보면 그리지 않는다(숫자가 클수록 넓음)
-export const PUB_MAX_DRAW = 500 // 한 번에 그리는 최대 개수
 
 const LOADERS: Record<PubLayerId, () => Promise<unknown>> = {
   crosswalk: () => import('../../data/public/crosswalks.json'),

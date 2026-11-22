@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, m, useIsPresent } from 'motion/react'
 import Icon from '../components/Icon'
 import { RiseLi, SegBg } from '../components/motionKit'
@@ -23,6 +23,7 @@ import { Sentences } from '../components/Sentences'
 import { openGuide } from '../lib/usageGuide'
 import { DATA_SOURCES } from '../lib/dataSources'
 import { Wordmark } from '../components/Wordmark'
+import { getMotionReduce } from '../lib/viewPrefs'
 import { isMockReport } from '../lib/realFirst'
 
 const BARRIERS = loadBarriers()
@@ -47,10 +48,38 @@ function AlPanel({ tab, children }: { tab: string; children: React.ReactNode }) 
   )
 }
 
-function Page({ title, children }: { title: string; children: React.ReactNode }) {
+const TOP_SHOW_PX = 480 // 이만큼 내려오면 「맨 위로」가 나타난다
+
+// 오른쪽 아래 「맨 위로」 버튼. 스크롤 칸(.pg-scroll)이 어느 정도 내려갔을 때만 나타난다. 움직임 줄이기가 켜져 있으면 바로 올라간다.
+function ScrollTopButton({ box }: { box: React.RefObject<HTMLDivElement | null> }) {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const f = () => setShow(el.scrollTop > TOP_SHOW_PX)
+    f()
+    el.addEventListener('scroll', f, { passive: true })
+    return () => el.removeEventListener('scroll', f)
+  }, [box])
+  return (
+    <button
+      type="button"
+      className={'pg-top-btn' + (show ? ' on' : '')}
+      aria-label="맨 위로"
+      tabIndex={show ? 0 : -1}
+      aria-hidden={!show}
+      onClick={() => box.current?.scrollTo({ top: 0, behavior: getMotionReduce() ? 'auto' : 'smooth' })}
+    >
+      <Icon name="up" />
+    </button>
+  )
+}
+
+function Page({ title, children, toTop = false }: { title: string; children: React.ReactNode; toTop?: boolean }) {
+  const box = useRef<HTMLDivElement>(null)
   return (
     <div className="bm pg">
-      <div className="pg-scroll">
+      <div className="pg-scroll" ref={box}>
         <div className="pg-col">
           <MockStrip />
           <header className="pg-top">
@@ -64,6 +93,7 @@ function Page({ title, children }: { title: string; children: React.ReactNode })
           {children}
         </div>
       </div>
+      {toTop && <ScrollTopButton box={box} />}
     </div>
   )
 }
@@ -80,7 +110,7 @@ export function ReportTab({ query }: { query: string }) {
     if (id === 'pg-receipt') document.getElementById('rl-q')?.focus({ preventScroll: true })
   }, [query])
   return (
-    <Page title="제보">
+    <Page title="제보" toTop>
       <section className="pg-card">
         <h2>길에서 만난 불편</h2>
         <p className="bm-meta">위치와 사진을 함께 남겨요</p>
@@ -151,11 +181,12 @@ export function MeTab() {
   )
 }
 
-type AlertsTabId = 'alerts' | 'benefits' | 'ranking'
+type AlertsTabId = 'alerts' | 'benefits' | 'ranking' | 'challenge'
 const ALERT_TABS: { id: AlertsTabId; label: string }[] = [
   { id: 'benefits', label: '혜택' },
   { id: 'alerts', label: '알림' },
-  { id: 'ranking', label: '랭킹·챌린지' },
+  { id: 'ranking', label: '랭킹' },
+  { id: 'challenge', label: '챌린지' },
 ]
 
 type Alert = { key: string; at: string; kind: 'report' | 'points'; icon: string; text: string; points?: number; to: string; mock?: boolean }
@@ -216,7 +247,7 @@ export function AlertsTab({ query = '' }: { query?: string }) {
     return out.sort((a, b) => Number(!!a.mock) - Number(!!b.mock) || b.at.localeCompare(a.at)) // 실제 제보 알림이 체험 제보 알림보다 먼저
   }, [reports, userId, rw])
   const shown = items.filter((x) => filter === 'all' || x.kind === filter).slice(0, 40)
-  // 한 화면에 한 구역: 혜택(기본) · 알림 · 랭킹·챌린지. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
+  // 한 화면에 한 구역: 혜택(기본) · 알림 · 랭킹 · 챌린지. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
   const qs = new URLSearchParams(query)
   const tab: AlertsTabId = ALERT_TABS.find((t) => t.id === qs.get('tab'))?.id ?? 'benefits'
   const riseAlerts = useRiseOnce('alerts-list')
@@ -238,12 +269,8 @@ export function AlertsTab({ query = '' }: { query?: string }) {
       <AnimatePresence mode="popLayout" initial={false}>
       <AlPanel key={tab} tab={tab}>
       {tab === 'benefits' && <MyBenefits />}
-      {tab === 'ranking' && (
-        <>
-          <ParticipationRanking />
-          <ParticipationChallenge />
-        </>
-      )}
+      {tab === 'ranking' && <ParticipationRanking />}
+      {tab === 'challenge' && <ParticipationChallenge />}
       {tab === 'alerts' && (
       <section className="pg-card" aria-labelledby="al-h">
         <h2 id="al-h">알림</h2>

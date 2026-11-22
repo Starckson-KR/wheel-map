@@ -37,12 +37,12 @@ test('시연 출발점은 추천 경로 「전남대 → 용봉2휴먼시아아�
   assert.equal(d.lat, p.from.lat)
   assert.equal(d.lng, p.from.lng)
   assert.equal(d.id, p.from.stopId)
-  assert.equal(d.name, '전남대(시연 출발점)')
+  assert.equal(d.name, '전남대')
   assert.equal(demoStartOf([]), null)
 })
 
 test('내 위치를 쓸 수 있고 시범 지역 안이면 내 위치, 그 밖은 모두 시연 출발점', () => {
-  const demo = { id: 'X', name: '전남대(시연 출발점)', lat: 35.17, lng: 126.9 }
+  const demo = { id: 'X', name: '전남대', lat: 35.17, lng: 126.9 }
   const my = { lat: 35.18, lng: 126.91 }
   const a = pickStart(my, true, demo)
   assert.ok(a && !a.demo && a.place.name === '내 위치')

@@ -97,7 +97,7 @@ export function authMessage(code: AuthCode, mode: 'login' | 'signup'): string {
     case 'taken': return '이미 있는 이름이에요. 로그인해 주세요'
     case 'locked': return '여러 번 틀려서 잠시 잠겼어요. 조금 뒤에 다시 해 주세요'
     case 'network': return '연결이 원활하지 않아요. 잠시 뒤에 다시 해 주세요'
-    case 'bad_input': return mode === 'signup' ? '이름과 숫자 4자리를 다시 확인해 주세요' : '이름과 비밀번호를 다시 확인해 주세요'
+    case 'bad_input': return mode === 'signup' ? '이름은 한글·영문·숫자로 10자까지 쓸 수 있어요' : '이름과 비밀번호를 다시 확인해 주세요'
   }
 }
 
@@ -105,10 +105,20 @@ export function authMessage(code: AuthCode, mode: 'login' | 'signup'): string {
 export function cleanName(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ')
 }
-/** 1~20자면 통과 */
+/** 서버(`worker/src/auth.ts`의 NAME_RE·normalizeName)와 같은 규칙: 한글·영문·숫자·공백 1~10자 */
+const NAME_RE = /^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ]+$/
+export const NAME_MAX = 10
 export const nameOk = (raw: string) => {
-  const n = cleanName(raw)
-  return n.length >= 1 && n.length <= 20
+  const n = cleanName(raw).normalize('NFC')
+  return n.length >= 1 && n.length <= NAME_MAX && NAME_RE.test(n)
+}
+/** 이름 칸 아래에 바로 보여 줄 말. 문제가 없거나 비어 있으면 null */
+export function nameHint(raw: string): string | null {
+  const n = cleanName(raw).normalize('NFC')
+  if (!n) return null
+  if (!NAME_RE.test(n)) return '이모지나 특수문자는 쓸 수 없어요'
+  if (n.length > NAME_MAX) return `${NAME_MAX}자까지 쓸 수 있어요`
+  return null
 }
 
 /** 다른 화면(내 정보 탭의 AccountCard)이 초기 설정을 다시 열 때 보내는 이벤트 */

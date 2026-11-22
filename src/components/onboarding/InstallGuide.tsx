@@ -2,7 +2,8 @@
 // 메뉴 이름 출처(2026-11-17 확인):
 //  - 아이폰 Safari: Apple 지원 "홈 화면에 웹사이트 아이콘 추가하기" https://support.apple.com/ko-kr/guide/iphone/iph42ab2f3a7/ios (iOS 27 안내서)
 //  - 안드로이드 Chrome: Google Chrome 고객센터 "웹사이트를 앱으로 설치" https://support.google.com/chrome/answer/9658361?hl=ko
-//  - 삼성 인터넷: 공식 자료를 찾지 못함(삼성 도움말·개발자 문서에 없음). 여러 사용 안내 글이 같은 순서로 적고 있어 그대로 쓰되 확인이 필요하다.
+//  - 삼성 인터넷: 홈 화면 추가 순서를 직접 적은 공식 문서는 못 찾음. 메뉴 버튼 모양은 삼성 공식 지원 "Use the Samsung Browser app on a Galaxy phone or tablet"(https://www.samsung.com/us/support/answer/ANS10001594/, 2026)이 「점 세 개(Tools)」라고 적고 있고, 사용자도 점 세 개라고 확인(2026-11-22).
+//    예전 버전은 오른쪽 아래 선 세 개였으나 최신(One UI 8.5, 이름이 삼성 브라우저로 바뀜)은 위치가 확실하지 않아 위치는 적지 않는다. 「현재 페이지 추가」 이름은 예전 버전 안내 기준.
 import { useState, type ReactNode } from 'react'
 import { PressButton, SegBg } from '../motionKit'
 import { guessAndroidBrowser, isInAppBrowser, type AndroidBrowser, type Device } from './installEnv'
@@ -19,7 +20,6 @@ const IC = {
   addBox: svg(<><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M12 8.5v7M8.5 12h7" /></>),
   dotsH: svg(<><circle cx="6" cy="12" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="18" cy="12" r="1.2" fill="currentColor" /></>),
   dotsV: svg(<><circle cx="12" cy="6" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="12" cy="18" r="1.2" fill="currentColor" /></>),
-  menu: svg(<path d="M5 7h14M5 12h14M5 17h14" />),
 }
 
 type Step = { text: ReactNode; icon?: ReactNode }
@@ -47,7 +47,7 @@ const IOS_STEPS: Step[] = [
   { text: <>{b('웹 앱으로 열기')}가 켜진 채로 {b('추가')}를 눌러요</> },
 ]
 const SAMSUNG_STEPS: Step[] = [
-  { text: <>오른쪽 아래 {b('메뉴')}를 눌러요</>, icon: IC.menu },
+  { text: <>{b('메뉴')}(점 세 개)를 눌러요</>, icon: IC.dotsV },
   { text: <>{b('현재 페이지 추가')}를 눌러요</> },
   { text: <>{b('홈 화면')}을 골라 {b('추가')}를 눌러요</> },
 ]

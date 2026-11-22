@@ -44,7 +44,7 @@ export async function handleWeather(request: Request, env: Env, origin: string, 
   const now = (deps.now ?? Date.now)()
   try {
     const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
-    if (!(await windowAllowed(db, 'weather', ip, now, 30))) return reply({ ok: false, error: 'rate_limited' }, 429, origin)
+    if (!(await windowAllowed(db, 'weather', ip, now, Number(env.WEATHER_PER_MINUTE) > 0 ? Math.floor(Number(env.WEATHER_PER_MINUTE)) : 30))) return reply({ ok: false, error: 'rate_limited' }, 429, origin)
     let hit = await readCache(db, now)
     if (!hit) {
       const key = (env.DATA_GO_KR_KEY ?? '').trim()

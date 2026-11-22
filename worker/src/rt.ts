@@ -46,6 +46,9 @@ export async function handleRt(request: Request, env: Env, origin: string, deps:
     if (!userId) return new Response('unauthorized', { status: 401 })
     const h = new Headers(request.headers)
     h.set('x-rt-user', userId) // 허브는 이 Worker로만 부를 수 있다. 밖에서 온 같은 이름의 헤더는 위에서 덮어쓴다.
+    const role = await db.prepare('SELECT role FROM users WHERE id = ?').bind(userId).first<{ role: string }>()
+    if (role?.role === 'dev') h.set('x-rt-dev', '1') // 개발자 연결은 접속 현황 신호를 받는다
+    else h.delete('x-rt-dev') // 밖에서 온 같은 이름의 헤더는 반드시 지운다
     return await hubStub(env)!.fetch(new Request(request, { headers: h }))
   } catch {
     console.log('wheelmap-ai error: rt_internal')

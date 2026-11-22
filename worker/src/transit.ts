@@ -10,6 +10,7 @@ import type { D1Db, Env } from './types'
 // 길을 못 찾은 결과도 1시간 기억한다. 하루 상류 호출 상한은 bis_calls 표에 'transit:날짜' 키로 센다(포털에 일 한도 표기가 없어 기본 300).
 export const TRANSIT_TTL_MS = 6 * 3_600_000
 export const TRANSIT_NOROUTE_TTL_MS = 3_600_000
+export const TRANSIT_FAIL_TTL_MS = 3 * 60_000 // 상류 실패는 3분 기억(그동안 상류·하루 상한을 쓰지 않고 같은 502)
 export const DEFAULT_TRANSIT_DAILY_CAP = 300
 export const DEFAULT_TRANSIT_PER_MINUTE = 10
 const UPSTREAM_TIMEOUT_MS = 8000
@@ -18,7 +19,7 @@ export const isTransitPath = (p: string) => p === '/transit'
 export type Deps = { now?: () => number; fetch?: typeof fetch }
 
 type Pt = [number, number]
-type Cached = { itineraries: TItinerary[] } | { noRoute: string }
+type Cached = { itineraries: TItinerary[] } | { noRoute: string } | { fail: true; status: number; message: string }
 
 const posInt = (v: string | undefined, d: number) => (Number(v) > 0 ? Math.floor(Number(v)) : d)
 const dayOf = (now: number) => new Date(now).toISOString().slice(0, 10)
@@ -36,7 +37,8 @@ async function readCache(db: D1Db, key: string, now: number): Promise<Cached | n
   const r = await db.prepare('SELECT body, fetched_at AS at FROM bis_cache WHERE key = ?').bind(key).first<{ body: string; at: number }>()
   if (!r || now < r.at) return null
   const v = JSON.parse(r.body) as Cached
-  return now - r.at < ('noRoute' in v ? TRANSIT_NOROUTE_TTL_MS : TRANSIT_TTL_MS) ? v : null
+  const ttl = 'fail' in v ? TRANSIT_FAIL_TTL_MS : 'noRoute' in v ? TRANSIT_NOROUTE_TTL_MS : TRANSIT_TTL_MS
+  return now - r.at < ttl ? v : null
 }
 async function writeCache(db: D1Db, key: string, v: Cached, now: number) {
   await db
@@ -108,12 +110,21 @@ export async function handleTransit(request: Request, env: Env, origin: string, 
     const b = round(to)
     const cacheKey = `transit:${a[0]},${a[1]}|${b[0]},${b[1]}`
     let v = await readCache(db, cacheKey, now)
+    if (v && 'fail' in v) return bad(v.status, v.message) // 최근에 상류가 실패한 구간: 상류도 하루 상한도 건드리지 않는다
     const cached = !!v
     if (!v) {
       const key = (env.KOREACONNECT_KEY ?? '').trim()
       if (!key) return bad(503, '버스 경로 중계가 아직 준비되지 않았어요.')
       if (!(await takeCall(db, now, posInt(env.TRANSIT_DAILY_CAP, DEFAULT_TRANSIT_DAILY_CAP)))) return bad(429, '오늘 버스 경로 조회 한도에 닿았어요.')
-      v = await upstream(a, b, key, deps.fetch ?? fetch)
+      try {
+        v = await upstream(a, b, key, deps.fetch ?? fetch)
+      } catch (e) {
+        if (e instanceof Fail) {
+          await writeCache(db, cacheKey, { fail: true, status: e.status, message: e.message }, now)
+          await prune(db, now)
+        }
+        throw e
+      }
       await writeCache(db, cacheKey, v, now)
       await prune(db, now)
     }

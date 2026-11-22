@@ -6,6 +6,7 @@ import { submitMockComplaint } from '../lib/mockComplaintApi'
 import { nowMs, useReports } from '../lib/reportStore'
 import { RATING_STYLE } from '../lib/rating'
 import { toast } from '../lib/uiStore'
+import { useCanEdit } from '../lib/account/canEdit'
 import type { Barrier, Report } from '../types'
 import { Sentences } from './Sentences'
 
@@ -43,6 +44,8 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
   const deadline = deadlineFor(agencies)
   const crit = criteriaFor(r.type, kind)
   const official = userId === 'officer'
+  // 서버는 작성자와 개발자 계정의 변경만 받는다. 로그인하지 않은 시연(이 기기만)은 그대로 쓴다.
+  const canRecord = useCanEdit(r)
 
   useEffect(() => {
     let cancelled = false
@@ -203,6 +206,8 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
         </Sentences>
       )}
 
+      {canRecord && (
+        <>
       <h4>접수했다면 기록해 주세요</h4>
       {official && <Sentences as="p" className="rf-warn">공무원은 접수를 신청할 수 없어요.</Sentences>}
       <label className="rf-field">
@@ -240,6 +245,8 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
         <Sentences as="p" className="rf-warn" role="alert">
           {err}
         </Sentences>
+      )}
+        </>
       )}
     </section>
   )

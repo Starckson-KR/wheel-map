@@ -1,0 +1,130 @@
+/* 크리스마스 이스터에그(12월 또는 시연 도구에서 켬). 앱의 "파랑 하나·장식 줄임" 원칙의 의도된 예외라서 이 파일에만 모았다.
+   효과 층은 모두 pointer-events: none. 움직임 줄이기(html.motion-reduce)에서는 끝 장면만 보인다. 켜짐 판단은 src/lib/xmas.ts. */
+
+/* ───── A 환영 화면 「썰매 배달」(WelcomeXmas.tsx). 등장 순서는 컴포넌트가 프레임마다 정한다 ───── */
+.ob-welcome-bg.ob-x-bg { -webkit-mask-image: none; mask-image: none; --x-block: rgb(112 128 176 / 0.17); --x-center: rgb(112 128 176 / 0.3); --x-deco: rgb(112 128 176 / 0.34); }
+:root[data-theme='dark'] .ob-x-bg { --x-block: #151d3a; --x-center: #27325c; --x-deco: #2d3968; }
+.ob-x-sky { position: absolute; inset: 0; background: linear-gradient(180deg, #141d47 0%, #26346f 15%, #5a67ab 30%, #c3cbe9 43%, var(--bg) 53%); }
+:root[data-theme='dark'] .ob-x-sky { background: linear-gradient(180deg, #050816 0%, #0a1029 45%, #10183a 100%); }
+.ob-x-stars { position: absolute; left: 0; top: 0; width: 100%; height: 240px; }
+.ob-x-stars circle { fill: #fff; animation: ob-x-star 2.6s ease-in-out infinite; }
+@keyframes ob-x-star { 0%, 100% { opacity: 0.9; } 50% { opacity: 0.25; } }
+.ob-x-bg .ob-w-block { fill: var(--x-block); }
+.ob-x-bg .ob-w-center { stroke: var(--x-center); }
+.ob-x-bg .ob-w-zebra rect, .ob-x-bg .ob-w-tree circle { fill: var(--x-deco); }
+.ob-x-bg .ob-w-town { animation: none; opacity: 1; }
+.ob-x-route { fill: none; stroke: var(--ob-route); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.ob-x-b-in { transform: scale(0); transition: transform 300ms cubic-bezier(0.3, 1.7, 0.5, 1); }
+.ob-x-bulb.on .ob-x-b-in { transform: scale(1); }
+.ob-x-b-halo { opacity: 0.26; }
+.ob-x-b-cap { fill: #2a3350; }
+:root[data-theme='dark'] .ob-x-b-cap { fill: #8f9bc4; }
+.ob-x-bulb.on .ob-x-b-halo { animation: ob-x-halo 1.5s ease-in-out infinite; }
+.ob-x-bulb.on .ob-x-b-core { animation: ob-x-core 1.5s ease-in-out infinite; }
+@keyframes ob-x-halo { 0%, 100% { opacity: 0.34; transform: scale(1.12); } 50% { opacity: 0.08; transform: scale(0.8); } }
+@keyframes ob-x-core { 0%, 100% { opacity: 1; } 50% { opacity: 0.62; } }
+.ob-x-sled { opacity: 0; }
+
+.ob-x-iconbox { position: relative; display: block; width: min(52vw, 200px); aspect-ratio: 1; }
+.ob-x .ob-welcome-icon { display: block; width: 100%; height: 100%; animation: none; }
+.ob-x-hat { position: absolute; left: -16.5%; top: -36%; width: 68%; height: auto; transform-origin: 47% 92%; transform: rotate(-15deg); pointer-events: none; filter: drop-shadow(0 3px 4px rgb(10 14 40 / 0.28)); }
+.ob-x .ob-welcome-name { animation: none; }
+.ob-x .ob-welcome-name .wordmark-bang { overflow: visible; }
+.ob-x .ob-welcome-name .wordmark-bang circle { animation: none; }
+.ob-x-star { fill: #f2b632; transform-box: fill-box; transform-origin: center; }
+:root[data-theme='dark'] .ob-x-star { fill: #ffd062; }
+/* 소개 문구: 전구 줄(아이콘 중심에서 190px 아래)에 겹치지 않게 30px 내린다 */
+.ob-x-about { position: absolute; left: var(--gutter); right: var(--gutter); top: calc(50% + 134px + var(--s-5) + 30px); }
+.ob-x .ob-welcome-about { position: static; animation: none; }
+.ob-x-foot.ob-welcome-foot { animation: none; }
+.ob-x-fx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+html[data-page-hidden] .ob-x-bg * { animation-play-state: paused; }
+html.motion-reduce .ob-x-stars circle, html.motion-reduce .ob-x-bulb.on .ob-x-b-halo, html.motion-reduce .ob-x-bulb.on .ob-x-b-core { animation: none; }
+html.motion-reduce .ob-x-b-in { transition: none; }
+
+/* ───── B 홈 「첫눈」(XmasSnow.tsx) ───── */
+.xs-sky { position: absolute; inset: 0; background: linear-gradient(180deg, #a9bfe0 0%, #c6d5ec 45%, #dde6f3 100%); opacity: 0; transition: opacity 900ms ease; pointer-events: none; }
+:root[data-theme='dark'] .xs-sky { background: linear-gradient(180deg, #0a1730 0%, #0c1322 60%, var(--bg-page) 100%); }
+.xs-sky.on { opacity: 1; }
+.xs-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
+.pg-brand button.xs-wob { transform-origin: 30% 80%; animation: xs-wob 380ms var(--ease-out); }
+@keyframes xs-wob { 0% { transform: rotate(0); } 22% { transform: rotate(-7deg) scale(1.06); } 50% { transform: rotate(5deg) scale(1.03); } 76% { transform: rotate(-2deg); } 100% { transform: none; } }
+html.motion-reduce .xs-sky { transition: none; }
+
+/* ───── C 지도 「메리 크리스마스」(BarrierMap.tsx, XmasBurst.tsx). html.xmas-merry 하나로 켜고 끈다 ───── */
+.xm-burst { position: fixed; inset: 0; z-index: 400; overflow: hidden; pointer-events: none; }
+.xm-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.xm-gift { position: absolute; width: 84px; height: 84px; animation: xm-gift 2000ms linear both; }
+.xm-gift svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.xm-lid { transform-box: fill-box; transform-origin: 50% 100%; animation: xm-lid 700ms cubic-bezier(0.2, 0.7, 0.3, 1) 760ms both; }
+@keyframes xm-gift {
+  0% { opacity: 0; transform: translate(var(--fx, -40px), var(--fy, -230px)) scale(0.15) rotate(-30deg); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  4% { opacity: 1; }
+  17% { opacity: 1; transform: translate(-10px, -46px) scale(1) rotate(8deg); animation-timing-function: cubic-bezier(0.5, 0, 0.8, 0.5); }
+  25% { transform: translate(0, 0) scale(1.14, 0.84); animation-timing-function: ease-out; }
+  29% { transform: translate(0, -8px) scale(0.96, 1.05) rotate(-5deg); }
+  32% { transform: rotate(5deg); }
+  35% { transform: rotate(-4deg) scale(1.03); }
+  37.5% { transform: scale(1.2, 0.86); }
+  41% { transform: scale(0.94, 1.1) translateY(-6px); }
+  48% { opacity: 1; transform: none; }
+  78% { opacity: 1; transform: none; animation-timing-function: ease-in; }
+  100% { opacity: 0; transform: scale(0.6) translateY(20px); }
+}
+@keyframes xm-lid { 0% { transform: none; opacity: 1; } 100% { transform: translate(70px, -190px) rotate(64deg); opacity: 0; } }
+
+/* 강조색: 탭 활성색·검색창 테두리는 빨강, 제보 버튼·지도 도구는 초록 */
+.xmas-merry .tabbar { --tab-on: #c22e26; }
+:root[data-theme='dark'].xmas-merry .tabbar { --tab-on: #ff7b72; }
+.xmas-merry .tabbar-fab-c,
+.xmas-merry .tabbar-fab[aria-current='page'] .tabbar-fab-c { background: #0f7f55; }
+:root[data-theme='dark'].xmas-merry .tabbar-fab-c,
+:root[data-theme='dark'].xmas-merry .tabbar-fab[aria-current='page'] .tabbar-fab-c { background: #17916a; }
+.xmas-merry .bm .hm-search { box-shadow: 0 0 0 2px #d0342c, var(--shadow-2); }
+:root[data-theme='dark'].xmas-merry .bm .hm-search { box-shadow: 0 0 0 2px #ff6b61, var(--shadow-2); }
+.xmas-merry .bm button.hm-iconbtn { color: #0f7f55; }
+:root[data-theme='dark'].xmas-merry .bm button.hm-iconbtn { color: #3ec48f; }
+
+/* 핀마다 산타 모자: 왼쪽 위에 걸쳐 ○△X 기호는 그대로 읽힌다. 그림은 직접 그린 SVG. */
+.xmas-merry .bm-pin::before,
+.xmas-merry .bm-cluster::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: -20px;
+  width: 30px;
+  height: 24px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 80'%3E%3Cpath fill='%23d8392f' d='M16 60C18 34 38 10 58 12c16 2 28 18 30 36-8-8-14-12-20-12 4 8 8 16 10 24Z'/%3E%3Cpath fill='%23a9241c' d='M58 12c16 2 28 18 30 36-8-8-14-12-20-12-2-10-6-18-10-24Z'/%3E%3Crect fill='%23fff' x='8' y='54' width='78' height='20' rx='10'/%3E%3Cpath fill='%23dfe6f0' d='M12 68a10 10 0 0 0 6 6h58a10 10 0 0 0 6-6c-4 3-66 3-70 0Z'/%3E%3Ccircle fill='%23fff' cx='88' cy='52' r='9'/%3E%3C/svg%3E") center / contain no-repeat;
+  transform-origin: 50% 90%;
+  transform: rotate(-16deg);
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgb(25 31 40 / 0.3));
+  animation: xm-hat 520ms linear both;
+}
+.xmas-merry .bm-pin.bm-pin-small::before { left: -9px; top: -18px; width: 26px; height: 21px; }
+.xmas-merry .bm-pin--dot::before,
+.xmas-merry .bm-pin--lite::before { left: -6px; top: -12px; width: 17px; height: 14px; }
+/* 묶음(숫자 원)은 크기가 달라 비율로 얹는다. 숫자는 가리지 않는다 */
+.xmas-merry .bm-cluster::before { left: -24%; top: -58%; width: 108%; height: 86%; }
+/* 다 씌운 뒤에 새로 그려지는 핀(지도 이동·확대)은 떨어지는 움직임 없이 바로 쓴다 */
+.xmas-merry-set .bm-pin::before, .xmas-merry-set .bm-cluster::before { animation: none; }
+html.motion-reduce.xmas-merry .bm-pin::before, html.motion-reduce.xmas-merry .bm-cluster::before { animation: none; }
+@keyframes xm-hat {
+  0% { opacity: 0; transform: translateY(-46px) rotate(-40deg); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5); }
+  42% { opacity: 1; transform: translateY(0) rotate(-16deg) scale(1.12, 0.84); animation-timing-function: ease-out; }
+  64% { transform: translateY(-6px) rotate(-12deg); animation-timing-function: ease-in; }
+  82% { transform: translateY(0) rotate(-17deg) scale(1.05, 0.95); }
+  100% { opacity: 1; transform: rotate(-16deg); }
+}
+
+/* 「메리 크리스마스! / 되돌리기」 띠: 위쪽 묶음(검색창·상황 칩) 바로 아래 가운데에 띄운다(칩 자리를 밀지 않게 절대 위치) */
+.xm-band { position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%); display: flex; align-items: center; gap: var(--s-1); min-height: 40px; padding: 0 var(--s-1) 0 var(--s-4); border-radius: var(--r-full); background: var(--bg); box-shadow: var(--shadow-2), 0 0 0 1px rgb(25 31 40 / 0.06); white-space: nowrap; animation: xm-band 320ms var(--ease-out) both; }
+.xm-band b { font-size: 0.9375rem; font-weight: 600; color: #c22e26; }
+:root[data-theme='dark'] .xm-band b { color: #ff7b72; }
+.bm .xm-band button { min-height: 32px; padding: 0 var(--s-3); border-radius: var(--r-full); background: var(--grey-100); color: var(--text); font-size: var(--fs-small); font-weight: 500; box-shadow: none; }
+@keyframes xm-band { from { opacity: 0; transform: translate(-50%, -10px) scale(0.92); } to { opacity: 1; transform: translateX(-50%); } }
+html.motion-reduce .xm-band { animation: none; }
+
+/* 환영 화면 위쪽 머리 줄(52px)과 안전 영역도 밤하늘 맨 위 색으로 이어지게 한다 */
+.ob-root:has(.ob-x-bg) { background-color: #141d47; }
+:root[data-theme='dark'] .ob-root:has(.ob-x-bg) { background-color: #050816; }

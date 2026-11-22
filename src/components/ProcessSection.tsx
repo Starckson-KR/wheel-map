@@ -1,3 +1,4 @@
+import { useCanEdit } from '../lib/account/canEdit'
 import { useState } from 'react'
 import ReportPhotos from './ReportPhotos'
 import BeforeAfter from './BeforeAfter'
@@ -23,7 +24,7 @@ const STEPS: { label: string; on: (s: Report['status']) => boolean }[] = [
 ]
 const ORDER = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
-export default function ProcessSection({ report: r, readOnlyExternal = false }: { report: Report; readOnlyExternal?: boolean }) {
+export default function ProcessSection({ report: r, readOnlyExternal = false, nameOf = userName }: { report: Report; readOnlyExternal?: boolean; nameOf?: (id: string) => string }) {
   const userId = useReports((s) => s.userId)
   const offset = useReports((s) => s.offsetDays)
   void offset // 시간 앞당기기가 바뀌면 다시 그려진다
@@ -42,6 +43,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
   const [reason, setReason] = useState('')
 
   const officer = userId === 'officer'
+  const canEdit = useCanEdit(r) // 남의 제보는 서버가 바꾸지 않는다
   const c = r.complaint
   const started = ORDER.indexOf(r.status) >= 0
   const act = (res: { ok: boolean; message?: string }) => setMsg(res.ok ? '' : (res.message ?? '처리하지 못했어요.'))
@@ -86,7 +88,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
   }
 
   return (
-    <section className="ps" aria-label="처리 흐름">
+    <section className="ps-flow" aria-label="처리 흐름">
       {started && (
         <>
           <h3>처리 흐름</h3>
@@ -165,7 +167,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
         </div>
       )}
 
-      {officer && (r.status === 'filed' || r.status === 'assigned' || r.status === 'in_progress') && (
+      {officer && canEdit && (r.status === 'filed' || r.status === 'assigned' || r.status === 'in_progress') && (
         <div className="rf-card" aria-label="공무원 처리">
           <strong>담당 공무원 처리 (시연)</strong>
           {r.status === 'filed' && c && (
@@ -207,7 +209,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
         </div>
       )}
 
-      {officer && c && (r.status === 'filed' || r.status === 'assigned' || r.status === 'in_progress') && !pendingTransfer(r) && (
+      {officer && canEdit && c && (r.status === 'filed' || r.status === 'assigned' || r.status === 'in_progress') && !pendingTransfer(r) && (
         <details className="rf-card">
           <summary>
             <strong>다른 기관으로 이관</strong>
@@ -251,7 +253,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
       )}
       {pendingTransfer(r) && <Sentences as="p" className="ps-flag">{`이관을 요청했어요. ${findAgencyName(pendingTransfer(r)?.toAgencyId ?? '')}가 수락하기를 기다리고 있어요.`}</Sentences>}
 
-      {r.status === 'resolved' && (
+      {r.status === 'resolved' && canEdit && (
         <div className="rf-card" id="ps-recheck" aria-label="재확인">
           <strong>재확인: 이제 지나갈 수 있나요?</strong>
           {officer ? (
@@ -280,7 +282,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false }: 
           {r.history.map((h, i) => (
             <li key={i} className={h.status}>
               <span className={'rp-badge rp-' + h.status}>{STATUS_LABEL[h.status]}</span>
-              <span className="bm-meta"> {fmt(h.at)} <span className="ps-by">· {userName(h.by)}</span></span>
+              <span className="bm-meta"> {fmt(h.at)} <span className="ps-by">· {nameOf(h.by)}</span></span>
               {h.memo && h.memo !== STATUS_LABEL[h.status] && <div>{h.memo}</div>}
             </li>
           ))}

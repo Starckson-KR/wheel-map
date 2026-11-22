@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSheetFocus } from '../lib/useSheetFocus'
 import Icon from './Icon'
-import { PUB_LAYERS, type LayerState, type PubLayerId } from '../lib/publicLayers'
+import { PUB_LAYERS, PUB_MEANING, type LayerState, type PubLayerId } from '../lib/publicLayers'
 import SheetHandle from './SheetHandle'
 import { DEFAULT_FILTER, STATUS_CHIPS, type KindKey, type MapFilter } from '../lib/mapFilter'
 import { IMPACT_INFO } from '../lib/display'
@@ -35,11 +36,14 @@ export default function LayerPanel({ layers, loading, onChange, onClose, filter,
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [onClose])
+  const sheetRef = useRef<HTMLDivElement>(null)
+  useSheetFocus(true, sheetRef)
+  const [term, setTerm] = useState<LayerKey | null>(null) // 뜻을 펼친 타일
   const failed = PUB_LAYERS.filter((l) => layers[l.id] && loading[l.id] === 'error')
   return (
     <>
       <div className="ms-dim" onClick={onClose} />
-      <div className="ms lp" data-sheet role="dialog" aria-modal="true" aria-label="지도에 보여 줄 것 직접 고르기">
+      <div className="ms lp" data-sheet ref={sheetRef} role="dialog" aria-modal="true" aria-label="지도에 보여 줄 것 직접 고르기">
         <SheetHandle onDown={onClose} />
         <div className="ms-head">
           <div>
@@ -58,19 +62,32 @@ export default function LayerPanel({ layers, loading, onChange, onClose, filter,
                 const t = tileOf(k)
                 if (!t) return null
                 const on = layers[k]
+                const mean = k === 'team' ? undefined : PUB_MEANING[k]
                 return (
-                  <button key={k} type="button" className={'lp-tile' + (on ? ' on' : '')} aria-pressed={on} onClick={() => onChange({ [k]: !on } as Partial<LayerState>)}>
-                    <span className="lp-tile-ic" aria-hidden="true" style={{ background: t.color }}>
-                      <Icon name={t.icon} size={16} />
-                    </span>
-                    <span className="lp-tile-name">{t.label}</span>
-                    <span className="lp-tile-ck" aria-hidden="true">
-                      <Icon name="check" size={18} />
-                    </span>
-                  </button>
+                  <div key={k} className={'lp-box' + (mean ? ' has-mean' : '')}>
+                    <button type="button" className={'lp-tile' + (on ? ' on' : '')} aria-pressed={on} onClick={() => onChange({ [k]: !on } as Partial<LayerState>)}>
+                      <span className="lp-tile-ic" aria-hidden="true" style={{ background: t.color }}>
+                        <Icon name={t.icon} size={16} />
+                      </span>
+                      <span className="lp-tile-name">{t.label}</span>
+                      <span className="lp-tile-ck" aria-hidden="true">
+                        <Icon name="check" size={18} />
+                      </span>
+                    </button>
+                    {mean && (
+                      <button type="button" className="lp-info" aria-expanded={term === k} aria-label={`${t.label} 뜻 보기`} onClick={() => setTerm((v) => (v === k ? null : k))}>
+                        <span aria-hidden="true">?</span>
+                      </button>
+                    )}
+                  </div>
                 )
               })}
             </div>
+            {g.keys.some((k) => k === term) && term && term !== 'team' && PUB_MEANING[term] && (
+              <p className="lp-mean" role="status">
+                <b>{tileOf(term)?.label}</b> {PUB_MEANING[term]}
+              </p>
+            )}
           </section>
         ))}
 

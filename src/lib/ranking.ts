@@ -62,6 +62,12 @@ export type RankRow = {
 
 export type RankResult = { range: PeriodRange; rows: RankRow[]; ranked: RankRow[]; idle: RankRow[] }
 
+// 점수 내림차순 정렬 + 순위 매기기(동점은 같은 순위, 다음 순위는 건너뜀, 0점은 null). 시험하기 쉽게 따로 둔다.
+export function assignRanks<T extends { userId: string; points: number }>(list: T[], isMock: (id: string) => boolean = isMockUser): (T & { rank: number | null })[] {
+  const rows = [...list].sort((a, b) => b.points - a.points || Number(isMock(a.userId)) - Number(isMock(b.userId)) || (a.userId < b.userId ? -1 : 1))
+  return rows.map((r) => ({ ...r, rank: r.points > 0 ? 1 + rows.filter((o) => o.points > r.points).length : null }))
+}
+
 function rankOnce(reports: Report[], userIds: string[], range: PeriodRange): Omit<RankRow, 'prevRank'>[] {
   const rw = computeRewards(reports, userIds)
   const rows = userIds.map((userId) => {
@@ -70,13 +76,8 @@ function rankOnce(reports: Report[], userIds: string[], range: PeriodRange): Omi
     const counts = KIND_ORDER.map((kind) => ({ kind, label: KIND_LABEL[kind], n: evs.filter((e) => e.kind === kind).length })).filter((c) => c.n > 0)
     return { userId, points, counts }
   })
-  // 실제 사용자(가입한 사람)가 가상 사용자보다 먼저. 각 묶음 안에서는 점수순이고, 가상 사용자의 순위는 실제 사용자 뒤에서 이어진다.
-  rows.sort((a, b) => Number(isMockUser(a.userId)) - Number(isMockUser(b.userId)) || b.points - a.points || (a.userId < b.userId ? -1 : 1))
-  const realRanked = rows.filter((o) => !isMockUser(o.userId) && o.points > 0).length
-  return rows.map((r) => {
-    const mock = isMockUser(r.userId)
-    return { ...r, rank: r.points > 0 ? (mock ? realRanked : 0) + 1 + rows.filter((o) => isMockUser(o.userId) === mock && o.points > r.points).length : null }
-  })
+  // 점수 높은 순. 점수가 같을 때만 실제 사용자(가입한 사람)가 가상 사용자보다 먼저(예전에는 실제 사용자를 점수와 상관없이 앞에 둬서, 점수가 높은 사람이 맨 아래로 밀렸다).
+  return assignRanks(rows)
 }
 
 // 기간 랭킹. withPrev가 true면 직전 기간(지난주·지난달) 순위도 함께 붙인다.

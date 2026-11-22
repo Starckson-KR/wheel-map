@@ -45,9 +45,9 @@ function setup(extra: Record<string, string> = {}, reply?: (url: string) => Resp
 
 test('도착 조회: 정리된 응답, 키는 상류 주소에만 있고 응답에는 없다', async () => {
   const { call, urls } = setup()
-  const r = await call('/bis/arrive?station=12345')
+  const r = await call('/bis/arrive?station=15')
   assert.equal(r.status, 200)
-  assert.equal(r.body.stationId, '12345')
+  assert.equal(r.body.stationId, '15')
   assert.equal(r.body.cached, false)
   assert.deepEqual(
     r.body.arrivals.map((a: any) => [a.lineName, a.remainMin, a.low]),
@@ -55,19 +55,19 @@ test('도착 조회: 정리된 응답, 키는 상류 주소에만 있고 응답�
   )
   assert.equal(r.body.arrivals[0].dirEnd, '용봉')
   assert.equal(urls.length, 1)
-  assert.ok(urls[0].includes('BUSSTOP_ID=12345'))
+  assert.ok(urls[0].includes('BUSSTOP_ID=15'))
   assert.ok(!r.text.includes(KEY))
 })
 
 test('같은 정류소 25초 캐시, 지나면 다시 호출', async () => {
   const { call, urls } = setup()
-  await call('/bis/arrive?station=1')
+  await call('/bis/arrive?station=5')
   clock += 10_000
-  const b = await call('/bis/arrive?station=1')
+  const b = await call('/bis/arrive?station=5')
   assert.equal(b.body.cached, true)
   assert.equal(urls.length, 1)
   clock += 20_000
-  const c = await call('/bis/arrive?station=1')
+  const c = await call('/bis/arrive?station=5')
   assert.equal(c.body.cached, false)
   assert.equal(urls.length, 2)
 })
@@ -78,55 +78,55 @@ test('입력 검증: 정류소·노선 형식, 메서드', async () => {
   assert.equal((await call('/bis/arrive?station=12345678')).status, 400)
   assert.equal((await call('/bis/arrive')).status, 400)
   assert.equal((await call('/bis/line?name=' + encodeURIComponent('a b'))).status, 400)
-  assert.equal((await call('/bis/arrive?station=1', { method: 'POST' })).status, 405)
+  assert.equal((await call('/bis/arrive?station=5', { method: 'POST' })).status, 405)
   assert.equal(urls.length, 0)
 })
 
 test('허용하지 않은 출처·출처 없음은 403', async () => {
   const { call } = setup()
-  assert.equal((await call('/bis/arrive?station=1', { origin: 'https://evil.example' })).status, 403)
-  assert.equal((await call('/bis/arrive?station=1', { origin: null })).status, 403)
+  assert.equal((await call('/bis/arrive?station=5', { origin: 'https://evil.example' })).status, 403)
+  assert.equal((await call('/bis/arrive?station=5', { origin: null })).status, 403)
 })
 
 test('하루 상류 호출 상한: 넘으면 429, 캐시는 계속 나가고 다음 날 풀린다', async () => {
   const { call, urls } = setup({ BIS_DAILY_CAP: '2' })
   clock = 1_700_100_000_000
-  assert.equal((await call('/bis/arrive?station=1')).status, 200)
-  assert.equal((await call('/bis/arrive?station=2')).status, 200)
-  const over = await call('/bis/arrive?station=3')
+  assert.equal((await call('/bis/arrive?station=5')).status, 200)
+  assert.equal((await call('/bis/arrive?station=6')).status, 200)
+  const over = await call('/bis/arrive?station=8')
   assert.equal(over.status, 429)
   assert.ok(!over.text.includes(KEY))
-  assert.equal((await call('/bis/arrive?station=1')).status, 200) // 캐시
+  assert.equal((await call('/bis/arrive?station=5')).status, 200) // 캐시
   assert.equal(urls.length, 2)
   clock += 86_400_000
-  assert.equal((await call('/bis/arrive?station=3')).status, 200)
+  assert.equal((await call('/bis/arrive?station=8')).status, 200)
 })
 
 test('IP별 분당 제한: 다른 IP·다음 분에는 영향 없다', async () => {
   const { call } = setup({ BIS_PER_MINUTE: '3' })
   clock = 1_700_200_000_000
-  for (let i = 0; i < 3; i++) assert.equal((await call('/bis/arrive?station=1', { ip: '1.1.1.1' })).status, 200)
-  assert.equal((await call('/bis/arrive?station=1', { ip: '1.1.1.1' })).status, 429)
-  assert.equal((await call('/bis/arrive?station=1', { ip: '2.2.2.2' })).status, 200)
+  for (let i = 0; i < 3; i++) assert.equal((await call('/bis/arrive?station=5', { ip: '1.1.1.1' })).status, 200)
+  assert.equal((await call('/bis/arrive?station=5', { ip: '1.1.1.1' })).status, 429)
+  assert.equal((await call('/bis/arrive?station=5', { ip: '2.2.2.2' })).status, 200)
   clock += 61_000
-  assert.equal((await call('/bis/arrive?station=1', { ip: '1.1.1.1' })).status, 200)
+  assert.equal((await call('/bis/arrive?station=5', { ip: '1.1.1.1' })).status, 200)
 })
 
 test('키가 없으면 503(캐시가 있으면 그대로 응답)', async () => {
   const { call } = setup({ DATA_GO_KR_KEY: '' })
-  const r = await call('/bis/arrive?station=1')
+  const r = await call('/bis/arrive?station=5')
   assert.equal(r.status, 503)
 })
 
 test('상류 오류: 502, 오류 문구·응답에 키가 없다', async () => {
   const bad = setup({}, () => new Response('nope', { status: 500 }))
-  const a = await bad.call('/bis/arrive?station=1')
+  const a = await bad.call('/bis/arrive?station=5')
   assert.equal(a.status, 502)
   assert.ok(!a.text.includes(KEY))
   const notJson = setup({}, () => new Response('<html>', { status: 200 }))
-  assert.equal((await notJson.call('/bis/arrive?station=1')).status, 502)
+  assert.equal((await notJson.call('/bis/arrive?station=5')).status, 502)
   const code = setup({}, () => new Response(JSON.stringify({ RESPONSE: { RESULT: { RESULT_CODE: `ERR ${KEY}`, RESULT_MSG: KEY } } }), { status: 200 }))
-  const c = await code.call('/bis/arrive?station=1')
+  const c = await code.call('/bis/arrive?station=5')
   assert.equal(c.status, 502)
   assert.ok(!c.text.includes(KEY))
 })
@@ -139,7 +139,7 @@ test('상류 호출이 던져도(주소에 키가 든 오류) 응답·로그에 
     const { call } = setup({}, (url) => {
       throw new Error('fetch failed ' + url)
     })
-    const r = await call('/bis/arrive?station=1')
+    const r = await call('/bis/arrive?station=5')
     assert.equal(r.status, 502)
     assert.ok(!r.text.includes(KEY))
     assert.ok(!logs.join('\n').includes(KEY))
@@ -168,8 +168,28 @@ test('노선 저상 수: 노선 목록은 하루 한 번, 운행 버스는 10분
 
 test('secret 끝에 줄바꿈·공백이 붙어 있어도 상류에는 깨끗한 키로 부른다(붙으면 상류가 403 등록되지 않은 서비스키)', async () => {
   const { call, urls } = setup({ DATA_GO_KR_KEY: ` ${KEY}\r\n` })
-  const r = await call('/bis/arrive?station=12345')
+  const r = await call('/bis/arrive?station=15')
   assert.equal(r.status, 200)
   assert.ok(urls[0].includes(`serviceKey=${encodeURIComponent(KEY)}&`))
   assert.ok(!urls[0].includes('%0A') && !urls[0].includes('%0D') && !urls[0].includes('%20'))
+})
+
+test('정류소 번호: 앱이 쓰는 목록 밖은 400(상류·상한을 쓰지 않음), 목록 안은 통과', async () => {
+  const { call, urls } = setup()
+  const r = await call('/bis/arrive?station=9999999')
+  assert.equal(r.status, 400)
+  assert.equal(urls.length, 0)
+  assert.equal((await call('/bis/arrive?station=5')).status, 200)
+})
+
+test('정류소 목록: worker/src/bisStops.ts가 앱 원본(bus-stops.bis.json)과 같다(다르면 node scripts/makeBisStopIds.mjs)', async () => {
+  const { readFileSync } = await import('node:fs')
+  const { BIS_STOP_IDS } = await import('../src/bisStops.ts')
+  const j = JSON.parse(readFileSync(new URL('../../data/public/bus-stops.bis.json', import.meta.url), 'utf8')) as { items: { id: string }[] }
+  const want = new Set(j.items.map((x) => String(x.id)))
+  assert.equal(BIS_STOP_IDS.size, want.size)
+  for (const id of want) assert.ok(BIS_STOP_IDS.has(id), id)
+  // 미리 받아 둔 스냅샷의 정류소도 모두 목록 안
+  const snap = JSON.parse(readFileSync(new URL('../../data/public/bus-snapshot.json', import.meta.url), 'utf8')) as { stations: Record<string, unknown> }
+  for (const id of Object.keys(snap.stations)) assert.ok(BIS_STOP_IDS.has(id), 'snapshot ' + id)
 })

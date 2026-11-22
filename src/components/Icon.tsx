@@ -14,6 +14,7 @@ const P: Record<string, string> = {
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM16.5 16.5L20 20',
   chev: 'M9 6l6 6-6 6',
   chevL: 'M15 6l-6 6 6 6',
+  up: 'M6 14l6-6 6 6',
   home: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z',
   plus: 'M12 5v14M5 12h14',
   menu: 'M4 7h16M4 12h16M4 17h16',
@@ -48,6 +49,8 @@ const P: Record<string, string> = {
   medal: 'M12 10a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM9 10.9L6.5 3h4L12 6.5 13.5 3h4L15 10.9',
   compass: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM15.5 8.5l-2 5-5 2 2-5z',
   cone: 'M10 4h4l4 14H6zM4 20h16M8.6 11h6.8',
+  // 화장실: 남자·여자 두 사람과 가운데 칸막이
+  toilet: 'M6.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM4 21v-6M9 21v-6M3.8 14.5l.9-5.5h3.6l.9 5.5zM12 3v18M17.5 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM17.5 8.5l-3.2 8h6.4zM16 21v-4.5M19 21v-4.5',
 }
 /** 카카오 지도 커스텀 오버레이처럼 HTML 문자열이 필요한 곳에서 쓰는 같은 그림. 작은 핀에서는 선 굵기(stroke)를 올려 또렷하게 한다. */
 export function iconSvg(name: string, size = 24, stroke = 2): string {

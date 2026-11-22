@@ -11,6 +11,7 @@ export const PREF_KEYS = [
   'wheelmap.profile',
   'wheelmap.lang',
   'wheelmap.onboarded',
+  'wheelmap.cityConsent', // 접속 지역(도시) 기록 동의: 'yes' / 'no'. 'yes'가 아니게 되면 저장된 지역을 지운다(account.ts)
 ]
 export const MAX_PREFS_BYTES = 16 * 1024
 

@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
+import { useSheetFocus } from '../lib/useSheetFocus'
 import { getMotionReduce, getTextSize, getTheme, getView, PREFS_CHANGE_EVENT, setMotionReduce, setTextSize, setTheme, setView, type TextSize, type ThemeMode, type ViewMode } from '../lib/viewPrefs'
 import Icon from './Icon'
 import SheetHandle from './SheetHandle'
 import { SegBg } from './motionKit'
+import { useXmas } from '../lib/useXmas'
+import { setXmasOff } from '../lib/xmas'
 
 const VIEWS: { id: ViewMode; label: string }[] = [
   { id: 'auto', label: '자동' },
@@ -35,10 +38,13 @@ export default function ViewSettings({ floating = false, row = false, open: open
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [open, setOpen])
+  const sheetRef = useRef<HTMLDivElement>(null)
+  useSheetFocus(open, sheetRef)
   const [view, setV] = useState(getView)
   const [theme, setT] = useState(getTheme)
   const [text, setTx] = useState(getTextSize)
   const [calm, setCalm] = useState(getMotionReduce)
+  const xmas = useXmas() // 크리스마스 장식 스위치는 켜짐 기간(12월 또는 시연 도구에서 켬)에만 보인다
   // 로그아웃·계정 전환·서버 설정 동기화로 저장 값이 바뀌면 시트 값도 다시 읽는다
   useEffect(() => {
     const sync = () => {
@@ -59,7 +65,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
         createPortal(
           <>
             <div className="ms-dim" onClick={() => setOpen(false)} />
-            <div className="ms" data-sheet role="dialog" aria-modal="true" aria-label="화면 설정">
+            <div className="ms" data-sheet ref={sheetRef} role="dialog" aria-modal="true" aria-label="화면 설정">
               <SheetHandle onDown={() => setOpen(false)} />
               <div className="ms-head">
                 <div>
@@ -88,6 +94,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
+                <p className="bm-meta">자동은 기기 화면 크기에 맞춰요. PC는 넓은 화면으로 보여요.</p>
               </div>
               <div className="ms-sec">
                 <h3>화면 색</h3>
@@ -108,7 +115,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
-                <p className="bm-meta">지도 바탕은 그대로 밝게 보여요</p>
+                <p className="bm-meta">시스템은 기기 설정을 따라요. 지도 바탕은 그대로 밝게 보여요.</p>
               </div>
               <div className="ms-sec">
                 <h3>글자 크기</h3>
@@ -129,6 +136,7 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
+                <p className="bm-meta">크게를 고르면 화면의 글자가 커져요.</p>
               </div>
               <div className="ms-sec">
                 <h3>움직임 줄이기</h3>
@@ -140,7 +148,21 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
+                <p className="bm-meta">켜면 화면이 바뀔 때의 움직이는 효과를 줄여요.</p>
               </div>
+              {xmas.season && (
+                <div className="ms-sec">
+                  <h3>크리스마스 장식</h3>
+                  <div className="rf-seg" role="group" aria-label="크리스마스 장식">
+                    {[{ on: true, label: '켬' }, { on: false, label: '끔' }].map((v) => (
+                      <button key={v.label} type="button" className={xmas.on === v.on ? 'on' : ''} aria-pressed={xmas.on === v.on} onClick={() => setXmasOff(!v.on)}>
+                        {xmas.on === v.on && <SegBg group="seg-set-xmas" />}
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </>,
           sheetHost(),

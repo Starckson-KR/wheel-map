@@ -2,6 +2,7 @@ import { fmtDay } from '../lib/format'
 import { facilityLabel, groupFacilities } from '../lib/facilityGroups'
 import { clusterByScreen } from '../lib/routing/markerCluster'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { pickNearestTotal } from '../lib/pubDraw'
 import { CENTER_ADDRESS_CANDIDATES, geocode, loadKakao } from '../lib/kakao'
 import { loadBarriers } from '../lib/seed'
 import { NAV_STEP_NEAR_M, NAV_Z } from '../lib/config'
@@ -42,7 +43,7 @@ import { STATUS_LABEL, isExpired, nowMs, useReports } from '../lib/reportStore'
 import type { Report, ReportStatus } from '../types'
 import {
   PUB_LAYERS,
-  PUB_MAX_DRAW,
+  PUB_MEANING,
   PUB_MAX_LEVEL,
   loadLayers,
   loadPubDataset,
@@ -55,12 +56,16 @@ import {
 } from '../lib/publicLayers'
 import { Sentences } from '../components/Sentences'
 import SituationChips from '../components/SituationChips'
-import { BUS_NEAR_M, NEAR_M, applyChip, chipOf, chipOrder, chipSummary, countNear, nearestM, type ChipId, type SummaryCounts } from '../lib/layerPresets'
+import SheetHandle from '../components/SheetHandle'
+import { BUS_NEAR_M, NEAR_M, applyChips, chipOrder, chipSummary, chipsOf, countNear, nearestM, parseChips, toggleChip, type ChipId, type SummaryCounts } from '../lib/layerPresets'
 import { useWeather } from '../lib/weather/store'
 import { toiletAccessible } from '../lib/publicLayers'
 import { Wordmark } from '../components/Wordmark'
 import { CENTER_DEADBAND_PX, centerDelta, compassHeading, easeOut, isStepNear, lerpLatLng, smoothHeading } from '../lib/routing/followNav.ts'
 import { prefersCalm } from '../lib/viewPrefs'
+import { useXmas } from '../lib/useXmas'
+import { isMerryQuery } from '../lib/xmas'
+import '../styles/xmas.css'
 import { isMockReport, realFirst } from '../lib/realFirst'
 import CenterPin from '../components/CenterPin'
 import { haptic } from '../lib/haptic'
@@ -172,6 +177,10 @@ const SNAP_BTN: Record<Snap, { label: string }> = {
 
 // 길 안내 새 지도 시험판(MapLibre): 안내를 시작할 때 처음 내려받는다(첫 화면 번들에 넣지 않는다). 기본은 꺼짐: 개발 서버이거나 주소에 navmap=gl일 때만.
 const GuideGlMap = lazy(() => import('../components/GuideGlMap'))
+const XmasBurst = lazy(() => import('../components/XmasBurst'))
+// 「메리 크리스마스」가 켜져 있는지: 길찾기를 열면 이 화면이 새로 만들어지므로(App의 key) 화면 밖에 기억해 둔다. 새로고침하면 꺼진다.
+let merryKept = false
+const XMAS_ROUTE = '#d0342c' // 「메리 크리스마스」 동안의 도보 경로: 흰 테두리 위 빨강 점선(지팡이 사탕 줄무늬)
 const GL_NAV_ON = glNavEnabled(import.meta.env.DEV, location.search, location.hash)
 
 // 지도 아래를 덮는 시트(요약·상세)의 높이(px). 작은 화면에서 지금 보이는 시트 중 윗변이 가장 높은 것 기준. 큰 화면은 왼쪽 패널이라 0.
@@ -217,7 +226,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const container = useRef<HTMLDivElement>(null)
   const kRef = useRef<typeof kakao | null>(null)
   const mapRef = useRef<kakao.maps.Map | null>(null)
-  const [state, setState] = useState<{ status: 'loading' | 'ready' } | { status: 'error'; message: string }>({ status: 'loading' })
+  const [state, setState] = useState<{ status: 'loading' | 'ready' } | { status: 'error' }>({ status: 'loading' })
+  const [mapTry, setMapTry] = useState(0) // 「다시 시도」를 누른 횟수(지도 불러오기를 처음부터 다시 한다)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [snap, setSnapState] = useState<Snap>(loadSnap)
   const setSnap = (s: Snap) => {
@@ -225,6 +235,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     saveSnap(s)
   }
   const [legendOpen, setLegendOpen] = useState(false)
+  const [clusterList, setClusterList] = useState<{ title: string; rows: { key: string; label: string; open: () => void }[] } | null>(null) // 더 확대할 수 없는 묶음의 목록
+  const [legendTerm, setLegendTerm] = useState<PubLayerId | null>(null) // 범례에서 뜻을 펼친 용어
   const [filter, setFilter] = useState<MapFilter>(DEFAULT_FILTER)
   const [selectedReportId, setSelectedReportId] = useState<string | null>(start.report?.id ?? null)
   const [flowOpen, setFlowOpen] = useState(start.go === 'report')
@@ -256,6 +268,13 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   // 위쪽 검색바가 입력칸이다: 누르면 그 자리에서 키보드가 뜨고, 아래에 장소 검색 결과가 나온다
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQ, setSearchQ] = useState('')
+  // 크리스마스 「메리 크리스마스」: 검색창에 입력하면 한 번 터지고(merryBurst), 핀 모자·줄무늬 경로·강조색(merryLook)으로 바뀐다
+  const xmas = useXmas()
+  const [merry, setMerry] = useState(merryKept)
+  const [merryLook, setMerryLook] = useState(merryKept)
+  const merryFromStart = useRef(merryKept) // 이미 켜진 채로 다시 만들어진 화면: 모자가 다시 떨어지지 않게 한다
+  const [merryBurst, setMerryBurst] = useState<{ x: number; y: number } | null>(null)
+  const merryTimer = useRef(0)
   const searchInput = useRef<HTMLInputElement>(null)
   // 검색에서 고른 도착지(또는 추천 경로)로 길찾기를 연다. n이 바뀌면 길찾기 화면을 새로 연다
   const [routeLaunch, setRouteLaunch] = useState<{ to?: Place; pair?: DemoPair; n: number } | null>(null)
@@ -399,7 +418,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         if (start.report) center = new k.maps.LatLng(start.report.lat, start.report.lng)
         else if (start.at) center = new k.maps.LatLng(start.at.lat, start.at.lng)
         if (cancelled || !container.current) return
-        if (!center) throw new Error('지도 중심 주소를 찾지 못했어요. 카카오 앱의 지도·로컬 사용 설정을 확인해 주세요.')
+        if (!center) throw new Error('지도 중심 주소를 찾지 못함')
         const map = new k.maps.Map(container.current, { center, level: Math.min(4, PUB_MAX_LEVEL) })
         // 레이어를 켜 달라고 온 경우(layer=…)는 점이 보이는 확대(PUB_MAX_LEVEL 이하)로 열어야 해서 전체 보기로 넓히지 않는다.
         if (located.length > 0 && !start.report && !start.layer) {
@@ -474,14 +493,16 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           }, 300)
         }
       } catch (e) {
-        if (!cancelled) setState({ status: 'error', message: e instanceof Error ? e.message : String(e) })
+        console.warn('[지도] 불러오기 실패', e)
+        if (!cancelled) setState({ status: 'error' })
       }
     }
+    if (mapTry > 0) setState((st) => (st.status === 'error' ? { status: 'loading' } : st))
     init()
     return () => {
       cancelled = true
     }
-  }, [start])
+  }, [start, mapTry])
 
   // 길찾기 중에는 경로와 관련 있는 지점만 또렷하게 보이고 나머지는 흐리게 한다.
   const routeIds = useMemo(() => {
@@ -871,6 +892,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         ms.forEach((m) => b.extend(new k.maps.LatLng(m.lat, m.lng)))
         map.setBounds(b, Math.max(80, topCoverOf(container.current) + 16), 60, Math.max(80, coverOf(container.current) + 24), 60)
         if (map.getLevel() >= level) map.setLevel(Math.max(1, level - 1))
+        // 이미 가장 크게 확대했거나 한 자리에 겹쳐 있어 더 풀리지 않으면 그 묶음의 목록을 보여 준다
+        if (map.getLevel() >= level) setClusterList({ title: `이 자리 ${total}건`, rows: ms.map((m) => ({ key: m.key, label: m.title ?? m.name, open: m.onClick })) })
       }
       el.addEventListener('click', (e) => {
         e.stopPropagation()
@@ -914,6 +937,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   }, [pubData, layers])
   const pubVisible = useMemo(() => {
     const out: { layer: PubLayerId; items: PubItem[]; total: number; inView: number }[] = []
+    const cand: { layer: PubLayerId; items: PubItem[] }[] = []
     for (const { id, pool } of pubPools) {
       if (!view) {
         out.push({ layer: id, items: [], total: pool.length, inView: 0 })
@@ -921,7 +945,16 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       }
       const [s, w, n, e] = view.b
       const inView = pool.filter((i) => (i.lat as number) >= s && (i.lat as number) <= n && (i.lng as number) >= w && (i.lng as number) <= e)
-      out.push({ layer: id, items: view.level > PUB_MAX_LEVEL ? [] : inView.slice(0, PUB_MAX_DRAW), total: pool.length, inView: inView.length })
+      out.push({ layer: id, items: [], total: pool.length, inView: inView.length })
+      cand.push({ layer: id, items: view.level > PUB_MAX_LEVEL ? [] : inView })
+    }
+    // 켜 둔 레이어 전체 합계로 800개까지, 화면 중심에 가까운 것부터 그린다
+    if (view) {
+      const center = { lat: (view.b[0] + view.b[2]) / 2, lng: (view.b[1] + view.b[3]) / 2 }
+      for (const p of pickNearestTotal(cand, center)) {
+        const o = out.find((x) => x.layer === p.layer)
+        if (o) o.items = p.items
+      }
     }
     return out
   }, [pubPools, view])
@@ -978,6 +1011,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     // 경로선: 흰 테두리(아래) + 색 실선(위). 모두 같은 굵기, 끝은 둥글게(map.css). 도보=파랑, 버스=노선 종류 색.
     // 기존 최단길과 개선 경로를 같이 보여 줄 때는 고른 쪽이 파랑, 다른 쪽은 연한 회색 파랑으로 둔다.
     const W = 7
+    const walkCol = merryLook ? XMAS_ROUTE : ROUTE_WALK
+    const walkStyle = merryLook ? 'shortdash' : 'solid'
     const both = !!(overlay.base && overlay.detour)
     const draw = (path: [number, number][] | null, kind: 'base' | 'detour') => {
       if (!path) return
@@ -985,7 +1020,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       const lls = path.map(ll)
       shapes.push(
         new k.maps.Polyline({ map, path: lls, strokeWeight: W + 4, strokeColor: '#ffffff', strokeOpacity: on ? 1 : 0.75, strokeStyle: 'solid', zIndex: on ? 8 : 6 }),
-        new k.maps.Polyline({ map, path: lls, strokeWeight: W, strokeColor: on ? ROUTE_WALK : ROUTE_BASE, strokeOpacity: on ? 1 : 0.6, strokeStyle: 'solid', zIndex: on ? 9 : 7 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: W, strokeColor: on ? walkCol : ROUTE_BASE, strokeOpacity: on ? 1 : 0.6, strokeStyle: on ? walkStyle : 'solid', zIndex: on ? 9 : 7 }),
       )
     }
     draw(overlay.base, 'base')
@@ -993,10 +1028,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     // 버스가 섞인 경로: 걷는 구간은 파랑 실선, 버스 구간은 노선 종류 색 실선
     for (const l of overlay.legs ?? []) {
       const lls = l.coords.map(ll)
-      const col = l.kind === 'bus' ? busColor(l.route) : ROUTE_WALK
+      const col = l.kind === 'bus' ? busColor(l.route) : walkCol
       shapes.push(
         new k.maps.Polyline({ map, path: lls, strokeWeight: W + 4, strokeColor: '#ffffff', strokeOpacity: 1, strokeStyle: 'solid', zIndex: 8 }),
-        new k.maps.Polyline({ map, path: lls, strokeWeight: W, strokeColor: col, strokeOpacity: 1, strokeStyle: 'solid', zIndex: 9 }),
+        new k.maps.Polyline({ map, path: lls, strokeWeight: W, strokeColor: col, strokeOpacity: 1, strokeStyle: l.kind === 'bus' ? 'solid' : walkStyle, zIndex: 9 }),
       )
     }
     for (const h of overlay.hits) {
@@ -1010,7 +1045,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(h.anchor[0], h.anchor[1]), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 11 }))
     }
     return () => shapes.forEach((x) => x.setMap(null))
-  }, [ready, overlay])
+  }, [ready, overlay, merryLook])
 
   // 길찾기 지도의 작은 딱지(횡단보도·정류장·화장실 등). 확대·축소하면 정류장 묶음만 다시 계산한다.
   useEffect(() => {
@@ -1023,10 +1058,17 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     const stops = overlay.markers.filter(isStop)
     const proj = map.getProjection()
     const groups = clusterByScreen(stops.map((m) => proj.containerPointFromCoords(new k.maps.LatLng(m.lat, m.lng))))
-    const draw = (m: RouteMarker, text: string, title: string) => {
+    // 정류장·화장실·그늘막·육교·침수는 글자 대신 색이 다른 아이콘 원으로 그린다(묶음이면 아이콘 옆에 개수)
+    const ROUTE_ICON: Record<string, string> = { 'rt-m-bus': 'bus', 'rt-m-toilet': 'toilet', 'rt-m-shade': 'umbrella', 'rt-m-overpass': 'bridge', 'rt-m-flood': 'drop' }
+    const draw = (m: RouteMarker, text: string, title: string, count = 0) => {
       const el = document.createElement('div')
-      el.className = 'rt-m ' + m.cls
-      el.textContent = text
+      const ic = ROUTE_ICON[m.cls]
+      el.className = 'rt-m ' + m.cls + (ic ? ' rt-m-ic' : '')
+      if (ic) {
+        el.innerHTML = iconSvg(ic, 14, 2.4) + (count > 1 ? `<b>${count}</b>` : '')
+        el.setAttribute('role', 'img')
+        el.setAttribute('aria-label', count > 1 ? `정류장 ${count}곳: ${title}` : title)
+      } else el.textContent = text
       el.title = title
       shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(m.lat, m.lng), content: el, map, xAnchor: 0.5, yAnchor: 0.5, zIndex: 9 }))
     }
@@ -1034,7 +1076,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     for (const g of groups) {
       const first = stops[g[0]]
       if (g.length === 1) draw(first, first.text, first.title)
-      else draw(first, `정류장 ${g.length}`, [...new Set(g.map((i) => stops[i].title))].join(', '))
+      else draw(first, `정류장 ${g.length}`, [...new Set(g.map((i) => stops[i].title))].join(', '), g.length)
     }
     return () => shapes.forEach((x) => x.setMap(null))
   }, [ready, overlay, mapLevel])
@@ -1307,6 +1349,50 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     setSearchQ('')
     searchInput.current?.blur()
   }
+  const stopMerry = () => {
+    window.clearTimeout(merryTimer.current)
+    merryKept = false
+    setMerry(false)
+    setMerryLook(false)
+    setMerryBurst(null)
+  }
+  // 조합 중(한글 입력 도중)에는 판정하지 않고, 조합이 끝났을 때 판정한다
+  const tryMerry = (text: string, composing: boolean) => {
+    if (!xmas.on || merry || !isMerryQuery(text, composing)) return
+    merryKept = true
+    merryFromStart.current = false
+    setMerry(true)
+    setSearchOpen(false) // 검색어는 남기고 결과 창만 닫아 지도가 보이게 한다
+    const r = searchInput.current?.getBoundingClientRect()
+    searchInput.current?.blur()
+    if (prefersCalm()) return setMerryLook(true)
+    setMerryBurst(r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : { x: window.innerWidth / 2, y: 40 })
+    merryTimer.current = window.setTimeout(() => setMerryLook(true), 1150)
+  }
+  // 켜짐 기간에는 폭발 파일을 미리 받아 둔다(처음 켤 때 띠·모자가 폭발보다 먼저 나오지 않게)
+  useEffect(() => {
+    if (xmas.on) void import('../components/XmasBurst')
+  }, [xmas.on])
+  // 장식은 「되돌리기」·검색 닫기(X·Esc)·설정에서 끄기로만 꺼진다. 길찾기를 열면서 검색어가 지워질 때는 그대로 둔다(줄무늬 길을 볼 수 있게).
+  useEffect(() => {
+    if (merry && !xmas.on) stopMerry()
+  }, [merry, xmas.on])
+  const closeSearchByUser = () => {
+    stopMerry()
+    closeSearch()
+  }
+  useEffect(() => {
+    if (!merryLook) return
+    const el = document.documentElement
+    el.classList.add('xmas-merry')
+    if (merryFromStart.current) el.classList.add('xmas-merry-set')
+    const t = window.setTimeout(() => el.classList.add('xmas-merry-set'), 1300)
+    return () => {
+      window.clearTimeout(t)
+      el.classList.remove('xmas-merry', 'xmas-merry-set')
+    }
+  }, [merryLook])
+  useEffect(() => () => window.clearTimeout(merryTimer.current), [])
   const openSearch = () => {
     if (searchOpen) return
     leaveProgress()
@@ -1373,7 +1459,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     else {
       const g = pubVisible.find((x) => x.layer === l.id)
       if (g && view && view.level > PUB_MAX_LEVEL) pubNotes.push(`${l.label}: 지도를 확대하면 보여요`)
-      else if (g && g.inView > PUB_MAX_DRAW) pubNotes.push(`${l.label}: 화면 안 ${g.inView}건 중 ${PUB_MAX_DRAW}건만 보여요. 더 확대해 주세요.`)
+      else if (g && g.items.length < g.inView) pubNotes.push(`${l.label}: 화면 안 ${g.inView}건 중 ${g.items.length}건만 보여요. 더 확대해 주세요.`)
     }
   }
 
@@ -1404,19 +1490,35 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const restCats = CATEGORY_ORDER.filter((c) => c !== 'hard' && c !== 'boarding' && c !== 'caution' && c !== 'zone' && hereCount(c) > 0)
   // 상황 칩: 지금 켜진 레이어가 어떤 칩의 묶음과 같으면 그 칩이 골라진 것으로 보인다. 날씨가 비·눈이면 「비 오는 날」이 맨 앞.
   const weather = useWeather()
-  const chip = chipOf(layers)
+  // 칩은 여러 개 고를 수 있다. 고른 순서는 따로 저장해 두고, 켜진 레이어와 맞을 때만 쓴다(직접 바꾸면 저절로 풀린다)
+  const [chipHint, setChipHint] = useState<ChipId[]>(() => {
+    try {
+      return parseChips(localStorage.getItem('wheelmap.chips'))
+    } catch {
+      return []
+    }
+  })
+  const picked = useMemo(() => chipsOf(layers, chipHint), [layers, chipHint])
   const chips = useMemo(() => chipOrder(weather), [weather])
   const pickChip = (id: ChipId) => {
     setPubSel(null)
+    const sel = toggleChip(picked, id)
+    setChipHint(sel)
+    try {
+      localStorage.setItem('wheelmap.chips', JSON.stringify(sel))
+    } catch {
+      /* 저장소를 못 써도 이번 방문에는 동작 */
+    }
     setLayers((prev) => {
-      const n = applyChip(id, prev)
+      const n = applyChips(sel, prev)
       saveLayers(n)
       return n
     })
   }
   // 요약 한 줄의 숫자: 지도 가운데 기준으로 센다(화장실 거리는 내 위치를 알 때만)
   const chipSum = useMemo(() => {
-    if (!chip || !view || !chips.includes(chip)) return null
+    // 요약 한 줄은 가장 나중에 고른 칩 가운데 숫자가 있는 것 하나
+    if (picked.length === 0 || !view) return null
     const c = { lat: (view.b[0] + view.b[2]) / 2, lng: (view.b[1] + view.b[3]) / 2 }
     const toilets = pubData.toilet?.items.filter(toiletAccessible)
     const counts: SummaryCounts = {
@@ -1427,8 +1529,13 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       schoolZone: pubData.schoolZone && countNear(pubData.schoolZone.items, c, NEAR_M),
       shade: pubData.shade && countNear(pubData.shade.items, c, NEAR_M),
     }
-    return chipSummary(chip, counts)
-  }, [chip, chips, view, pubData, myPos])
+    for (const id of [...picked].reverse()) {
+      if (!chips.includes(id)) continue
+      const sum = chipSummary(id, counts)
+      if (sum) return sum
+    }
+    return null
+  }, [picked, chips, view, pubData, myPos])
 
   const overlayOpen = flowOpen || panelOpen || routeOpen || picking || !!routePick || progressMode
   const behind = !!(selectedId || selectedReportId || pubSel)
@@ -1685,6 +1792,11 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
   return (
     <div className="bm">
+      {merryBurst && (
+        <Suspense fallback={null}>
+          <XmasBurst from={merryBurst} onDone={() => setMerryBurst(null)} />
+        </Suspense>
+      )}
       <div className={'bm-main' + (glOn ? ' bm-gl' : '')}>
         <div ref={container} className="map" role="application" aria-label="이의있음!" />
         {glOn && overlay?.guide && (
@@ -1701,9 +1813,12 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         )}
         {state.status === 'loading' && <p className="map-notice">지도를 불러오고 있어요…</p>}
         {state.status === 'error' && (
-          <p className="map-notice map-notice-error" role="alert">
-            {state.message}
-          </p>
+          <div className="map-notice map-notice-error" role="alert">
+            <p>지도를 불러오지 못했어요</p>
+            <button type="button" onClick={() => setMapTry((n) => n + 1)}>
+              다시 시도
+            </button>
+          </div>
         )}
 
         <div className="hm-panel">
@@ -1731,11 +1846,15 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                   autoComplete="off"
                   autoCorrect="off"
                   onFocus={openSearch}
-                  onChange={(e) => setSearchQ(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Escape' && closeSearch()}
+                  onChange={(e) => {
+                    setSearchQ(e.target.value)
+                    tryMerry(e.target.value, (e.nativeEvent as InputEvent).isComposing === true)
+                  }}
+                  onCompositionEnd={(e) => tryMerry(e.currentTarget.value, false)}
+                  onKeyDown={(e) => e.key === 'Escape' && closeSearchByUser()}
                 />
                 {searchOpen && (
-                  <button type="button" className="hm-search-x" aria-label="검색 닫기" onClick={closeSearch}>
+                  <button type="button" className="hm-search-x" aria-label="검색 닫기" onClick={closeSearchByUser}>
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                       <path d="m4 4 10 10M14 4 4 14" />
                     </svg>
@@ -1751,7 +1870,13 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             </div>
           </div>
           {searchOpen && <PlaceSearchPanel k={kObj} query={searchQ} onPlace={(p) => launchRoute({ to: p })} onPair={(p) => launchRoute({ pair: p })} />}
-          {!progressMode && <SituationChips order={chips} selected={chip} onPick={pickChip} summary={chipSum} />}
+          {merryLook && !searchOpen && !routeOpen && (
+            <div className="xm-band" role="status">
+              <b>메리 크리스마스!</b>
+              <button type="button" onClick={closeSearchByUser}>되돌리기</button>
+            </div>
+          )}
+          {!progressMode && <SituationChips order={chips} selected={picked} onPick={pickChip} summary={chipSum} />}
           <div className="hm-chips">
             <MockStrip onMap />
           </div>
@@ -1786,9 +1911,20 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 <i className="hm-leg-pub" style={{ background: l.color }}>
                   <Icon name={l.icon} size={14} />
                 </i>
-                {l.label} (참고)
+                {PUB_MEANING[l.id] ? (
+                  <button type="button" className="hm-term" aria-expanded={legendTerm === l.id} aria-label={`${l.label} 뜻 보기`} onClick={() => setLegendTerm((t) => (t === l.id ? null : l.id))}>
+                    {l.label} (참고)
+                  </button>
+                ) : (
+                  <>{l.label} (참고)</>
+                )}
               </li>
             ))}
+            {!progressMode && legendTerm && layers[legendTerm] && PUB_MEANING[legendTerm] && (
+              <li className="hm-legend-note" role="status">
+                <b>{PUB_LAYERS.find((x) => x.id === legendTerm)?.label}</b> {PUB_MEANING[legendTerm]}
+              </li>
+            )}
           </ul>
           {progressMode && !progressOpen && (
             <div className="hm-focus" role="status">
@@ -2053,6 +2189,33 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           />
         )}
 
+        {clusterList && !selectedReportId && !selected && (
+          <aside className="bm-detail rd" data-sheet aria-label={clusterList.title}>
+            <SheetHandle onDown={() => setClusterList(null)} />
+            <div className="bm-detail-head">
+              <h2>{clusterList.title}</h2>
+              <button type="button" className="bm-close" onClick={() => setClusterList(null)} aria-label="닫기">
+                닫기
+              </button>
+            </div>
+            <ul className="lr-list bm-children">
+              {clusterList.rows.map((row) => (
+                <li key={row.key}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClusterList(null)
+                      row.open()
+                    }}
+                  >
+                    {row.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        )}
+
         {selectedReportId && (
           <ReportDetail
             key={selectedReportId}
@@ -2062,6 +2225,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
             onClose={() => setSelectedReportId(null)}
             onOpenReport={openReport}
             onOpenSeed={openSeed}
+            hideNames
           />
         )}
 

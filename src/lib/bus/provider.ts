@@ -1,5 +1,6 @@
 import snap from '../../../data/public/bus-snapshot.json'
 import { ACCOUNT_URL } from '../config.ts'
+import { fetchWithTimeout, RELAY_TIMEOUT_MS } from '../fetchTimeout.ts'
 import { sameLine } from './types.ts'
 import type { Arrival,ArrivalResult, LineLow, LineLowResult } from './types.ts'
 
@@ -32,7 +33,7 @@ function fromSnapshot(stationId: string, why: string): ArrivalResult {
 
 async function relayJson(path: string): Promise<{ ok: true; json: unknown } | { ok: false; status: number; message: string }> {
   try {
-    const r = await fetch(`${relayBase}${path}`)
+    const r = await fetchWithTimeout(`${relayBase}${path}`, {}, RELAY_TIMEOUT_MS)
     if (!r.ok) {
       const body = (await r.json().catch(() => ({}))) as { error?: string }
       const msg =

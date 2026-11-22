@@ -139,6 +139,9 @@ export default function MyBenefits() {
           <button type="button" className="pg-wide bn-clear" onClick={reset} disabled={!hasPrefs(prefs)}>
             설정 지우기
           </button>
+          <button type="button" className="pg-wide rf-primary bn-ok" onClick={() => setOpen(false)}>
+            확인
+          </button>
         </div>
       )}
 

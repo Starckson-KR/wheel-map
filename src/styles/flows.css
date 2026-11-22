@@ -779,3 +779,22 @@
 
 /* unslop-6: 제보하기 3단계 소제목(사진·설명·직접 잰 값)을 같은 크기로 */
 .rf-field-h { color: var(--text-strong); font-size: var(--fs-sub); font-weight: 600; }
+
+/* 제보 완료: 접수번호 + 복사 버튼 */
+.rv-no-row { display: flex; align-items: center; justify-content: center; gap: var(--s-2); flex-wrap: wrap; }
+.rv-no-row .rv-no { align-self: auto; user-select: text; -webkit-user-select: text; }
+.rv-copy { min-height: 44px; padding: 0 var(--s-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); color: var(--text); font: inherit; font-size: var(--fs-small, 0.875rem); font-weight: 600; }
+.rv-copy:active { background: var(--bg-sub); }
+
+/* 제보 탭 「맨 위로」: 하단 탭 바는 화면 틀 밖(.app-page 아래)이라 가리지 않는다. 안전 영역은 탭 바가 맡는다. */
+.pg-top-btn {
+  position: absolute; right: var(--s-4); bottom: var(--s-4); z-index: 5;
+  display: grid; place-items: center; width: 48px; height: 48px; padding: 0;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--bg); color: var(--text); box-shadow: var(--shadow-2);
+  opacity: 0; transform: translateY(8px); pointer-events: none;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+.pg-top-btn.on { opacity: 1; transform: none; pointer-events: auto; }
+.pg-top-btn:active { background: var(--bg-sub); }
+html.motion-reduce .pg-top-btn { transition: none; }

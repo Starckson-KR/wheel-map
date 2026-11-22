@@ -7,6 +7,8 @@ import { FADE, FADE_OUT, SPRING } from '../lib/motionTokens'
 import DemoTools, { MockStrip } from '../components/DemoTools'
 import ViewSettings from '../components/ViewSettings'
 import DevAdmin from '../components/DevAdmin'
+import CityConsentRow from '../components/CityConsentRow'
+import PrivacyNotice from '../components/PrivacyNotice'
 import { readDevReturn } from '../lib/devReturn'
 import SheetHandle from '../components/SheetHandle'
 import { loadBarriers } from '../lib/seed'
@@ -20,27 +22,55 @@ import AiSearch from '../components/AiSearch'
 import { loadPubDataset } from '../lib/publicLayers'
 import { pickCandidates } from '../lib/demoLarge'
 import { Sentences } from '../components/Sentences'
+import { useXmas } from '../lib/useXmas'
+import { tapStep, type TapState } from '../lib/xmas'
+import { prefersCalm } from '../lib/viewPrefs'
+import XmasSnow, { type SnowHandle } from '../components/XmasSnow'
 import { Wordmark } from '../components/Wordmark'
 import { usePullRefresh } from '../components/usePullRefresh'
 import { WeatherLine } from '../components/WeatherBits'
 
-const MENU = [
-  { id: 'home', icon: 'home', label: '홈', to: TO.home },
-  { id: 'map', icon: 'map', label: '동행지도', to: TO.map },
-  { id: 'bus', icon: 'bus', label: '저상버스 도착', to: TO.bus },
-  { id: 'new', icon: 'report', label: '문제 제보하기', to: TO.newReport },
-  { id: 'mine', icon: 'list', label: '내 제보 현황', to: TO.report },
-  { id: 'progress', icon: 'check', label: '개선 현황', to: TO.progress },
-  { id: 'agency', icon: 'building', label: '담당 기관 안내', to: TO.agency },
-  { id: 'alerts', icon: 'bell', label: '혜택알림', to: TO.alerts },
-  { id: 'me', icon: 'user', label: '내 정보', to: TO.me },
+// 전체메뉴: 묶음별로. to가 주소면 그 화면으로, act면 시트·안내를 연다.
+type MenuItem = { id: string; icon: string; label: string; to?: string; act?: 'settings' | 'guide' }
+const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
+  { title: '둘러보기', items: [
+    { id: 'home', icon: 'home', label: '홈', to: TO.home },
+    { id: 'map', icon: 'map', label: '동행지도', to: TO.map },
+    { id: 'progress', icon: 'check', label: '개선 현황', to: TO.progress },
+  ] },
+  { title: '제보', items: [
+    { id: 'new', icon: 'report', label: '문제 제보하기', to: TO.newReport },
+    { id: 'mine', icon: 'list', label: '내 제보 현황', to: TO.report },
+    { id: 'agency', icon: 'building', label: '담당 기관 안내', to: TO.agency },
+  ] },
+  { title: '혜택·참여', items: [
+    { id: 'alerts', icon: 'bell', label: '혜택알림', to: TO.alerts },
+    { id: 'ranking', icon: 'star', label: '랭킹', to: '#/alerts?tab=ranking' },
+    { id: 'challenge', icon: 'medal', label: '챌린지', to: '#/alerts?tab=challenge' },
+  ] },
+  { title: '내 정보·설정', items: [
+    { id: 'me', icon: 'user', label: '내 정보', to: TO.me },
+    { id: 'settings', icon: 'gear', label: '설정', act: 'settings' },
+    { id: 'guide', icon: 'help', label: '이용 안내', act: 'guide' },
+  ] },
 ]
+const MENU_ITEMS = MENU_GROUPS.flatMap((g) => g.items)
 
 type SheetItem = { id: string; icon: string; label: string }
 
 // 아래에서 올라오는 목록 시트: 전체메뉴와 「+ 추가」가 같이 쓴다.
 // selectedId가 있으면 그 줄에 체크가 붙고, onClear가 있으면 맨 아래에 「비우기」가 보인다.
-function ListSheet({ title, items, selectedId, onPick, onClear, onClose }: { title: string; items: SheetItem[]; selectedId?: string; onPick: (id: string) => void; onClear?: () => void; onClose: () => void }) {
+function ListSheet({ title, items, groups, selectedId, onPick, onClear, onClose }: { title: string; items?: SheetItem[]; groups?: { title: string; items: SheetItem[] }[]; selectedId?: string; onPick: (id: string) => void; onClear?: () => void; onClose: () => void }) {
+  const rows = (list: SheetItem[]) =>
+    list.map((it) => (
+      <li key={it.id}>
+        <button type="button" className="hs-item" aria-current={it.id === selectedId || undefined} onClick={() => onPick(it.id)}>
+          <span className="hs-ic"><Icon name={it.icon} size={20} /></span>
+          <span>{it.label}</span>
+          <Swap k={it.id === selectedId ? 'check' : 'chev'} pop><Icon name={it.id === selectedId ? 'check' : 'chev'} size={it.id === selectedId ? 18 : 16} /></Swap>
+        </button>
+      </li>
+    ))
   const ref = useRef<HTMLDivElement>(null)
   const present = useIsPresent()
   useEffect(() => {
@@ -62,7 +92,7 @@ function ListSheet({ title, items, selectedId, onPick, onClear, onClose }: { tit
     >
       <m.div
         ref={ref}
-        className="hs-sheet"
+        className={'hs-sheet' + (groups ? ' hs-grouped' : '')}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -75,16 +105,16 @@ function ListSheet({ title, items, selectedId, onPick, onClear, onClose }: { tit
           <h2>{title}</h2>
           <button type="button" className="hs-x" aria-label="닫기" onClick={onClose}><Icon name="close" size={22} /></button>
         </div>
+        {groups ? (
+          groups.map((g) => (
+            <section key={g.title} className="hs-group" aria-label={g.title}>
+              <h3 className="hs-gh">{g.title}</h3>
+              <ul className="hs-list">{rows(g.items)}</ul>
+            </section>
+          ))
+        ) : (
         <ul className="hs-list">
-          {items.map((it) => (
-            <li key={it.id}>
-              <button type="button" className="hs-item" aria-current={it.id === selectedId || undefined} onClick={() => onPick(it.id)}>
-                <span className="hs-ic"><Icon name={it.icon} size={20} /></span>
-                <span>{it.label}</span>
-                <Swap k={it.id === selectedId ? 'check' : 'chev'} pop><Icon name={it.id === selectedId ? 'check' : 'chev'} size={it.id === selectedId ? 18 : 16} /></Swap>
-              </button>
-            </li>
-          ))}
+          {rows(items ?? [])}
           {onClear && (
             <li>
               <button type="button" className="hs-item hs-clear" onClick={onClear}>
@@ -94,6 +124,7 @@ function ListSheet({ title, items, selectedId, onPick, onClear, onClose }: { tit
             </li>
           )}
         </ul>
+        )}
       </m.div>
     </m.div>
   )
@@ -143,6 +174,8 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
             <span>행정 화면<small>담당 공무원용 화면이에요</small></span>
             <button type="button" className="hm-tool hm-tool-row" aria-label="행정 화면 열기" onClick={() => { onClose(); go(TO.admin) }}><Icon name="chev" size={18} /></button>
           </li>
+          <CityConsentRow />
+          <PrivacyNotice />
           <DevAdmin />
         </ul>
         <p className="ms-build">버전 {__BUILD_HASH__} · {__BUILD_TIME__}</p>
@@ -232,8 +265,37 @@ export default function HomePage() {
 
   const mine = useMemo(() => mineLines(summarizeMine(reports, userId)), [reports, userId, tick])
 
+  // 크리스마스 「첫눈」: 켜짐 기간에 로고를 연달아 5번 누르면 눈이 내리고, 내리는 중에 한 번 더 누르면 그친다
+  const xmas = useXmas()
+  const [snow, setSnow] = useState(false)
+  const pageRef = useRef<HTMLDivElement>(null)
+  const snowRef = useRef<SnowHandle>(null)
+  const tapRef = useRef<TapState>({ n: 0, t: 0 })
+  useEffect(() => {
+    if (!xmas.on) setSnow(false)
+  }, [xmas.on])
+  const onLogoTap = (btn: HTMLButtonElement) => {
+    if (!xmas.on) return
+    if (!prefersCalm()) {
+      btn.classList.remove('xs-wob')
+      void btn.offsetWidth
+      btn.classList.add('xs-wob')
+    }
+    if (snow) {
+      tapRef.current = { n: 0, t: 0 }
+      setSnow(false)
+      return
+    }
+    const r = tapStep(tapRef.current, performance.now())
+    tapRef.current = r
+    if (r.fire) return setSnow(true)
+    const b = btn.querySelector('.wordmark-bang')?.getBoundingClientRect()
+    if (b) snowRef.current?.hint(b.left + b.width / 2, b.bottom + 2)
+  }
+
   return (
-    <div className="bm pg">
+    <div className="bm pg" ref={pageRef}>
+      {xmas.on && <div className={'xs-sky' + (snow ? ' on' : '')} aria-hidden="true" />}
       <div className="pr-ind" ref={indRef} role="status" aria-live="polite" data-phase="idle">
         <svg className="pr-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
           <path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" />
@@ -245,10 +307,9 @@ export default function HomePage() {
           <MockStrip />
           <header className="pg-top">
             <h1 className="pg-brand">
-              <button type="button" aria-label="이의있음 홈" onClick={() => go(TO.home)}><Wordmark decorative /></button>
+              <button type="button" aria-label="이의있음 홈" onClick={(e) => { go(TO.home); onLogoTap(e.currentTarget) }}><Wordmark decorative /></button>
             </h1>
             <div className="pg-icons">
-              <button type="button" className="pg-ic" aria-label="설정" aria-haspopup="dialog" onClick={() => { setMenu(false); setSettings(true) }}><Icon name="gear" size={24} /></button>
               <button type="button" className="pg-ic" aria-label="전체메뉴 열기" aria-haspopup="dialog" onClick={() => { setSettings(false); setMenu(true) }}><Icon name="menu" size={24} /></button>
             </div>
           </header>
@@ -329,15 +390,19 @@ export default function HomePage() {
           </m.div>
         </div>
       </div>
+      {xmas.on && <XmasSnow ref={snowRef} on={snow} host={pageRef} />}
       <AnimatePresence>
         {menu && (
           <ListSheet
             key="menu"
             title="전체메뉴"
-            items={MENU}
+            groups={MENU_GROUPS}
             onPick={(id) => {
+              const it = MENU_ITEMS.find((x) => x.id === id)
               setMenu(false)
-              go(MENU.find((x) => x.id === id)?.to ?? TO.home)
+              if (it?.act === 'settings') setSettings(true)
+              else if (it?.act === 'guide') openGuide()
+              else go(it?.to ?? TO.home)
             }}
             onClose={() => setMenu(false)}
           />

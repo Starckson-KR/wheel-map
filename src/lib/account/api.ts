@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ACCOUNT_URL } from '../config'
+import { ACCOUNT_TIMEOUT_MS, UPLOAD_TIMEOUT_MS, fetchWithTimeout } from '../fetchTimeout'
 import { reapplyPrefs } from '../viewPrefs'
 import { setAuthKind } from './authKind'
 import { SESSION_KEY, SYNCED_PREF_KEYS } from './keys'
@@ -68,7 +69,7 @@ export async function apiCall(path: string, init: { method?: string; json?: unkn
     body = init.body
   }
   try {
-    const res = await fetch(`${ACCOUNT_URL}${path}`, { method: init.method ?? 'GET', headers, body })
+    const res = await fetchWithTimeout(`${ACCOUNT_URL}${path}`, { method: init.method ?? 'GET', headers, body }, init.body ? UPLOAD_TIMEOUT_MS : ACCOUNT_TIMEOUT_MS)
     if (res.status === 401 && init.auth !== false && s && memorySession?.token === s.token) setSession(null) // 세션 만료: 로그아웃 상태로
     if (init.wantBlob && res.ok) return { status: res.status, body: null, blob: await res.blob() }
     let parsed: Record<string, unknown> | null = null

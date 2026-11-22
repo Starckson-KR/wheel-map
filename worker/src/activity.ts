@@ -1,5 +1,7 @@
 import { authenticate, fail, readJson, reply } from './account.ts'
 import { sha256Hex } from './auth.ts'
+import { notify } from './notify.ts'
+import type { NotifyDeps } from './notify.ts'
 import { parseUa } from './ua.ts'
 import type { D1Db, Env } from './types'
 
@@ -22,10 +24,16 @@ export const MAX_BODY = 8 * 1024
 const DEVICE_RE = /^[A-Za-z0-9_-]{8,64}$/
 const BUILD_RE = /^[A-Za-z0-9._+\- ]{1,40}$/
 const KINDS = ['open', 'resume', 'login', 'signup']
+// 동의한 사용자의 대략적인 접속 지역(Cloudflare가 붙여 주는 값). IP는 읽지 않는다. 없으면 null.
+function place(request: Request): { city: string | null; regionCode: string | null; country: string | null } {
+  const cf = (request as Request & { cf?: { city?: unknown; regionCode?: unknown; country?: unknown } }).cf
+  const s = (v: unknown) => (typeof v === 'string' && v ? cut(v, 60) : null)
+  return { city: s(cf?.city), regionCode: s(cf?.regionCode), country: s(cf?.country) }
+}
 const cut = (s: string, n: number) => [...s].slice(0, n).join('')
 
 const intIn = (v: unknown, min: number, max: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : 0)
-const dayStart = (now: number) => Math.floor((now + KST_MS) / DAY_MS) * DAY_MS - KST_MS
+export const dayStart = (now: number) => Math.floor((now + KST_MS) / DAY_MS) * DAY_MS - KST_MS
 
 async function cleanupVisits(db: D1Db, userId: string, now: number) {
   await db.prepare('DELETE FROM visits WHERE at < ?').bind(now - KEEP_MS).run()
@@ -37,10 +45,10 @@ async function cleanupVisits(db: D1Db, userId: string, now: number) {
     .run()
 }
 
-async function handleVisit(request: Request, db: D1Db, userId: string, origin: string, now: number): Promise<Response> {
+async function handleVisit(request: Request, env: Env, db: D1Db, userId: string, origin: string, now: number, deps: NotifyDeps): Promise<Response> {
   const body = await readJson(request, MAX_BODY)
   if (!body.ok) return fail(body.res === 'too_large' ? 413 : 400, 'bad_input', '요청 형식이 올바르지 않아요.', origin)
-  const b = (body.value ?? {}) as { deviceId?: unknown; build?: unknown; standalone?: unknown; screen?: unknown; kind?: unknown }
+  const b = (body.value ?? {}) as { deviceId?: unknown; build?: unknown; standalone?: unknown; screen?: unknown; kind?: unknown; cityOk?: unknown }
   if (typeof b.deviceId !== 'string' || !DEVICE_RE.test(b.deviceId) || typeof b.build !== 'string' || !BUILD_RE.test(b.build)) return fail(400, 'bad_input', '요청 형식이 올바르지 않아요.', origin)
   const s = (b.screen ?? {}) as { w?: unknown; h?: unknown }
   const screen = `${intIn(s.w, 0, 20000)}x${intIn(s.h, 0, 20000)}`
@@ -49,22 +57,29 @@ async function handleVisit(request: Request, db: D1Db, userId: string, origin: s
 
   const prev = await db.prepare('SELECT last_at AS lastAt, build FROM user_devices WHERE user_id = ? AND device_id = ?').bind(userId, b.deviceId).first<{ lastAt: number; build: string }>()
   // 빌드가 바뀌었으면(자동 업데이트 직후 등) 10분 안이어도 기록하고 기기 빌드를 갱신한다.
-  if (prev && prev.build === b.build && now >= prev.lastAt && now - prev.lastAt < VISIT_DEDUP_MS) return reply({ ok: true, skipped: true }, 200, origin)
+  const loc = b.cityOk === true ? place(request) : null // 동의한 경우만 지역을 저장한다
+  if (prev && prev.build === b.build && now >= prev.lastAt && now - prev.lastAt < VISIT_DEDUP_MS) {
+    // 건너뛰어도 동의 직후에는 기기의 지역만 채운다(바로 보이게)
+    if (loc) await db.prepare('UPDATE user_devices SET city = ?, region_code = ?, country = ? WHERE user_id = ? AND device_id = ?').bind(loc.city, loc.regionCode, loc.country, userId, b.deviceId).run()
+    return reply({ ok: true, skipped: true }, 200, origin)
+  }
 
   const ua = cut(request.headers.get('user-agent') ?? '', 300)
   const { device, os, browser } = parseUa(ua)
   await db
-    .prepare('INSERT INTO visits(user_id, device_id, at, kind, build, standalone, screen, device, os, browser) VALUES(?,?,?,?,?,?,?,?,?,?)')
-    .bind(userId, b.deviceId, now, kind, b.build, standalone, screen, device, os, browser)
+    .prepare('INSERT INTO visits(user_id, device_id, at, kind, build, standalone, screen, device, os, browser, city, region_code, country) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(userId, b.deviceId, now, kind, b.build, standalone, screen, device, os, browser, loc?.city ?? null, loc?.regionCode ?? null, loc?.country ?? null)
     .run()
   await db
     .prepare(
-      'INSERT INTO user_devices(user_id, device_id, first_at, last_at, count, device, os, browser, ua, build, standalone, screen) VALUES(?,?,?,?,1,?,?,?,?,?,?,?) ' +
-        'ON CONFLICT(user_id, device_id) DO UPDATE SET last_at=excluded.last_at, count=count+1, device=excluded.device, os=excluded.os, browser=excluded.browser, ua=excluded.ua, build=excluded.build, standalone=excluded.standalone, screen=excluded.screen',
+      'INSERT INTO user_devices(user_id, device_id, first_at, last_at, count, device, os, browser, ua, build, standalone, screen, city, region_code, country) VALUES(?,?,?,?,1,?,?,?,?,?,?,?,?,?,?) ' +
+        'ON CONFLICT(user_id, device_id) DO UPDATE SET last_at=excluded.last_at, count=count+1, device=excluded.device, os=excluded.os, browser=excluded.browser, ua=excluded.ua, build=excluded.build, standalone=excluded.standalone, screen=excluded.screen, ' +
+        'city=COALESCE(excluded.city, user_devices.city), region_code=COALESCE(excluded.region_code, user_devices.region_code), country=COALESCE(excluded.country, user_devices.country)',
     )
-    .bind(userId, b.deviceId, now, now, device, os, browser, ua, b.build, standalone, screen)
+    .bind(userId, b.deviceId, now, now, device, os, browser, ua, b.build, standalone, screen, loc?.city ?? null, loc?.regionCode ?? null, loc?.country ?? null)
     .run()
   await cleanupVisits(db, userId, now)
+  await notify(env, deps, 'presence') // 개발자 화면의 접속 현황 새로고침
   return reply({ ok: true }, 200, origin)
 }
 
@@ -99,7 +114,7 @@ async function handleError(request: Request, db: D1Db, userId: string, origin: s
   return reply({ ok: true }, 200, origin)
 }
 
-export async function handleActivity(request: Request, env: Env, origin: string, deps: { now?: () => number } = {}): Promise<Response> {
+export async function handleActivity(request: Request, env: Env, origin: string, deps: { now?: () => number } & NotifyDeps = {}): Promise<Response> {
   const db = env.DB
   if (!db) return fail(503, 'not_configured', '계정 저장소가 아직 연결되지 않았어요.', origin)
   const now = (deps.now ?? Date.now)()
@@ -108,7 +123,7 @@ export async function handleActivity(request: Request, env: Env, origin: string,
     if (request.method !== 'POST') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
     const a = await authenticate(db, request, now)
     if (!a) return fail(401, 'unauthorized', '다시 로그인해 주세요.', origin)
-    return path === '/activity/visit' ? await handleVisit(request, db, a.user.id, origin, now) : await handleError(request, db, a.user.id, origin, now)
+    return path === '/activity/visit' ? await handleVisit(request, env, db, a.user.id, origin, now, deps) : await handleError(request, db, a.user.id, origin, now)
   } catch {
     console.log('wheelmap-ai error: activity_internal') // 오류 종류만 남긴다
     return fail(500, 'server_error', '서버에 문제가 생겼어요.', origin)

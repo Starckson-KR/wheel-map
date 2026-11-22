@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  SCREENS, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, mobilityToWheelchair, nameOk, parsePreview, parseProfile, startScreen, toBenefitPrefs,
+  SCREENS, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, mobilityToWheelchair, nameHint, nameOk, parsePreview, parseProfile, startScreen, toBenefitPrefs,
 } from '../src/components/onboarding/flow.ts'
 import { GUIDE_SLIDES, clampSlide, homeAfterClose } from '../src/lib/usageGuide.ts'
 import { RESET_KEYS, RESET_VERSION, RESET_VERSION_KEY, resetOnce } from '../src/lib/resetOnce.ts'
@@ -62,6 +62,16 @@ test('오류 문구와 이름 검사', () => {
   assert.equal(nameOk('  '), false)
   assert.equal(nameOk('가'.repeat(21)), false)
   assert.equal(nameOk('재성'), true)
+  // 서버(worker/src/auth.ts)와 같은 규칙: 한글·영문·숫자·공백 1~10자
+  assert.equal(nameOk('가'.repeat(10)), true)
+  assert.equal(nameOk('가'.repeat(11)), false)
+  assert.equal(nameOk('Jae 성 2'), true)
+  for (const bad of ['재성🐶', '재성_1', 'jae.sung', '재성!', '♡재성']) assert.equal(nameOk(bad), false, bad)
+  assert.equal(nameHint(''), null)
+  assert.equal(nameHint('재성'), null)
+  assert.equal(nameHint('재성🐶'), '이모지나 특수문자는 쓸 수 없어요')
+  assert.equal(nameHint('가'.repeat(11)), '10자까지 쓸 수 있어요')
+  assert.equal(authMessage('bad_input', 'signup'), '이름은 한글·영문·숫자로 10자까지 쓸 수 있어요')
 })
 
 test('언어: 영어는 번역이 없어 한국어로 안내', () => {

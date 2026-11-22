@@ -6,9 +6,10 @@ const PIN = 'M38 152C38 152 0 98.47 0 46a38 38 0 0 1 76 0C76 98.47 38 152 38 152
 const zebraV = (cx: number, cy: number) => [0, 1, 2, 3, 4].map((k) => <rect key={`v${cx},${cy},${k}`} x={cx - 11 + k * 5.5} y={cy - 8} width={3} height={16} rx={1} />)
 const zebraH = (cx: number, cy: number) => [0, 1, 2, 3, 4].map((k) => <rect key={`h${cx},${cy},${k}`} x={cx - 8} y={cy - 11 + k * 5.5} width={16} height={3} rx={1} />)
 
-export function WelcomeMap() {
+// 흐린 동네(블록·횡단보도·나무). 12월 환영 화면(WelcomeXmas)도 같은 동네를 쓴다.
+export function WelcomeTown() {
   return (
-    <svg className="ob-w-map" viewBox="-1200 -1000 2400 2000" focusable="false" aria-hidden="true">
+    <>
       <defs>
         {/* 블록 한 칸(가로 150, 세로 190)과 길 가운데 점선. 길은 x=-110+150k, y=190k */}
         <pattern id="ob-w-grid" x={-110} y={0} width={150} height={190} patternUnits="userSpaceOnUse">
@@ -34,6 +35,14 @@ export function WelcomeMap() {
           ))}
         </g>
       </g>
+    </>
+  )
+}
+
+export function WelcomeMap() {
+  return (
+    <svg className="ob-w-map" viewBox="-1200 -1000 2400 2000" focusable="false" aria-hidden="true">
+      <WelcomeTown />
       <path className="ob-w-route" pathLength={1} d="M 190 470 L 190 210 Q 190 190 170 190 L -90 190 Q -110 190 -110 170 L -110 20 Q -110 0 -90 0 L 0 0" />
       <ellipse className="ob-w-ripple" cx={0} cy={0} rx={100} ry={50} />
       <g className="ob-w-pin">

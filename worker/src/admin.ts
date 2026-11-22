@@ -1,6 +1,8 @@
 import { authenticate, fail, isDev, reply } from './account.ts'
 import { hashPin, randomHex, sha256Hex } from './auth.ts'
-import { hubStub, notify } from './notify.ts'
+import { dayStart } from './activity.ts'
+import { cityLabel } from './cityLabel.ts'
+import { disconnectUser, hubStub, notify } from './notify.ts'
 import type { NotifyDeps } from './notify.ts'
 import type { D1Db, Env } from './types'
 
@@ -38,6 +40,15 @@ function photoIds(data: string): string[] {
     return Array.isArray(p) ? p.filter((x): x is string => typeof x === 'string') : []
   } catch {
     return []
+  }
+}
+
+// 잘못된 퍼센트 부호면 null(예외 대신 400으로 답하려고)
+const safeDecode = (s: string): string | null => {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return null
   }
 }
 
@@ -81,6 +92,24 @@ async function onlineCount(env: Env, userId: string): Promise<number | null> {
   }
 }
 
+// 허브의 접속 현황({online: 사용자별 연결 수, seen: 사용자별 마지막 접속 시각}). 허브가 없거나 실패하면 null.
+async function presence(env: Env): Promise<{ online: Record<string, number>; seen: Record<string, number> } | null> {
+  const stub = hubStub(env)
+  if (!stub) return null
+  try {
+    const r = await stub.fetch('https://hub/presence')
+    if (!r.ok) return null
+    const j = (await r.json()) as { online?: Record<string, number>; seen?: Record<string, number> }
+    if (typeof j !== 'object' || j === null || typeof j.online !== 'object' || j.online === null) return null // 허브가 현황을 모르는 응답이면 연결 수 방식으로
+    return { online: j.online && typeof j.online === 'object' ? j.online : {}, seen: j.seen && typeof j.seen === 'object' ? j.seen : {} }
+  } catch {
+    return null
+  }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const USERS_MAX = 1000 // 접속 현황은 정렬이 허브 값에 달려 있어 전부 읽어 합친다(소규모 서비스 전제)
+
 export async function handleAdmin(request: Request, env: Env, origin: string, deps: { now?: () => number } & NotifyDeps = {}): Promise<Response> {
   const db = env.DB
   if (!db) return fail(503, 'not_configured', '계정 저장소가 아직 연결되지 않았어요.', origin)
@@ -113,12 +142,38 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
       const { limit, offset } = pageParams(url)
       const { results } = await db
         .prepare(
-          'SELECT u.id AS id, u.name AS name, u.role AS role, u.created_at AS createdAt, (SELECT COUNT(*) FROM reports r WHERE r.author_id = u.id) AS reportCount FROM users u ORDER BY u.created_at DESC, u.id ASC LIMIT ? OFFSET ?',
+          'SELECT u.id AS id, u.name AS name, u.role AS role, u.created_at AS createdAt, (SELECT COUNT(*) FROM reports r WHERE r.author_id = u.id) AS reportCount, ' +
+            '(SELECT MAX(last_at) FROM user_devices d WHERE d.user_id = u.id) AS lastVisitAt, ' +
+            // 지역이 있는 기기 중 가장 최근 것(동의한 경우만 값이 있다)
+            '(SELECT city FROM user_devices d WHERE d.user_id = u.id AND COALESCE(d.country, d.city, d.region_code) IS NOT NULL ORDER BY d.last_at DESC LIMIT 1) AS city, ' +
+            '(SELECT region_code FROM user_devices d WHERE d.user_id = u.id AND COALESCE(d.country, d.city, d.region_code) IS NOT NULL ORDER BY d.last_at DESC LIMIT 1) AS regionCode, ' +
+            '(SELECT country FROM user_devices d WHERE d.user_id = u.id AND COALESCE(d.country, d.city, d.region_code) IS NOT NULL ORDER BY d.last_at DESC LIMIT 1) AS country, ' +
+            '(SELECT COUNT(*) FROM visits v WHERE v.user_id = u.id AND v.at >= ?) AS visits30 FROM users u ORDER BY u.created_at DESC, u.id ASC LIMIT ?',
         )
-        .bind(limit + 1, offset)
-        .all<{ id: string; name: string; role: string; createdAt: number; reportCount: number }>()
-      const more = results.length > limit
-      return reply({ ok: true, items: more ? results.slice(0, limit) : results, more, total: await count(db, 'SELECT COUNT(*) AS n FROM users') }, 200, origin)
+        .bind(now - 30 * DAY_MS, USERS_MAX)
+        .all<{ id: string; name: string; role: string; createdAt: number; reportCount: number; lastVisitAt: number | null; visits30: number; city: string | null; regionCode: string | null; country: string | null }>()
+      const pr = await presence(env)
+      const today = dayStart(now)
+      const all = results.map((r) => {
+        const online = pr ? pr.online[r.id] ?? 0 : null
+        const seen = pr?.seen[r.id] ?? 0
+        const lastAt = Math.max(r.lastVisitAt ?? 0, seen, online ? now : 0) || null
+        return { id: r.id, name: r.name, role: r.role, createdAt: r.createdAt, reportCount: r.reportCount, online, lastAt, visits30: r.visits30, city: cityLabel(r.city, r.regionCode, r.country) }
+      })
+      all.sort(
+        (x, y) =>
+          Number((y.online ?? 0) > 0) - Number((x.online ?? 0) > 0) ||
+          (y.lastAt ?? -1) - (x.lastAt ?? -1) ||
+          y.createdAt - x.createdAt ||
+          (x.id < y.id ? -1 : x.id > y.id ? 1 : 0),
+      )
+      const todayVisitors = await db.prepare('SELECT DISTINCT user_id AS id FROM visits WHERE at >= ?').bind(today).all<{ id: string }>()
+      const ids = new Set(all.map((u) => u.id))
+      const todaySet = new Set(todayVisitors.results.map((r) => r.id).filter((id) => ids.has(id)))
+      for (const u of all) if ((u.online ?? 0) > 0 || (pr?.seen[u.id] ?? 0) >= today) todaySet.add(u.id)
+      const onlineUsers = pr ? all.filter((u) => (u.online ?? 0) > 0).length : null
+      const items = all.slice(offset, offset + limit)
+      return reply({ ok: true, items, more: offset + limit < all.length, total: all.length, onlineUsers, todayUsers: todaySet.size }, 200, origin)
     }
 
     if (path === '/admin/reports') {
@@ -160,29 +215,38 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
     const act2 = /^\/admin\/users\/([^/]+)\/activity$/.exec(path)
     if (act2) {
       if (m !== 'GET') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
-      const id = decodeURIComponent(act2[1])
+      const id = safeDecode(act2[1])
+      if (id === null) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
       if (!ID_RE.test(id)) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
       const u = await db.prepare('SELECT name FROM users WHERE id = ?').bind(id).first<{ name: string }>()
       if (!u) return fail(404, 'not_found', '이미 없어요.', origin)
       const devices = await db
         .prepare(
-          'SELECT device_id AS deviceId, device, os, browser, ua, build, standalone, screen, first_at AS firstAt, last_at AS lastAt, count FROM user_devices WHERE user_id = ? ORDER BY last_at DESC LIMIT 20',
+          'SELECT device_id AS deviceId, device, os, browser, ua, build, standalone, screen, first_at AS firstAt, last_at AS lastAt, count, city, region_code AS regionCode, country FROM user_devices WHERE user_id = ? ORDER BY last_at DESC LIMIT 20',
         )
         .bind(id)
-        .all<{ standalone: number }>()
+        .all<Placed>()
       const visits = await db
-        .prepare('SELECT at, device_id AS deviceId, kind, build, standalone, screen, device, os, browser FROM visits WHERE user_id = ? ORDER BY at DESC, id DESC LIMIT 50')
+        .prepare('SELECT at, device_id AS deviceId, kind, build, standalone, screen, device, os, browser, city, region_code AS regionCode, country FROM visits WHERE user_id = ? ORDER BY at DESC, id DESC LIMIT 50')
         .bind(id)
-        .all<{ standalone: number }>()
+        .all<Placed>()
       const errors = await db
         .prepare(
           'SELECT e.at AS at, e.device_id AS deviceId, e.build AS build, e.message AS message, e.stack AS stack, e.route AS route, d.device AS device, d.os AS os, d.browser AS browser FROM client_errors e LEFT JOIN user_devices d ON d.user_id = e.user_id AND d.device_id = e.device_id WHERE e.user_id = ? ORDER BY e.at DESC, e.id DESC LIMIT 50',
         )
         .bind(id)
         .all()
-      const flag = <T extends { standalone: number }>(r: T) => ({ ...r, standalone: r.standalone === 1 })
+      type Placed = { standalone: number; city: string | null; regionCode: string | null; country: string | null }
+      const flag = (r: Placed) => {
+        const { regionCode, country, city, ...rest } = r
+        return { ...rest, standalone: r.standalone === 1, city: cityLabel(city, regionCode, country) }
+      }
+      // 접속 중: 끊긴 연결(오래 소식 없음)은 빼고 센다. 지금 이 화면을 보는 개발자 본인은 앱이 열려 있으니 최소 1대로 본다.
+      const pr = await presence(env)
+      const live = pr ? pr.online[id] ?? 0 : await onlineCount(env, id)
+      const online = live === null ? null : id === a.user.id ? Math.max(live, 1) : live
       return reply(
-        { ok: true, name: u.name, online: await onlineCount(env, id), devices: devices.results.map(flag), visits: visits.results.map(flag), errors: errors.results },
+        { ok: true, name: u.name, online, devices: devices.results.map(flag), visits: visits.results.map(flag), errors: errors.results },
         200,
         origin,
       )
@@ -192,7 +256,8 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
     const act = /^\/admin\/users\/([^/]+)\/(unlock|reset-pin)$/.exec(path)
     if (act) {
       if (m !== 'POST') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
-      const id = decodeURIComponent(act[1])
+      const id = safeDecode(act[1])
+      if (id === null) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
       if (!ID_RE.test(id)) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
       const u = await db.prepare('SELECT name_key AS nameKey FROM users WHERE id = ?').bind(id).first<{ nameKey: string }>()
       if (!u) return fail(404, 'not_found', '이미 없어요.', origin)
@@ -208,18 +273,21 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
       await db.prepare('UPDATE users SET pin_hash = ?, salt = ? WHERE id = ?').bind(await hashPin(pin, salt), salt, id).run()
       await db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run()
       await db.prepare('DELETE FROM throttle WHERE key = ?').bind(kName).run()
+      await disconnectUser(env, deps, id) // 열려 있던 실시간 연결도 닫는다
       return reply({ ok: true, pin, self: id === a.user.id }, 200, origin)
     }
 
     const rm = /^\/admin\/(reports|users)\/([^/]+)$/.exec(path)
     if (rm) {
       if (m !== 'DELETE') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
-      const id = decodeURIComponent(rm[2])
+      const id = safeDecode(rm[2])
+      if (id === null) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
       if (!ID_RE.test(id)) return fail(400, 'bad_input', 'id가 올바르지 않아요.', origin)
       if (rm[1] === 'users' && id === a.user.id) return fail(400, 'self_delete', '내 계정은 여기서 지울 수 없어요.', origin)
       const ok = rm[1] === 'reports' ? await removeReport(db, id, now) : await removeUser(db, id, now)
       if (!ok) return fail(404, 'not_found', '이미 없어요.', origin)
       await notify(env, deps, 'reports') // 지운 제보를 다른 기기에서도 바로 지운다
+      if (rm[1] === 'users') await disconnectUser(env, deps, id) // 지운 계정의 실시간 연결도 닫는다
       return reply({ ok: true }, 200, origin)
     }
     return fail(404, 'not_found', '없는 주소예요.', origin)

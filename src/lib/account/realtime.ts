@@ -27,6 +27,23 @@ let pongTimer: ReturnType<typeof setTimeout> | undefined
 
 export const isRealtimeUp = () => up
 
+// 개발자 관리 화면처럼 sync와 상관없는 구독자(접속 현황 신호·연결 상태). 해제 함수를 돌려준다.
+type Listener = { signal?: (t: RtSignal) => void; state?: (up: boolean) => void }
+const listeners = new Set<Listener>()
+export function onRealtime(fn: Listener): () => void {
+  listeners.add(fn)
+  return () => void listeners.delete(fn)
+}
+const each = (f: (l: Listener) => void) => {
+  for (const l of [...listeners]) {
+    try {
+      f(l)
+    } catch {
+      /* 구독자의 실패가 연결에 영향을 주지 않게 */
+    }
+  }
+}
+
 const canRun = () => typeof WebSocket !== 'undefined' && !!getSession() && typeof document !== 'undefined' && document.visibilityState === 'visible'
 
 function clearTimers() {
@@ -42,6 +59,7 @@ function setUp(v: boolean) {
   if (up === v) return
   up = v
   handlers?.onState()
+  each((l) => l.state?.(v))
 }
 
 function closeNow() {
@@ -116,7 +134,11 @@ async function connect() {
     if (ws !== sock) return
     clearTimeout(pongTimer) // 무엇이든 받았으면 살아 있다
     const t = parseSignal(ev.data)
-    if (t) handlers?.onSignal(t)
+    if (t === 'presence') each((l) => l.signal?.(t)) // 접속 현황 신호는 sync로 보내지 않는다
+    else if (t) {
+      handlers?.onSignal(t)
+      each((l) => l.signal?.(t))
+    }
   }
   sock.onclose = () => {
     if (ws !== sock) return

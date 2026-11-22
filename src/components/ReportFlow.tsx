@@ -8,7 +8,8 @@ import { coordText, useAddress } from '../lib/addressCache'
 import { SAMPLE_SCENES, markSampleReport, sampleBlob, type SampleSceneId } from '../lib/samplePhotos'
 import { go as navGo } from '../lib/nav'
 import { findDuplicates } from '../lib/duplicates'
-import { LOCATION_KINDS } from '../lib/agencyGuide'
+import { reportNo } from '../lib/externalStatus'
+import { OTHER_KIND, OTHER_KIND_MAX, REPORT_LOCATION_CHOICES, composeKind } from '../lib/agencyGuide'
 import { resizeImage, savePhoto } from '../lib/photoStore'
 import { CATEGORY_LABEL, REPORT_TYPES } from '../lib/reportTypes'
 import { newReportId, nowMs, useReports, userName } from '../lib/reportStore'
@@ -57,10 +58,18 @@ const STEP_Q: Record<Step, { q: string; sub?: string }> = {
 let photoSeq = 0
 const newPhotoId = () => `p${++photoSeq}-${crypto.randomUUID()}`
 
-// 제보 번호: 저장된 id를 알아보기 쉽게 대문자로 보여 준다(예: R-LX3K9A2F)
-const reportNo = (id: string) => id.replace(/^r-/i, 'R-').toUpperCase()
 
 const num = (s: string) => (s.trim() === '' ? undefined : Number(s))
+
+// 접수번호 복사: 되면 짧은 알림, 막혀 있으면 직접 복사하라고 알린다.
+async function copyNo(no: string) {
+  try {
+    await navigator.clipboard.writeText(no)
+    toast('접수번호를 복사했어요')
+  } catch {
+    toast('복사하지 못했어요. 번호를 눌러 선택해 주세요')
+  }
+}
 
 export default function ReportFlow({ location, onLocation, onPickStart, hidden, seeds, onClose, onOpenReport, initialType = null, skipType = false }: Props) {
   const reports = useReports((s) => s.reports)
@@ -74,7 +83,9 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const [description, setDescription] = useState('')
   const [widthM, setWidthM] = useState('')
   const [curbCm, setCurbCm] = useState('')
-  const [locationKind, setLocationKind] = useState('')
+  const [locationChoice, setLocationChoice] = useState('') // 고른 장소(핵심 6개 또는 「기타」)
+  const [locationOther, setLocationOther] = useState('') // 「기타」일 때 직접 입력한 글
+  const locationKind = locationChoice ? composeKind(locationChoice, locationOther) : '' // 저장·표시에 쓰는 값
   const [locSource, setLocSource] = useState<'gps' | 'map' | null>(null)
   const pickStart = useRef<{ source: 'gps' | 'map' | null; location: Loc | null } | null>(null) // 지도에서 고르기 시작할 때의 상태
   const [gpsBusy, setGpsBusy] = useState(false)
@@ -240,7 +251,8 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const validateLocation = () => {
     const errs: Record<string, string> = {}
     if (!location) errs.location = '위치를 정해 주세요. "현재 위치"나 "지도에서 선택"을 눌러 주세요.'
-    if (!locationKind) errs.locationKind = '어떤 곳인지 골라 주세요. 소관 기관을 안내하는 데 써요.'
+    if (!locationChoice) errs.locationKind = '어떤 곳인지 골라 주세요. 소관 기관을 안내하는 데 써요.'
+    else if (locationChoice === OTHER_KIND && !locationOther.trim()) errs.locationKind = '어떤 곳인지 직접 적어 주세요.'
     return failWith(errs)
   }
 
@@ -333,7 +345,12 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
               <Celebration />
             </span>
             <h2 className="rf-q">{done.merged ? '기존 건에 합쳐서 등록했어요' : '제보를 등록했어요'}</h2>
-            <span className="rv-no">제보 번호 {reportNo(done.id)}</span>
+            <div className="rv-no-row">
+              <span className="rv-no">접수번호 {reportNo(done.id)}</span>
+              <button type="button" className="rv-copy" onClick={() => void copyNo(reportNo(done.id))} aria-label="접수번호 복사">
+                복사
+              </button>
+            </div>
             <Sentences as="p">{done.merged
                 ? '기존 건의 제보 목록에 추가됐어요.'
                 : '지금은 "검증 대기" 상태예요. 다른 시민이 확인하면 지도에 나타나요.'}</Sentences>
@@ -488,22 +505,38 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   어떤 곳인가요?
                   <select
                     id="rf-f-locationKind"
-                    value={locationKind}
+                    value={locationChoice}
                     aria-invalid={!!errors.locationKind}
                     aria-describedby={errors.locationKind ? 'rf-e-locationKind' : undefined}
                     onChange={(e) => {
-                      setLocationKind(e.target.value)
-                      if (e.target.value) setErr('locationKind', '')
+                      setLocationChoice(e.target.value)
+                      if (e.target.value && e.target.value !== OTHER_KIND) setErr('locationKind', '')
                     }}
                   >
                     <option value="">골라 주세요</option>
-                    {LOCATION_KINDS.map((k) => (
+                    {REPORT_LOCATION_CHOICES.map((k) => (
                       <option key={k} value={k}>
                         {k}
                       </option>
                     ))}
+                    <option value={OTHER_KIND}>기타(직접 입력)</option>
                   </select>
                 </label>
+                {locationChoice === OTHER_KIND && (
+                  <input
+                    id="rf-f-locationOther"
+                    type="text"
+                    value={locationOther}
+                    maxLength={OTHER_KIND_MAX}
+                    placeholder="어떤 곳인지 적어 주세요"
+                    aria-label="어떤 곳인지 직접 입력"
+                    autoComplete="off"
+                    onChange={(e) => {
+                      setLocationOther(e.target.value)
+                      if (e.target.value.trim()) setErr('locationKind', '')
+                    }}
+                  />
+                )}
                 {errors.locationKind ? (
                   <p id="rf-e-locationKind" className="rf-err" role="alert">
                     <Sentences as="span">{errors.locationKind}</Sentences>

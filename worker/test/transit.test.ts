@@ -95,3 +95,25 @@ test('버스 길찾기: POST는 405', async () => {
   const { call } = setup()
   assert.equal((await call(Q, { method: 'POST' })).status, 405)
 })
+
+test('버스 길찾기: 상류 실패는 3분 기억 — 그동안 상류도 하루 상한도 쓰지 않고 같은 502, 3분 뒤 다시 부른다', async () => {
+  clock = Date.parse('2026-11-22T10:00:00+09:00')
+  const fail = setup({ TRANSIT_DAILY_CAP: '3' }, () => new Response('<html>Web firewall', { status: 200 }))
+  const a = await fail.call()
+  assert.equal(a.status, 502)
+  assert.equal(fail.calls.length, 1)
+  for (let i = 0; i < 5; i++) {
+    const b = await fail.call()
+    assert.equal(b.status, 502)
+    assert.equal(b.body.error, a.body.error)
+  }
+  assert.equal(fail.calls.length, 1) // 상류 호출 늘지 않음
+  // 하루 상한(3)을 깎지 않았으므로 다른 구간은 429가 아니라 다시 상류를 부른다
+  assert.equal((await fail.call('?from=35.19,126.91&to=35.17,126.90')).status, 502)
+  assert.equal(fail.calls.length, 2)
+  assert.equal((await fail.call('?from=35.19,126.91&to=35.17,126.90')).status, 502)
+  assert.equal(fail.calls.length, 2)
+  clock += 3 * 60_000 + 1
+  assert.equal((await fail.call()).status, 502)
+  assert.equal(fail.calls.length, 3) // 기억이 끝나 다시 부름
+})

@@ -9,7 +9,6 @@ import { buildObstacles } from '../src/lib/routing/obstacles.ts';
 import { searchRoute, viaKey, verdictOf, type Pt, type RouteData } from '../src/lib/routing/engine.ts';
 import { callTmap } from './tmapClient.ts';
 import { bisArrive, bisLineLow } from './bisClient.ts';
-import { callTransit, TRANSIT_DAILY_CAP, transitCallsToday } from './transitClient.ts';
 import { callOdsay, ODSAY_DAILY_CAP, odsayCallsToday } from './odsayClient.ts';
 import { classifyMatch, matchBisStop, PILOT_MATCH_RADIUS_M, stopsNear, type BisStop, type PilotStopEntry } from '../src/lib/bus/stops.ts';
 import type { TItinerary } from '../src/lib/transit/parse.ts';
@@ -972,24 +971,22 @@ async function pilotStops() {
   });
 }
 
-// 시연 쌍마다 대중교통(버스) 경로(최대 3개)를 받아 data/routes/transit.json에 저장한다. ODsay(KOREACONNECT_KEY)가 기본, 키가 없으면 TMAP(예비).
-// 같은 요청은 캐시, 하루 상한은 odsayClient.ts·transitClient.ts. 저장본은 쌍마다 새로 받은 것으로 덮어쓴다(실패한 쌍은 이전 저장본 유지).
+// 시연 쌍마다 대중교통(버스) 경로(최대 3개)를 받아 data/routes/transit.json에 저장한다. ODsay(KOREACONNECT_KEY).
+// 같은 요청은 캐시, 하루 상한은 odsayClient.ts. 저장본은 쌍마다 새로 받은 것으로 덮어쓴다(실패한 쌍은 이전 저장본 유지).
 async function transitDemo() {
   const rdir = path.join(ROOT, 'data', 'routes');
   const pairs = readJson<{ pairs: any[] }>(path.join(rdir, 'demoPairs.json'), { pairs: [] }).pairs; // 앱의 시연 쌍(w1~w3, 정류장 좌표)
   const outPath = path.join(rdir, 'transit.json');
-  const provider = ODSAY_KEY ? 'odsay' : 'tmap';
+  if (!ODSAY_KEY) { log('  KOREACONNECT_KEY가 .env에 없어 대중교통 저장을 건너뜁니다.'); return; }
   const out = readJson<any>(outPath, { pairs: {} });
   out.pairs = {}; // 옛 쌍 이름(p1~p3)이 남지 않게 시연 쌍(demoPairs.json)만 담는다
-  out.source = provider === 'odsay' ? 'ODsay 대중교통 길찾기(디지털융합플랫폼)' : 'TMAP 대중교통 경로(SK open API)';
-  out.provider = provider;
+  out.source = 'ODsay 대중교통 길찾기(디지털융합플랫폼)';
+  out.provider = 'odsay';
   let fresh = 0;
   for (const pair of pairs) {
     if (!pair.from || !pair.to) continue;
-    const r = provider === 'odsay'
-      ? await callOdsay([pair.from.lat, pair.from.lng], [pair.to.lat, pair.to.lng], ODSAY_KEY, ROOT)
-      : await callTransit({ from: [pair.from.lat, pair.from.lng], to: [pair.to.lat, pair.to.lng] }, TMAP_KEY, ROOT);
-    if (!r.ok && provider === 'odsay' && (r as any).status === 'noroute') {
+    const r = await callOdsay([pair.from.lat, pair.from.lng], [pair.to.lat, pair.to.lng], ODSAY_KEY, ROOT);
+    if (!r.ok && (r as any).status === 'noroute') {
       // 길 없음(-98 가까운 거리 등)도 결과다: 안내 문구를 저장본으로 남겨 배포판이 Worker를 부르지 않게 한다
       out.pairs[pair.id] = { fromId: pair.from.stopId, toId: pair.to.stopId, fetchedAt: new Date().toISOString(), itineraries: [], noRoute: r.error };
       log('  ' + pair.id, '(길 없음 저장)', r.error);
@@ -1002,9 +999,7 @@ async function transitDemo() {
   }
   out.fetchedAt = new Date().toISOString();
   writeJson(outPath, out);
-  log(provider === 'odsay'
-    ? `  transit 저장 완료. 이번 실행의 ODsay 실제 호출 ${fresh}회, 오늘 누적 ${odsayCallsToday(ROOT)}/${ODSAY_DAILY_CAP}`
-    : `  transit 저장 완료. 이번 실행의 TMAP 대중교통 실제 호출 ${fresh}회, 오늘 누적 ${transitCallsToday(ROOT)}/${TRANSIT_DAILY_CAP}`);
+  log(`  transit 저장 완료. 이번 실행의 ODsay 실제 호출 ${fresh}회, 오늘 누적 ${odsayCallsToday(ROOT)}/${ODSAY_DAILY_CAP}`);
 }
 
 // 발표(배포)판용 한 시점 스냅샷: 시범 정류장 + 대중교통 시연 경로의 승·하차 정류소의 도착정보와 노선별 운행 저상 수.

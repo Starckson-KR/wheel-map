@@ -17,9 +17,10 @@ test('웹소켓 주소: http→ws, https→wss, 뒤 슬래시 제거, 티켓은 
   assert.equal(wsUrl('http://localhost:8787/', 'a b'), 'ws://localhost:8787/rt?ticket=a%20b')
 })
 
-test('신호 읽기: reports·prefs만, pong·깨진 값·엉뚱한 값은 무시', () => {
+test('신호 읽기: reports·prefs·presence만, pong·깨진 값·엉뚱한 값은 무시', () => {
   assert.equal(parseSignal('{"t":"reports"}'), 'reports')
   assert.equal(parseSignal('{"t":"prefs"}'), 'prefs')
+  assert.equal(parseSignal('{"t":"presence"}'), 'presence')
   assert.equal(parseSignal('pong'), null)
   assert.equal(parseSignal('{"t":"admin"}'), null)
   assert.equal(parseSignal('{'), null)

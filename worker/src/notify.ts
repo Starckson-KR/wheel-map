@@ -26,3 +26,18 @@ export async function notify(env: Env, deps: NotifyDeps, signal: Signal, userId?
   if (deps.waitUntil) deps.waitUntil(p)
   else await p
 }
+
+/** 그 계정의 실시간 연결을 모두 닫는다(계정 삭제·PIN 다시 정하기 뒤). 절대 던지지 않는다. waitUntil이 있으면 응답을 기다리지 않는다. */
+export async function disconnectUser(env: Env, deps: NotifyDeps, userId: string): Promise<void> {
+  const stub = hubStub(env)
+  if (!stub) return
+  const p = (async () => {
+    try {
+      await stub.fetch(`https://hub/close?user=${encodeURIComponent(userId)}`, { method: 'POST' })
+    } catch {
+      console.log('wheelmap-ai error: rt_close') // 오류 종류만 남긴다
+    }
+  })()
+  if (deps.waitUntil) deps.waitUntil(p)
+  else await p
+}

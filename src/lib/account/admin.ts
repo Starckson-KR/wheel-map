@@ -2,9 +2,10 @@ import { apiCall } from './api'
 
 // 개발자 관리 API(role='dev' 계정만 서버가 허용한다). 역할을 바꾸는 호출은 없다.
 export type AdminSummary = { users: number; sessions: number; reports: number; photos: number }
-export type AdminUser = { id: string; name: string; role: string; createdAt: number; reportCount: number }
+export type AdminUser = { id: string; name: string; role: string; createdAt: number; reportCount: number; online: number | null; lastAt: number | null; visits30: number; city: string | null } // city: 동의한 사용자의 접속 지역 표시 글자
 export type AdminReport = { id: string; authorId: string; authorName: string; createdAt: string; type: string; text: string; hasPhoto: boolean }
 export type AdminPage<T> = { items: T[]; more: boolean; total: number }
+export type AdminUsersPage = AdminPage<AdminUser> & { onlineUsers: number | null; todayUsers: number }
 export type AdminResult<T> = { ok: true; value: T } | { ok: false; message: string }
 
 const FAIL = '불러오지 못했어요. 잠시 뒤에 다시 해 주세요.'
@@ -23,7 +24,23 @@ export const loadSummary = () =>
 
 const pageOf = <T>(b: Record<string, unknown>): AdminPage<T> | null => (Array.isArray(b.items) ? { items: b.items as T[], more: b.more === true, total: num(b.total) } : null)
 
-export const loadUsers = (offset: number) => get<AdminPage<AdminUser>>(`/admin/users?offset=${offset}`, (b) => pageOf<AdminUser>(b))
+// 옛 서버 응답(새 필드 없음)도 깨지지 않게 기본값을 채운다.
+const userOf = (u: Partial<AdminUser>): AdminUser => ({
+  id: String(u.id ?? ''),
+  name: String(u.name ?? ''),
+  role: String(u.role ?? 'user'),
+  createdAt: num(u.createdAt),
+  reportCount: num(u.reportCount),
+  online: typeof u.online === 'number' ? u.online : null,
+  lastAt: typeof u.lastAt === 'number' ? u.lastAt : null,
+  visits30: num(u.visits30),
+  city: typeof u.city === 'string' ? u.city : null,
+})
+export const loadUsers = (offset: number, limit?: number) =>
+  get<AdminUsersPage>(`/admin/users?offset=${offset}${limit ? `&limit=${limit}` : ''}`, (b) => {
+    const p = pageOf<Partial<AdminUser>>(b)
+    return p ? { ...p, items: p.items.map(userOf), onlineUsers: typeof b.onlineUsers === 'number' ? b.onlineUsers : null, todayUsers: num(b.todayUsers) } : null
+  })
 export const loadReports = (offset: number) => get<AdminPage<AdminReport>>(`/admin/reports?offset=${offset}`, (b) => pageOf<AdminReport>(b))
 
 async function del(path: string): Promise<string | null> {
@@ -60,8 +77,8 @@ export async function resetPin(id: string): Promise<{ ok: true; pin: string; sel
 }
 
 // 사용자 한 명의 접속·기기·오류(읽기 전용). online: 지금 연결된 기기 수(null이면 알 수 없음).
-export type AdminDevice = { deviceId: string; device: string; os: string; browser: string; ua: string; build: string; standalone: boolean; screen: string; firstAt: number; lastAt: number; count: number }
-export type AdminVisit = { at: number; deviceId: string; kind: string; build: string; standalone: boolean; screen: string; device: string; os: string; browser: string }
+export type AdminDevice = { deviceId: string; device: string; os: string; browser: string; ua: string; build: string; standalone: boolean; screen: string; firstAt: number; lastAt: number; count: number; city: string | null }
+export type AdminVisit = { at: number; deviceId: string; kind: string; build: string; standalone: boolean; screen: string; device: string; os: string; browser: string; city: string | null }
 export type AdminError = { at: number; deviceId: string; build: string; message: string; stack: string; route: string; device: string | null; os: string | null; browser: string | null }
 export type AdminActivity = { name: string; online: number | null; devices: AdminDevice[]; visits: AdminVisit[]; errors: AdminError[] }
 
@@ -71,8 +88,8 @@ export const loadActivity = (id: string) =>
     return {
       name: typeof b.name === 'string' ? b.name : '',
       online: typeof b.online === 'number' ? b.online : null,
-      devices: list<AdminDevice>(b.devices),
-      visits: list<AdminVisit>(b.visits),
+      devices: list<AdminDevice>(b.devices).map((d) => ({ ...d, city: d.city ?? null })), // 옛 응답은 null
+      visits: list<AdminVisit>(b.visits).map((v) => ({ ...v, city: v.city ?? null })),
       errors: list<AdminError>(b.errors),
     }
   })

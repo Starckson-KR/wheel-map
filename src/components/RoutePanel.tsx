@@ -142,7 +142,14 @@ function PlacePicker(props: {
       setMsg('')
       return
     }
-    if (!k) return
+    if (!k) {
+      // 지도 SDK가 아직 오는 중이면 찾는 중으로 두고, 10초가 지나도 없을 때만 실패로 알린다
+      setItems([])
+      setOutside(false)
+      setMsg('찾고 있어요…')
+      const w = setTimeout(() => setMsg('검색하지 못했어요. 잠시 뒤에 다시 해 주세요.'), 10000)
+      return () => clearTimeout(w)
+    }
     first.current = false
     const t = setTimeout(() => void search(q), delay)
     return () => clearTimeout(t)
@@ -222,6 +229,7 @@ export default function RoutePanel(props: Props) {
   const [pairId, setPairId] = useState<string | null>(null)
   // 출발지 '내 위치' 자동 채우기: pending=도착지를 고르는 순간에 위치를 묻는다 / asking=위치 확인 중 / failed=못 채움(비움)
   const [autoFrom, setAutoFrom] = useState<'idle' | 'pending' | 'asking' | 'failed'>('idle')
+  const [noLoc, setNoLoc] = useState(false) // 현재 위치를 못 얻어 출발지를 전남대로 둔 경우에만 한 줄 안내
   const autoId = useRef(0)
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [error, setError] = useState('')
@@ -266,6 +274,7 @@ export default function RoutePanel(props: Props) {
   // 이용자가 출발지를 직접 만지면 자동 채우기를 멈춘다(직접 고른 값을 존중)
   const cancelAuto = () => {
     autoId.current++
+    setNoLoc(false)
     if (autoFromRef.current !== 'idle') setAutoFrom('idle')
   }
   // 내 위치를 받아 시범 지역(보행망 150m) 안이면 출발지로 넣고, 아니면 비운 채 한 줄만 알린다
@@ -316,12 +325,13 @@ export default function RoutePanel(props: Props) {
       const plan = startPlan(perm, { hasPreset: false, hasFrom: false, hasGeo: hasGeo() })
       let f = plan === 'none' ? null : await fillFromHere()
       if (dead) return
-      // 위치를 못 쓰거나 시범 지역 밖이면 패널을 띄우지 않고 시연 출발점에서 바로 구한다
+      // 위치를 못 쓰거나 시범 지역 밖이면 패널을 띄우지 않고 전남대에서 바로 구하고, 그 사실을 한 줄로 알린다
       if (!f) {
         const d = pickStart(null, false, demoStartOf(DEMO_PAIRS))
         if (d) {
           f = d.place
           setFrom(d.place)
+          setNoLoc(true)
           setAutoFrom('idle')
         }
       }
@@ -357,14 +367,17 @@ export default function RoutePanel(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picked])
 
-  const run = async (f: Place, t: Place, pid: string | null, pairLabel: string) => {
+  // keep: 같은 출발·도착을 날씨 때문에 다시 구할 때 — 화면은 그대로 두고 새 결과가 오면 바꿔 끼운다(깜빡임·카드 선택 초기화 방지)
+  const run = async (f: Place, t: Place, pid: string | null, pairLabel: string, keep = false) => {
     const my = ++runId.current
-    setStatus('loading')
-    setError('')
-    setResult(null)
-    setFocus(null)
-    setGuide(null)
-    setOffRoute(null)
+    if (!keep) {
+      setStatus('loading')
+      setError('')
+      setResult(null)
+      setFocus(null)
+      setGuide(null)
+      setOffRoute(null)
+    }
     const stats = newStats()
     try {
       const citizen = reports.filter((r) => !r.seedId && SHOWN_ON_MAP.includes(r.status) && !isExpired(r))
@@ -383,7 +396,7 @@ export default function RoutePanel(props: Props) {
         }
         // 배포판에는 TMAP 키가 없다: 자체 경로를 못 찾으면 짧은 안내만 보인다(개발 모드만 TMAP으로 넘어간다)
         if (!own && !DEV_TOOLS) {
-          if (my !== runId.current) return
+          if (my !== runId.current || keep) return
           setStatus('error')
           setError(why === 'load' ? '길 자료를 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.' : why === 'no-path' ? '두 곳을 잇는 길을 찾지 못했어요.' : '시범 지역 안에서만 길을 찾을 수 있어요.')
           return
@@ -392,6 +405,7 @@ export default function RoutePanel(props: Props) {
       const res = own ? own.res : await searchRoute({ obstacles, cfg: ROUTE_CFG, fetchRoute: makeFetcher(pid, f, t, stats) })
       if (my !== runId.current) return
       if (!res.base) {
+        if (keep) return
         setStatus('error')
         setError(stats.error || res.error || '경로를 받지 못했어요.')
         return
@@ -405,14 +419,18 @@ export default function RoutePanel(props: Props) {
         extrasError = true
       }
       if (my !== runId.current) return
-      setResult({ res, pair: pairLabel, extras, extrasError, stats, own, fallback: !own && engineMode === 'own', pool, wet, start: f, end: t, fitKey: my })
+      setResult((prev) => ({ res, pair: pairLabel, extras, extrasError, stats, own, fallback: !own && engineMode === 'own', pool, wet, start: f, end: t, fitKey: keep && prev ? prev.fitKey : my }))
+      if (keep) {
+        setActive((a) => (a === 'detour' && !res.detour ? 'base' : a))
+        return
+      }
       const pick = initialCard(!!res.detour, props.initialMode === 'bus', hasStoredNoRoute(pid) ? 'none' : busCardState(hasStoredTransit(pid), TRANSIT_FREE_SEARCH))
       setMode(pick === 'bus' ? 'bus' : 'walk')
       setActive(pick === 'bus' ? (res.detour ? 'detour' : 'base') : pick)
       setFitN((n) => n + 1)
       setStatus('done')
     } catch {
-      if (my === runId.current) {
+      if (my === runId.current && !keep) {
         setStatus('error')
         setError('경로를 찾는 중에 문제가 생겼어요.')
       }
@@ -590,9 +608,9 @@ export default function RoutePanel(props: Props) {
   // 날씨가 바뀌면(시연 도구 포함) 침수 이력을 넣을지가 달라지므로 같은 길을 다시 구한다
   useEffect(() => {
     if (status !== 'done' || !result || result.wet === wet || guide) return
-    void run(result.start, result.end, pairId, result.pair)
+    void run(result.start, result.end, pairId, result.pair, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wet])
+  }, [wet, status, guide])
 
   // 지도에 보낼 정보
   useEffect(() => {
@@ -947,6 +965,7 @@ export default function RoutePanel(props: Props) {
         <div className="rt-pair-sum">
           <span className="rt-pair-name">
             {from.name} → {to.name}
+            {noLoc && <span className="bm-meta rt-noloc" role="status">현재 위치를 못 찾았어요</span>}
           </span>
           <button type="button" onClick={() => setFormOpen(true)}>
             바꾸기
@@ -966,8 +985,9 @@ export default function RoutePanel(props: Props) {
             </button>
           ))}
         </div>}
-        <PlacePicker which="to" label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p), autoFromRef.current === 'pending' && void fillFromHere())} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} onQuery={setDestQ} />
         <PlacePicker which="from" label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), cancelAuto(), setFrom(p))} onPickMap={() => (cancelAuto(), onPickRequest(picking === 'from' ? null : 'from'))} preset={props.presetFrom ?? undefined} pendingName={autoFrom === 'pending' || autoFrom === 'asking' ? '내 위치' : undefined} pendingNote={autoFrom === 'asking' ? '찾는 중…' : undefined} emptyText={autoFrom === 'failed' ? START_HINT : undefined} />
+        {noLoc && <p className="bm-meta rt-noloc" role="status">현재 위치를 못 찾았어요</p>}
+        <PlacePicker which="to" label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p), autoFromRef.current === 'pending' && void fillFromHere())} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} onQuery={setDestQ} />
         <button type="button" className="rf-primary" disabled={!canRun} onClick={() => from && to && run(from, to, pairId, `${from.name} → ${to.name}`)}>
           {status === 'loading' ? '찾고 있어요…' : '길찾기'}
         </button>

@@ -46,7 +46,8 @@ test('자주 쓰는 서비스: 고정 5칸, 6번째 후보는 중복 없이 고�
 })
 
 test('6번째 칸 저장값: 목록에 있는 것만 인정', () => {
-  assert.equal(parseHomeExtra('bus')?.label, '저상버스 도착')
+  assert.equal(parseHomeExtra('progress')?.label, '개선 현황')
+  assert.equal(parseHomeExtra('bus'), null) // 지운 「저상버스 도착」 칸: 예전에 골랐어도 비워진다
   assert.equal(parseHomeExtra('route'), null)
   assert.equal(parseHomeExtra('없는값'), null)
   assert.equal(parseHomeExtra(null), null)

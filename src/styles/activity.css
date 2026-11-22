@@ -3,6 +3,7 @@
 .dv-act-head h3 { margin: 0; min-width: 0; flex: 1; text-align: center; color: var(--text-strong); font-size: var(--fs-sub); font-weight: 700; overflow-wrap: anywhere; }
 .bm .dv-back { flex: none; min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-sm); background: none; color: var(--primary); font-weight: 700; white-space: nowrap; }
 .dv-live { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--grey-100); color: var(--text-sub); font-size: var(--fs-small); font-weight: 700; text-align: center; }
+.dv-now { color: var(--primary); font-weight: 700; }
 .dv-live.on { background: var(--primary-weak); color: var(--primary); }
 .dv-sec { margin: var(--s-4) 0 0; color: var(--text-strong); font-size: var(--fs-small); font-weight: 700; }
 .dv-list > li.dv-act-row { align-items: flex-start; }

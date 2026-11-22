@@ -12,6 +12,8 @@ export const SYNC_PHOTOS_KEY = 'wheelmap.sync.photosUp' // 서버에 올린 사�
 export const DEVICE_ID_KEY = 'wheelmap.deviceId'
 export const ERR_SEEN_KEY = 'wheelmap.errSeen' // 오늘 이미 보낸 오류(메시지+빌드 해시 → 날짜)
 
+export const CITY_CONSENT_KEY = 'wheelmap.cityConsent' // 접속 지역(도시) 기록 동의: 'yes' / 'no' / 없음(아직 안 물음)
+
 export const SYNCED_PREF_KEYS = [
   'wheelmap.benefitPrefs',
   'wheelmap.textSize',
@@ -25,6 +27,7 @@ export const SYNCED_PREF_KEYS = [
   'wheelmap.profile',
   'wheelmap.lang',
   'wheelmap.onboarded',
+  'wheelmap.cityConsent',
 ] as const
 
 // 터치 기기(휴대폰·태블릿)에서는 보기 방식(PC/모바일)을 서버와 맞추지 않는다. PC에서 바꾼 값이 휴대폰 배치를 바꾸거나 그 반대가 되지 않게 기기별로 둔다.

@@ -8,13 +8,14 @@ import { CHIPS, type ChipId, type Summary } from '../lib/layerPresets'
 
 type Props = {
   order: ChipId[]
-  selected: ChipId | null
+  /** 고른 칩들(고른 순서). 여러 개를 함께 켤 수 있다 */
+  selected: ChipId[]
   onPick: (id: ChipId) => void
   /** 고른 칩의 요약 한 줄. 없으면 줄이 닫힌다 */
   summary: Summary | null
 }
 
-/** 동행지도 검색바 아래의 상황 칩 한 줄. 하나만 고른다. 날씨로 순서가 바뀌면 칩이 자리를 미끄러져 옮긴다(줄을 옆으로 민 것은 움직임으로 치지 않게 layoutScroll). */
+/** 동행지도 검색바 아래의 상황 칩 한 줄. 여러 개를 고를 수 있다(누르면 켜고, 다시 누르면 그 칩만 뺀다). 날씨로 순서가 바뀌면 칩이 자리를 미끄러져 옮긴다(줄을 옆으로 민 것은 움직임으로 치지 않게 layoutScroll). */
 export default function SituationChips({ order, selected, onPick, summary }: Props) {
   const row = useRef<HTMLDivElement>(null)
   // 요약 줄: 닫히는 동안에는 마지막 내용을 남겨 두고 높이·투명도만 줄인다(map.css .sc-sum-wrap)
@@ -35,8 +36,9 @@ export default function SituationChips({ order, selected, onPick, summary }: Pro
   }, [sumKey])
   // 고른 칩이 줄 밖에 있으면 보이는 자리로 옮긴다
   useEffect(() => {
-    if (!selected) return
-    row.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: prefersCalm() ? 'auto' : 'smooth' })
+    const last = selected[selected.length - 1]
+    if (!last) return
+    row.current?.querySelector<HTMLElement>(`[data-chip="${last}"]`)?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: prefersCalm() ? 'auto' : 'smooth' })
   }, [selected, order])
   const shown = summary ?? kept
   return (
@@ -44,9 +46,9 @@ export default function SituationChips({ order, selected, onPick, summary }: Pro
       <m.div ref={row} layoutScroll className="sc-row" role="group" aria-label="지금 상황 고르기">
         {order.map((id) => {
           const c = CHIPS[id]
-          const on = selected === id
+          const on = selected.includes(id)
           return (
-            <PressButton key={id} layout="position" transition={SPRING.quick} type="button" className={'sc-chip' + (on ? ' on' : '')} aria-pressed={on} onClick={() => onPick(id)}>
+            <PressButton key={id} layout="position" transition={SPRING.quick} type="button" data-chip={id} className={'sc-chip' + (on ? ' on' : '')} aria-pressed={on} onClick={() => onPick(id)}>
               <Icon name={c.icon} size={18} />
               {c.label}
             </PressButton>

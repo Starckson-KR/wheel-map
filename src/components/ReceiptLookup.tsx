@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react'
 import { Swap } from './motionKit'
-import { findByReceipt } from '../lib/externalStatus'
+import { findByReceipt, reportNo } from '../lib/externalStatus'
 import { go, TO } from '../lib/nav'
 import { STATUS_LABEL, useReports } from '../lib/reportStore'
 import type { Report } from '../types'
 import { Sentences } from './Sentences'
 
-// 접수번호로 내 제보 찾기. 서버가 없어서 이 기기에 저장된 민원에서만 찾는다.
+// 접수번호로 내 제보 찾기. 앱 접수번호(R-…)와 기관 채널 접수번호를 둘 다 찾는다. 이 기기에 저장된 제보에서만 찾는다.
 export default function ReceiptLookup({ onOpen }: { onOpen: (id: string) => void }) {
   const reports = useReports((s) => s.reports)
   const [q, setQ] = useState('')
@@ -76,7 +76,7 @@ export default function ReceiptLookup({ onOpen }: { onOpen: (id: string) => void
               <button type="button" className="rp-row" onClick={() => onOpen(r.id)}>
                 <span className="rp-row-text">
                   <strong>{r.type}</strong>
-                  <span className="bm-meta">{r.complaint?.receiptNo}</span>
+                  <span className="bm-meta">{r.complaint?.receiptNo ?? reportNo(r.id)}</span>
                 </span>
                 <span className={'rp-badge rp-' + r.status}><Swap k={r.status}>{STATUS_LABEL[r.status]}</Swap></span>
               </button>

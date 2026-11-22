@@ -36,6 +36,16 @@ export const LOCATION_KINDS = [
 ] as const
 export type LocationKind = (typeof LOCATION_KINDS)[number]
 
+// 새 제보의 「어떤 곳인가요?」에 보이는 핵심 장소 7개 + 「기타(직접 입력)」.
+// LOCATION_KINDS(옛 8개)는 저장된 제보·시연 데이터·소관 기관 찾기를 위해 그대로 둔다(저장값은 바꾸지 않는다).
+// 「공사 현장」으로 올라온 옛 제보도 findAgencies가 그대로 알아본다.
+export const REPORT_LOCATION_CHOICES = ['구·시 도로의 보도', '버스정류장', '횡단보도·신호', '공공건물 출입', '민간 건물 출입', '대학 캠퍼스 내부', '공원'] as const
+export const OTHER_KIND = '기타'
+export const OTHER_KIND_MAX = 30
+// 기타는 「기타: 입력한 글」로 저장한다. 어느 기관 소관인지는 지어내지 않는다(findAgencies에 걸리지 않아 「소관 기관을 찾지 못했어요」로 안내된다).
+export const composeKind = (choice: string, other: string): string => (choice === OTHER_KIND ? `${OTHER_KIND}: ${other.trim().replace(/\s+/g, ' ').slice(0, OTHER_KIND_MAX)}` : choice)
+export const isOtherKind = (k: string): boolean => k === OTHER_KIND || k.startsWith(`${OTHER_KIND}: `)
+
 // 지점 종류 문구로 위치 성격의 처음 선택값만 추정한다(사용자가 바꿀 수 있음).
 export function guessLocationKind(t: string): string {
   if (t.includes('정류장')) return '버스정류장'

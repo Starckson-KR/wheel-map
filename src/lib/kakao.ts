@@ -5,6 +5,7 @@ import { rankPlaces, type LatLngLike } from './placeRank.ts'
 
 const SDK_URL = 'https://dapi.kakao.com/v2/maps/sdk.js'
 
+const LOAD_TIMEOUT_MS = 10000
 let loading: Promise<typeof kakao> | null = null
 
 export function loadKakao(): Promise<typeof kakao> {
@@ -12,17 +13,28 @@ export function loadKakao(): Promise<typeof kakao> {
 
   const key = import.meta.env.VITE_KAKAO_JS_KEY
   if (!key) {
-    return Promise.reject(new Error('VITE_KAKAO_JS_KEY가 설정되어 있지 않습니다. .env 파일을 확인해 주세요.'))
+    return Promise.reject(new Error('VITE_KAKAO_JS_KEY가 설정되어 있지 않아요.'))
   }
 
   loading = new Promise((resolve, reject) => {
     const script = document.createElement('script')
     script.src = `${SDK_URL}?appkey=${encodeURIComponent(key)}&libraries=services&autoload=false`
     script.async = true
-    script.onload = () => window.kakao.maps.load(() => resolve(window.kakao))
-    script.onerror = () => {
+    // 10초 안에 안 오면 실패로 본다(응답이 없어도 로딩이 끝나도록). 다음 시도는 처음부터 다시 받는다.
+    const timer = window.setTimeout(() => {
       loading = null
-      reject(new Error(`카카오맵 SDK를 불러오지 못했습니다. 키와 웹 도메인 등록(${window.location.origin})을 확인해 주세요.`))
+      script.remove()
+      reject(new Error('카카오맵 SDK 응답 시간 초과'))
+    }, LOAD_TIMEOUT_MS)
+    script.onload = () => window.kakao.maps.load(() => {
+      window.clearTimeout(timer)
+      resolve(window.kakao)
+    })
+    script.onerror = () => {
+      window.clearTimeout(timer)
+      loading = null
+      script.remove()
+      reject(new Error(`카카오맵 SDK 불러오기 실패 (${window.location.origin})`))
     }
     document.head.appendChild(script)
   })

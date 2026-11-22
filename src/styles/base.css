@@ -753,9 +753,7 @@ html[data-text='large'] .bn-sum { font-size: var(--fs-small); }
 :where(strong, b) { font-weight: 600; }
 :where(.hs-head h2, .rp .rf-head h2, .ms-head h2, .cs-sheet h2, .rw-hero-text h3) { letter-spacing: -0.01em; }
 .hp-mine-n, .hp-mine-s, .rc-time, .rc-sub, .rc-near-s, .tl-sub, .tl-mini, .rw-score, .rw-stats b, .hm-count, .hm-title, .rf-step, .bm-meta { font-variant-numeric: tabular-nums; }
-/* 행정 화면(.bm.adm)은 이번 정리 대상이 아니라 예전 값 그대로 둔다 */
-:where(.bm.adm) { letter-spacing: -0.01em; }
-:where(.bm.adm) button { font-weight: 600; letter-spacing: -0.01em; }
-:where(.bm.adm) :is(h2, h3, h4) { letter-spacing: -0.02em; }
-:where(.bm.adm) :where(strong, b) { font-weight: bolder; }
-:where(.bm.adm) :is(.bm-badge, .rp-badge, .rf-cat, .cg-tag, .adm-flag, .adm-demo, .adm-ext, .adm-recur) { font-weight: 700; }
+/* 행정 화면(.bm.adm)도 같은 규칙: 16px 미만 자간 0, 20px 이상 제목만 -0.01em, 버튼 500, strong 600 */
+:where(.bm.adm) button { font-weight: 500; }
+:where(.bm.adm) h2 { letter-spacing: -0.01em; }
+:where(.bm.adm) :is(.bm-badge, .rp-badge, .rf-cat, .cg-tag, .adm-flag, .adm-demo, .adm-ext, .adm-recur) { font-weight: 600; }

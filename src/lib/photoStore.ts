@@ -64,6 +64,34 @@ export async function loadPhoto(key: string): Promise<Blob | undefined> {
   }
   return p
 }
+
+// 지워지는 제보(시연 데모 제외)의 사진 키만 고른다.
+export function photoKeysOfRemoved(reports: { id: string; demo?: boolean; demoSet?: string; photos?: string[] }[], gone: Set<string>): string[] {
+  const keys = new Set<string>()
+  for (const r of reports) if (gone.has(r.id) && !r.demo && !r.demoSet) for (const k of r.photos ?? []) keys.add(k)
+  return [...keys]
+}
+// 키 목록의 사진을 이 기기에서 지운다. 실패해도 제보 삭제는 막지 않는다.
+export async function deleteLocalPhotos(keys: string[]): Promise<void> {
+  if (keys.length === 0) return
+  try {
+    const db = await openDb()
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite')
+        const st = tx.objectStore(STORE)
+        for (const k of keys) st.delete(k)
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+        tx.onabort = () => reject(tx.error)
+      })
+    } finally {
+      db.close()
+    }
+  } catch {
+    /* 사진 정리 실패는 무시 */
+  }
+}
 export const clearPhotos = () => withStore('readwrite', (s) => s.clear()).then(() => undefined)
 
 // 긴 변 1280px 이하 JPEG로 줄인다. 캔버스에 다시 그리므로 EXIF(촬영 위치·시각 등)는 남지 않는다.

@@ -6,12 +6,12 @@ import SheetHandle from '../components/SheetHandle'
 import { RATING_STYLE } from '../lib/rating'
 import { IMPACT_INFO, impactLine, impactOf, shortName } from '../lib/display'
 import { useState } from 'react'
-import { LOCATION_KINDS, guessLocationKind } from '../lib/agencyGuide'
+import { REPORT_LOCATION_CHOICES, guessLocationKind } from '../lib/agencyGuide'
 import { REPORT_TYPES } from '../lib/reportTypes'
 import { usePlan } from '../lib/planStore'
 import { PHOTOS_VISIBLE, photosFor } from '../lib/photos'
 import { publicIssue, publicRatingSource } from '../lib/displayText'
-import { STATUS_LABEL, userName } from '../lib/reportStore'
+import { STATUS_LABEL, useReports, userName } from '../lib/reportStore'
 import type { Barrier, Rating, Report } from '../types'
 
 type Props = {
@@ -31,6 +31,7 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
   const [flowType, setFlowType] = useState(b.reportType ?? '')
   const [flowKind, setFlowKind] = useState(guessLocationKind(b.type))
   const plan = usePlan((s) => s.entries[b.id])
+  const me = useReports((s) => s.userId)
   const own = overrideRating !== undefined ? (overrideRating ?? undefined) : b.rating
   const inherited = !own && parent?.rating ? parent.rating : undefined
   const rating = own ?? inherited
@@ -153,7 +154,7 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
                 어떤 곳인가요?
                 <select value={flowKind} onChange={(e) => setFlowKind(e.target.value)}>
                   <option value="">골라 주세요</option>
-                  {LOCATION_KINDS.map((k) => (
+                  {REPORT_LOCATION_CHOICES.map((k) => (
                     <option key={k}>{k}</option>
                   ))}
                 </select>
@@ -175,7 +176,7 @@ export default function BarrierDetail({ barrier: b, parent, subItems, onSelect, 
                 <button type="button" className="lr" onClick={() => onOpenReport?.(m.id)}>
                   <span className="lr-main">
                     <span className="lr-title">
-                      {userName(m.userId)} · {m.type}
+                      {m.userId === me ? userName(m.userId) : '이웃 제보'} · {m.type}
                     </span>
                     <span className="lr-sub">{m.description}</span>
                   </span>

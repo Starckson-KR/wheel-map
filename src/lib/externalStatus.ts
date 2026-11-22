@@ -3,11 +3,14 @@ import type { ExternalStage, ExternalUpdate, Report } from '../types'
 // 접수번호 비교용 정리: 앞뒤 공백·내부 공백·하이픈류를 없애고 대문자로 통일한다. 형식(자릿수·접두어)은 검사하지 않는다.
 export const normalizeReceipt = (s: string): string => s.replace(/[\s\-‐-―−]/g, '').toUpperCase()
 
-// 이 기기에 저장된 민원 중 접수번호가 같은 것. 빈 입력은 아무것도 찾지 않는다.
+// 제보를 등록하면 받는 접수번호(앱 번호). 저장된 id를 알아보기 쉽게 대문자로 보여 준다(예: R-LX3K9A2F)
+export const reportNo = (id: string): string => id.replace(/^r-/i, 'R-').toUpperCase()
+
+// 이 기기에 저장된 제보 중 접수번호가 같은 것. 앱 번호(R-…)와 기관 채널 접수번호를 둘 다 본다(대소문자·하이픈·공백 무시). 빈 입력은 아무것도 찾지 않는다.
 export function findByReceipt(reports: Report[], input: string): Report[] {
   const key = normalizeReceipt(input)
   if (!key) return []
-  return reports.filter((r) => r.complaint && normalizeReceipt(r.complaint.receiptNo) === key)
+  return reports.filter((r) => normalizeReceipt(r.id) === key || (r.complaint && normalizeReceipt(r.complaint.receiptNo) === key))
 }
 
 export const EXTERNAL_STAGES: ExternalStage[] = ['접수 확인', '이송됨', '처리 중', '답변 완료', '기타']

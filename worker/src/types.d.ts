@@ -41,4 +41,6 @@ export interface Env {
   KOREACONNECT_KEY?: string
   TRANSIT_DAILY_CAP?: string
   TRANSIT_PER_MINUTE?: string
+  // 날씨 중계: IP별 분당 요청 수(없으면 30)
+  WEATHER_PER_MINUTE?: string
 }

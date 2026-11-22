@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { fmtDateTime, fmtDay, won } from '../src/lib/format.ts'
+import { fmtAgo, fmtDateTime, fmtDay, won } from '../src/lib/format.ts'
 
 // 기기 시간대와 상관없이 같은 값이 나오도록 로컬 시각으로 만든다
 const NOW = new Date(2026, 10, 21, 12, 0).getTime()
@@ -28,4 +28,13 @@ test('날짜가 아닌 값은 빈 글자', () => {
 
 test('won: 천 단위 쉼표', () => {
   assert.equal(won(1234567), '1,234,567')
+})
+
+test('fmtAgo: 1분 미만 방금, 1시간 미만 N분 전, 그 이상은 날짜·시각', () => {
+  assert.equal(fmtAgo(NOW - 30_000, NOW), '방금')
+  assert.equal(fmtAgo(NOW + 5_000, NOW), '방금')
+  assert.equal(fmtAgo(NOW - 60_000, NOW), '1분 전')
+  assert.equal(fmtAgo(NOW - 59 * 60_000 - 59_000, NOW), '59분 전')
+  assert.equal(fmtAgo(at(2026, 11, 21, 10, 0), NOW), '11/21 오전 10:00')
+  assert.equal(fmtAgo(at(2025, 11, 18, 22, 19), NOW), '2025/11/18 오후 10:19')
 })

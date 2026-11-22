@@ -20,4 +20,11 @@ export const fmtDateTime = (v: string | number, now: number = Date.now()): strin
   return `${dayText(d, now)} ${h < 12 ? '오전' : '오후'} ${h12}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+/** 「방금」(1분 미만) · 「N분 전」(1시간 미만) · 그 이상은 날짜와 시각 */
+export const fmtAgo = (ms: number, now: number = Date.now()): string => {
+  const m = Math.floor((now - ms) / 60_000)
+  if (m < 1) return '방금' // 시계가 조금 어긋나 미래로 나와도 방금
+  return m < 60 ? `${m}분 전` : fmtDateTime(ms, now)
+}
+
 export const won = (n: number) => n.toLocaleString('ko-KR')

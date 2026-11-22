@@ -20,6 +20,7 @@ import './styles/weather.css'
 import { initPrefs } from './lib/viewPrefs'
 import App from './App.tsx'
 import MotionRoot from './components/MotionRoot'
+import ErrorBoundary from './components/ErrorBoundary'
 import { installLineTidy } from './lib/lineTidy'
 import { startUpdateCheck } from './lib/updateCheck'
 import { installPageHidden } from './lib/pageHidden'
@@ -33,8 +34,10 @@ initActivity()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MotionRoot>
-      <App />
-    </MotionRoot>
+    <ErrorBoundary>
+      <MotionRoot>
+        <App />
+      </MotionRoot>
+    </ErrorBoundary>
   </StrictMode>,
 )

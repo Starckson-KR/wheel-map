@@ -5,7 +5,6 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { execSync } from 'node:child_process'
 import { callTmap, validateReq } from './scripts/tmapClient.ts'
 import { bisArrive, bisLineLow } from './scripts/bisClient.ts'
-import { callTransit, validateTransitReq } from './scripts/transitClient.ts'
 import { callOdsay } from './scripts/odsayClient.ts'
 import { callWeather } from './scripts/weatherClient.ts'
 
@@ -135,49 +134,18 @@ function devBis(): Plugin {
   }
 }
 
-// TMAP 대중교통 경로 중계(개발 서버 전용). 무료 상품은 하루 10건이라 scripts/transitClient.ts에서 하루 상한을 스스로 건다.
-const TRANSIT_ROUTE = '/wheel-map/__tmap/transit'
-
-function devTransit(): Plugin {
-  return {
-    name: 'dev-tmap-transit-relay',
-    apply: 'serve',
-    configureServer(server) {
-      const root = server.config.root
-      const key = () => loadEnv(server.config.mode, server.config.envDir || root, '').TMAP_APP_KEY ?? ''
-      server.middlewares.use(TRANSIT_ROUTE, (req, res) => {
-        const send = (status: number, obj: unknown) => {
-          res.statusCode = status
-          res.setHeader('Content-Type', 'application/json; charset=utf-8')
-          res.setHeader('Cache-Control', 'no-store')
-          res.end(JSON.stringify(obj))
-        }
-        if (req.method !== 'POST') return send(405, { error: 'POST만 허용합니다.' })
-        let raw = ''
-        req.on('data', (c) => {
-          raw += c
-          if (raw.length > 2000) req.destroy()
-        })
-        req.on('end', async () => {
-          try {
-            const body = validateTransitReq(JSON.parse(raw))
-            if (!body) return send(400, { error: '요청 형식이 올바르지 않습니다.' })
-            const r = await callTransit(body, key(), root)
-            console.log(`[transit] ${r.ok ? (r.fromCache ? '캐시' : '호출') : '실패'}`)
-            if (!r.ok) return send(r.limit ? 429 : 502, { error: r.error })
-            send(200, { itineraries: r.itineraries, cached: r.fromCache })
-          } catch {
-            send(400, { error: '요청을 읽지 못했습니다.' })
-          }
-        })
-      })
-    },
-  }
-}
-
 // ODsay 대중교통 길찾기 중계(개발 서버 전용). 키는 .env의 KOREACONNECT_KEY를 서버 쪽에서만 읽는다. 배포판은 Worker의 /transit을 쓴다(worker/src/transit.ts).
-// 응답 형식은 TMAP 중계와 같다. 상태: 503=키 없음, 429=하루 상한, 422=경로 없음, 502=상류 오류.
+// 상태: 503=키 없음, 429=하루 상한, 422=경로 없음, 502=상류 오류.
 const ODSAY_ROUTE = '/wheel-map/__odsay/transit'
+
+type TransitReq = { from: [number, number]; to: [number, number] }
+const inKorea = (p: unknown): p is [number, number] =>
+  Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number' && p[0] > 33 && p[0] < 39 && p[1] > 124 && p[1] < 132
+function validateTransitReq(x: unknown): TransitReq | null {
+  const r = x as Partial<TransitReq> | null
+  if (!r || !inKorea(r.from) || !inKorea(r.to)) return null
+  return { from: r.from, to: r.to }
+}
 
 function devOdsay(): Plugin {
   return {
@@ -283,5 +251,5 @@ export default defineConfig({
   base: '/wheel-map/', // GitHub Pages(저장소 이름)용
   // Worker 허용 출처가 localhost:5173뿐이라 포트를 고정한다. 이미 쓰는 중이면 다른 번호로 옮겨 가지 않고 실패한다.
   server: { port: 5173, strictPort: true },
-  plugins: [react(), versionFile(), devPhotos(), devTmap(), devBis(), devTransit(), devOdsay(), devWeather()],
+  plugins: [react(), versionFile(), devPhotos(), devTmap(), devBis(), devOdsay(), devWeather()],
 })

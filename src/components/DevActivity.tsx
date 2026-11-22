@@ -3,6 +3,7 @@ import { loadActivity } from '../lib/account/admin'
 import type { AdminActivity, AdminDevice, AdminError, AdminUser } from '../lib/account/admin'
 import { fetchLatestBuild, isOldBuild } from '../lib/updateCheck'
 import { toast } from '../lib/uiStore'
+import { fmtAgo } from '../lib/format'
 import '../styles/activity.css'
 
 declare const __BUILD_HASH__: string
@@ -44,7 +45,7 @@ function DeviceRow({ d, isOld }: { d: AdminDevice; isOld: (b: string) => boolean
           {isOld(d.build) && <span className="dv-old">옛 버전</span>}
         </strong>
         <small>
-          {d.os} · {d.browser}
+          {d.os} · {d.browser} · {d.city ?? '—'}
         </small>
         <small>
           빌드 {d.build}
@@ -90,7 +91,7 @@ export default function DevActivity({ user, onBack }: { user: AdminUser; onBack:
           새로고침
         </button>
       </div>
-      {data && data.online !== null && <p className={data.online > 0 ? 'dv-live on' : 'dv-live'}>{data.online > 0 ? `지금 접속 중 · ${data.online}대` : '지금 접속 중 아님'}</p>}
+      {data && data.online !== null && <p className={data.online > 0 ? 'dv-live on' : 'dv-live'}>{data.online > 0 ? `지금 접속 중 · ${data.online}대` : data.devices[0] ? `지금 접속 중 아님 · ${fmtAgo(data.devices[0].lastAt)}` : '지금 접속 중 아님'}</p>}
       {err && (
         <p className="rf-notice" role="alert">
           {err}
@@ -112,7 +113,7 @@ export default function DevActivity({ user, onBack }: { user: AdminUser; onBack:
                       {kst(v.at)} · {KIND[v.kind] ?? v.kind}
                     </strong>
                     <small>
-                      {v.device} · {v.os} · {v.browser}
+                      {v.device} · {v.os} · {v.browser} · {v.city ?? '—'}
                     </small>
                     <small>
                       빌드 {v.build}

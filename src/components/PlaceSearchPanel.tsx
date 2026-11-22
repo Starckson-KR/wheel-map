@@ -30,7 +30,13 @@ export default function PlaceSearchPanel({ k, query, onPlace, onPair }: Props) {
       setStatus('idle')
       return
     }
-    if (!k) return
+    if (!k) {
+      // 지도 SDK가 아직 오는 중이면 찾는 중으로 두고, 10초가 지나도 없을 때만 실패로 알린다
+      setItems([])
+      setStatus('loading')
+      const w = setTimeout(() => setStatus('error'), 10000)
+      return () => clearTimeout(w)
+    }
     first.current = false
     setStatus('loading')
     const t = setTimeout(async () => {

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Barrier, ExternalStage, Rating, Report, ReportCategory, ReportStatus } from '../types'
 import { COMPLAINT_MODE, TEMP_VALID_HOURS, VOTES_REQUIRED, canVerifierConfirm, canVote, type ComplaintMode } from './config'
-import { clearPhotos } from './photoStore'
+import { clearPhotos, deleteLocalPhotos, photoKeysOfRemoved } from './photoStore'
 import { agencyOf, pendingTransfer } from './caseMetrics'
 import { findAgencyName } from './agencyName'
 import { buildDemoReports } from './demoData'
@@ -571,6 +571,7 @@ initSync({
   restore: (r) => useReports.setState((s) => ({ reports: s.reports.map((x) => (x.id === r.id ? r : x)) })),
   removeIds: (ids) => {
     const gone = new Set(ids)
+    void deleteLocalPhotos(photoKeysOfRemoved(useReports.getState().reports, gone)) // 지워지는 제보의 이 기기 사진도 함께(시연 데모 제외)
     useReports.setState((s) => (s.reports.some((r) => gone.has(r.id) && !r.demo && !r.demoSet) ? { reports: s.reports.filter((r) => !(gone.has(r.id) && !r.demo && !r.demoSet)) } : s))
   },
 })

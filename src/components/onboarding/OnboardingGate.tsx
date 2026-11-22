@@ -14,7 +14,7 @@ import { guessDevice, isStandalone, type Device } from './installEnv'
 import Stage from './Stage'
 import { accountConnected, logIn, signUp, useGateAccount } from './accountAdapter'
 import {
-  DOT_COUNT, MOBILITY_OPTIONS, afterDevice, afterWelcome, ONBOARDED_KEY, ONBOARDING_EVENT, PROFILE_KEY, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, nameOk,
+  DOT_COUNT, MOBILITY_OPTIONS, afterDevice, afterWelcome, ONBOARDED_KEY, ONBOARDING_EVENT, PROFILE_KEY, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, nameOk, nameHint, NAME_MAX,
   parsePreview, parseProfile, startScreen, toBenefitPrefs, type AuthCode, type Mobility, type Profile, type Screen,
 } from './flow'
 import { CATEGORIES, savePrefs, type BenefitCategory } from '../../lib/benefits'
@@ -377,14 +377,14 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
         <>
           <div className="ob-body">
             <Title>{mode === 'login' ? '이름을 입력해 주세요' : '어떻게 불러 드릴까요?'}</Title>
-            <Sentences as="p" className="ob-sub">{mode === 'login' ? '계정을 만들 때 쓴 이름이에요.' : '한글 이름도 괜찮아요. 최대 20자예요.'}</Sentences>
+            <Sentences as="p" className="ob-sub">{mode === 'login' ? '계정을 만들 때 쓴 이름이에요.' : '한글·영문·숫자로 10자까지 쓸 수 있어요. 이모지·특수문자는 안 돼요.'}</Sentences>
             <label className="ob-field">
               <span className="ob-vh">이름</span>
               <input
                 className="ob-input"
                 type="text"
                 value={name}
-                maxLength={20}
+                maxLength={NAME_MAX}
                 autoComplete="off"
                 autoCapitalize="off"
                 spellCheck={false}
@@ -398,6 +398,11 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
             {notice && live && (
               <p className="ob-err" role="alert">
                 {notice.text}
+              </p>
+            )}
+            {!notice && live && nameHint(name) && (
+              <p className="ob-err" role="alert">
+                {nameHint(name)}
               </p>
             )}
             {notice?.code === 'taken' && live && (

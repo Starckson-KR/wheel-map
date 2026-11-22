@@ -3,6 +3,7 @@ import { apiCall, getSession, useAccount } from './api'
 import { takeAuthKind } from './authKind'
 import { cleanMessage, cleanStack, dayOf, errorKey, isIgnorableError, pushPending, routeOf, shouldReportResume, takeError } from './activityPlan'
 import type { SeenMap } from './activityPlan'
+import { readCityConsent } from './cityConsent'
 import { DEVICE_ID_KEY, ERR_SEEN_KEY } from './keys'
 
 declare const __BUILD_HASH__: string
@@ -35,6 +36,8 @@ function makeId(): string {
 const build = () => (typeof __BUILD_HASH__ === 'string' ? __BUILD_HASH__ : 'dev')
 
 type Kind = 'open' | 'resume' | 'login' | 'signup'
+/** 접속 기록을 한 번 보낸다(동의·설정 변경 직후 지역을 바로 채울 때도 쓴다). 던지지 않는다. */
+export const recordVisitNow = (kind: Kind = 'open') => sendVisit(kind)
 async function sendVisit(kind: Kind): Promise<void> {
   try {
     if (!getSession()) return
@@ -46,6 +49,7 @@ async function sendVisit(kind: Kind): Promise<void> {
         standalone: isStandalone({ navStandalone: (navigator as Navigator & { standalone?: boolean }).standalone, matchMedia: (q) => window.matchMedia(q) }),
         screen: { w: window.innerWidth, h: window.innerHeight },
         kind,
+        ...(readCityConsent() === 'yes' ? { cityOk: true } : {}), // 동의한 경우만 서버가 지역을 저장한다
       },
     })
   } catch {

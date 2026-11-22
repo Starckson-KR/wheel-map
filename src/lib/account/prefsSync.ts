@@ -32,6 +32,20 @@ function snapshot(): Snapshot {
   return out
 }
 
+// 로그인 뒤 서버 설정을 한 번 받아 온 계정 id(받기 전·실패·로그아웃이면 null). 동의 카드가 「다른 기기에서 이미 답했는지」 알려고 쓴다.
+let pulledFor: string | null = null
+const pulledListeners = new Set<() => void>()
+const setPulled = (id: string | null) => {
+  if (pulledFor === id) return
+  pulledFor = id
+  for (const f of [...pulledListeners]) f()
+}
+export const getPulledFor = () => pulledFor
+export function subscribePulled(f: () => void): () => void {
+  pulledListeners.add(f)
+  return () => void pulledListeners.delete(f)
+}
+
 let last: Snapshot = {} // 마지막으로 서버와 맞춘(또는 올린) 이 기기의 값
 let remoteKeys = new Set<string>() // 서버에 있다고 마지막으로 확인한 키
 let knownAt = 0 // 내가 반영한 서버 설정 변경 시각
@@ -170,6 +184,7 @@ async function begin(gen: number) {
   remoteKeys = new Set(Object.keys(remote))
   knownAt = b.updatedAt ?? 0
   last = snapshot()
+  setPulled(s.user.id) // 서버 값이 이 기기에 반영됐다
   Object.assign(queued, toPush)
   await flushQueued(gen)
   if (changed) {
@@ -213,6 +228,7 @@ function start() {
 }
 function stop() {
   running++
+  setPulled(null)
   clearInterval(timer)
   clearTimeout(debounce)
   clearTimeout(retry)

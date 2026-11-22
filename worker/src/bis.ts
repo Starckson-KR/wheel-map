@@ -1,4 +1,5 @@
 import { reply } from './account.ts'
+import { BIS_STOP_IDS } from './bisStops.ts'
 import { windowAllowed } from './limit.ts'
 import type { D1Db, Env } from './types'
 
@@ -138,6 +139,7 @@ export async function handleBis(request: Request, env: Env, origin: string, deps
     if (u.pathname === '/bis/arrive') {
       const id = u.searchParams.get('station') ?? ''
       if (!/^\d{1,7}$/.test(id)) return err(400, '정류소 번호 형식이 올바르지 않습니다.', origin)
+      if (!BIS_STOP_IDS.has(id)) return err(400, '알 수 없는 정류소 번호입니다.', origin) // 앱이 쓰는 북구 정류소만(아무 번호로 상한을 소진하지 못하게)
       const r = await cachedOp(c, `arrive:${id}`, ARRIVE_TTL_MS, 'arriveInfo', { BUSSTOP_ID: id }, toArrivals)
       return reply({ stationId: id, collectedAt: new Date(r.at).toISOString(), arrivals: r.data, cached: r.cached }, 200, origin)
     }

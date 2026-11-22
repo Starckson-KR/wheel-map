@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSheetFocus } from '../lib/useSheetFocus'
 import { createPortal } from 'react-dom'
 import { sheetHost } from '../lib/sheetHost'
 import { DEMO_USERS, useReports } from '../lib/reportStore'
@@ -14,6 +15,7 @@ import { BADGE_TEXT, FILE_MAX_BYTES, pickCandidates } from '../lib/demoLarge'
 import { Sentences } from './Sentences'
 import { DEMO_WEATHER_LABEL, DEMO_WEATHER_ORDER } from '../lib/weather/model'
 import { setDemoWeather, useDemoWeather } from '../lib/weather/store'
+import { getXmasDemo, setXmasDemo } from '../lib/xmas'
 
 // 시연용 모의 연동·가상 데이터 표시: 모의 접수 모드에서는 홈·내 정보·행정 화면에 계속 보인다.
 // onMap: 지도 화면은 두 표시를 모두 보이지 않는다(저장 오류 알림만 남김, 제보 안내에는 모의 연동 문구가 따로 있다).
@@ -66,6 +68,7 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
   const [msg, setMsg] = useState('')
   const [motion, setMotion] = useState(getMotionReduce)
   const [ai, setAi] = useState(getAiEnabled)
+  const [xmasDemo, setXmasDemoState] = useState(getXmasDemo)
   const wx = useDemoWeather()
   const userId = useReports((s) => s.userId)
   const setUser = useReports((s) => s.setUser)
@@ -131,6 +134,8 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
     }
   }
   const officer = userId === 'officer'
+  const sheetRef = useRef<HTMLDivElement>(null)
+  useSheetFocus(open, sheetRef)
 
   return (
     <>
@@ -141,7 +146,7 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
         createPortal(
         <>
           <div className="ms-dim" onClick={() => setOpen(false)} />
-          <div className="ms" data-sheet role="dialog" aria-modal="true" aria-label="시연 도구">
+          <div className="ms" data-sheet ref={sheetRef} role="dialog" aria-modal="true" aria-label="시연 도구">
             <SheetHandle onDown={() => setOpen(false)} />
             <div className="ms-head">
               <div>
@@ -222,6 +227,20 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
                 </button>
               </div>
               <Sentences as="p" className="bm-meta">끄면 홈 검색창이 키워드로만 찾아요.</Sentences>
+            </div>
+
+            <div className="ms-sec">
+              <h3>크리스마스</h3>
+              <div className="rf-seg" role="group" aria-label="크리스마스">
+                <button type="button" className={!xmasDemo ? 'on' : ''} aria-pressed={!xmasDemo} onClick={() => { setXmasDemoState(false); setXmasDemo(false) }}>
+                  {!xmasDemo && <SegBg group="seg-demo-xmas" />}
+                  자동
+                </button>
+                <button type="button" className={xmasDemo ? 'on' : ''} aria-pressed={xmasDemo} onClick={() => { setXmasDemoState(true); setXmasDemo(true) }}>
+                  {xmasDemo && <SegBg group="seg-demo-xmas" />}
+                  켬
+                </button>
+              </div>
             </div>
 
             <div className="ms-sec">

@@ -40,7 +40,6 @@ export const FIXED_TILES: readonly HomeTile[] = [
 
 /** 6번째 칸으로 고를 수 있는 화면(모두 실제로 있는 주소). to가 ''이면 이용 안내 창을 연다. */
 export const EXTRA_TILES: readonly HomeTile[] = [
-  { id: 'bus', label: '저상버스 도착', icon: 'bus', to: TO.bus },
   { id: 'progress', label: '개선 현황', icon: 'check', to: TO.progress },
   { id: 'verify', label: '이웃 제보 확인', icon: 'user', to: '#/report?section=verify' },
   { id: 'map', label: '동행지도', icon: 'map', to: TO.map },

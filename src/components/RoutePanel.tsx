@@ -785,8 +785,8 @@ export default function RoutePanel(props: Props) {
                   </p>
                   {cw.noCurb.length > 0 && (
                     <ul className="rt-plain">
-                      {cw.noCurb.map((c) => (
-                        <li key={c.item.id}>
+                      {cw.noCurb.map((c, i) => (
+                        <li key={`${c.item.id}-${i}`}>
                           <b>횡! 주의</b> {c.item.name} · 경로에서 {c.distM}m, 보도턱 낮춤이 없어요
                         </li>
                       ))}
@@ -807,8 +807,8 @@ export default function RoutePanel(props: Props) {
               <Sentences as="p" className="bm-meta">이 범위에 등록된 장애인편의시설 자료가 없어요. 자료에 없다는 뜻이고, 시설이 없다고 확인한 건 아니에요.</Sentences>
             ) : (
               <ul className="rt-plain">
-                {result.extras.dest.facilities.slice(0, 6).map((f) => (
-                  <li key={f.item.id}>
+                {result.extras.dest.facilities.slice(0, 6).map((f, i) => (
+                  <li key={`${f.item.id}-${i}`}>
                     {f.matched && <b>이름·주소 일치 </b>}
                     {f.item.name} · {f.distM}m · {String(f.item.fields['faclTyCd'] ?? '')}
                     <br />
@@ -822,8 +822,8 @@ export default function RoutePanel(props: Props) {
             </p>
             {result.extras.dest.toilets.length > 0 && (
               <ul className="rt-plain">
-                {result.extras.dest.toilets.slice(0, 4).map((t) => (
-                  <li key={t.item.id}>
+                {result.extras.dest.toilets.slice(0, 4).map((t, i) => (
+                  <li key={`${t.item.id}-${i}`}>
                     {t.item.name} · {t.distM}m · 장애인용 위생시설 {String(t.item.fields['장애인용위생시설합계'] ?? 0)}개
                   </li>
                 ))}

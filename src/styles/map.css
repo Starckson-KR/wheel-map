@@ -1023,6 +1023,113 @@
   flex: none;
 }
 
+/* ───── 상세 덜어내기(11/23): 낮은 시트(기본)에는 판정 한 줄 → 사진 → 핵심 한두 줄까지. 손잡이를 올리거나 「펼치기」로 82%까지 ───── */
+.bm-detail > * {
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .bm-detail {
+    transition: max-height 200ms var(--ease-out);
+  }
+  :root:not([data-view='desktop']) .bm-detail.bm-low {
+    max-height: 46%;
+  }
+}
+:root[data-view='mobile'] .bm-detail {
+  transition: max-height 200ms var(--ease-out);
+}
+:root[data-view='mobile'] .bm-detail.bm-low {
+  max-height: 46%;
+}
+html.motion-reduce .bm-detail {
+  transition: none !important;
+}
+
+/* 「펼치기·접기」 글자 버튼: 키보드·스크린리더용 대안(닫기 버튼과 겹치지 않게 손잡이 높이만큼만) */
+.bm .bm-detail .sheet-handle-btn {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 var(--s-2);
+  background: transparent;
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+}
+
+.bm-detail h2.bm-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.bm-verdict .bm-badge {
+  flex: none;
+  letter-spacing: 0;
+}
+
+.bm-detail > .bm-shot {
+  margin-bottom: var(--s-3);
+}
+.bm .bm-shot .bm-thumbs .bm-thumb {
+  width: 38%;
+  aspect-ratio: 4 / 3;
+}
+
+.bm-detail > .bm-issue,
+.bm-detail > .rd-desc {
+  margin-bottom: var(--s-2);
+  color: var(--text-strong);
+}
+.bm-detail > .rd-verdict .ps-flag {
+  padding: 2px var(--s-2);
+}
+
+.bm-act > button {
+  width: 100%;
+  min-height: 48px;
+}
+.bm-act > .rf-card {
+  margin-top: var(--s-3);
+}
+
+.bm button.ps-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+}
+.ps-more::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+.ps-more[aria-expanded='true']::after {
+  margin-top: 4px;
+  transform: rotate(-135deg);
+}
+.ps-more-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.ps-more-body > .rf-card {
+  flex: none;
+}
+.ps-more-body > div:not(.rf-card) > strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-strong);
+  font-size: var(--fs-sub);
+}
+.ps-more-body > dl {
+  margin: 0;
+}
+
 /* 처리 흐름(제보 상세 안). 이름이 장소 검색 결과(.ps)와 겹쳐 접힌 카드가 눌려 보이던 문제를 막으려고 따로 둔다 */
 .ps-flow {
   flex: none;
@@ -2486,4 +2593,74 @@ html[data-text='large'] .ms .rf-actions button {
 }
 html.motion-reduce :is(.sc-sum-wrap, .lp-tile-ck, .bm button.lp-tile, .bm button.sc-chip svg, .bm button.lp-reset.lp-reset--center) {
   transition: none;
+}
+
+/* 낮은 시트: 글이 길어도 주 버튼이 첫 화면에 남게 문제 줄은 두 줄까지만(펼치면 전부) */
+.bm-detail.bm-low .bm-issue {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.bm-detail.bm-low .bm-shot .bm-meta {
+  display: none;
+}
+
+/* ───── 지도 남은 항목(11/23) ───── */
+/* 시트·카드의 스크롤 막대는 숨긴다(스크롤은 그대로 된다) */
+:is(.rp, .bm-detail, .ms, .pc, .hm-more, .ps, .hm-legend) {
+  scrollbar-width: none;
+}
+:is(.rp, .bm-detail, .ms, .pc, .hm-more, .ps, .hm-legend)::-webkit-scrollbar {
+  display: none;
+}
+
+/* 편의시설 카드: 항목은 한 줄로 */
+.pc-items {
+  margin: var(--s-2) 0 0;
+  color: var(--text-strong);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+
+/* 제보 위치 고르기: 확인 버튼은 엄지가 닿는 아래쪽에, 띠가 떠 있는 동안 위쪽 검색·칩은 숨긴다 */
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .rf-pick--bottom {
+    top: auto;
+    bottom: 28px; /* 탭 바 위로 솟은 [제보] 원(16px)에 가리지 않게 */
+  }
+  :root:not([data-view='desktop']) .rf-pick--bottom .rf-primary {
+    flex: 1;
+  }
+  :root:not([data-view='desktop']) .hm-top--pick {
+    display: none;
+  }
+}
+:root[data-view='mobile'] .rf-pick--bottom {
+  top: auto;
+  bottom: 28px;
+}
+:root[data-view='mobile'] .rf-pick--bottom .rf-primary {
+  flex: 1;
+}
+:root[data-view='mobile'] .hm-top--pick {
+  display: none;
+}
+
+/* 직접 고르기: 접어 둔 「시민 제보 핀 보기」 줄 */
+.bm button.lp-fold {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: left;
+}
+.bm button.lp-fold[aria-expanded='true'] .lr-chev {
+  transform: rotate(90deg);
 }

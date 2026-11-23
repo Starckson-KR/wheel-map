@@ -23,6 +23,7 @@ export const TO = {
   report: '#/report',
   agency: '#/report?section=agency',
   me: '#/me',
+  meSection: (id: 'ranking' | 'challenge') => `#/me?section=${id}`,
   alerts: '#/alerts',
   benefits: '#/alerts?section=benefits',
   admin: '#/admin',

@@ -53,16 +53,21 @@ function BenefitCard({ b, i, first, showTag }: { b: Benefit; i: number; first: b
   const id = useId()
   return (
     <RiseLi className="bn-card" first={first} i={i}>
-      {showTag && (
-        <div className="bn-tags">
-          <span className={'bn-tag bn-tag-' + b.category}>{categoryLabel(b.category)}</span>
-        </div>
-      )}
-      <h3>{b.title}</h3>
-      <Sentences as="p" className="bn-sum">{b.summary}</Sentences>
-      <button type="button" className="bn-more" aria-expanded={open} aria-controls={id} onClick={() => setOpen((v) => !v)}>
-        {open ? '접기' : '자세히 보기'}
-      </button>
+      {/* 카드 머리(분류·이름·요약) 전체가 눌린다: 이름 버튼의 ::after가 .bn-top을 덮는다 */}
+      <div className="bn-top">
+        {showTag && (
+          <div className="bn-tags">
+            <span className={'bn-tag bn-tag-' + b.category}>{categoryLabel(b.category)}</span>
+          </div>
+        )}
+        <h3>
+          <button type="button" className="bn-tog" aria-expanded={open} aria-controls={id} onClick={() => setOpen((v) => !v)}>
+            {b.title}
+          </button>
+        </h3>
+        <Sentences as="p" className="bn-sum">{b.summary}</Sentences>
+        <span className={'hp-nchev bn-chev' + (open ? ' on' : '')} aria-hidden="true"><Icon name="chev" size={16} /></span>
+      </div>
       <div id={id} className="bn-detail" hidden={!open}>
         <dl className="bn-dl">
           {known(b.target) && <div><dt>대상</dt><dd><TargetText text={b.target} /></dd></div>}

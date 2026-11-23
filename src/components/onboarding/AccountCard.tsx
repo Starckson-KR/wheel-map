@@ -2,6 +2,7 @@
 import '../../styles/onboarding.css'
 import { logOut, useGateAccount } from './accountAdapter'
 import { ONBOARDING_EVENT } from './flow'
+import { installedAsApp, openInstallGuide } from './InstallBanner'
 
 export default function AccountCard() {
   const { user } = useGateAccount()
@@ -17,6 +18,11 @@ export default function AccountCard() {
         <button type="button" className="ob-btn ob-btn-sub" onClick={() => window.dispatchEvent(new Event(ONBOARDING_EVENT))}>
           초기 설정 다시 하기
         </button>
+        {!installedAsApp() && (
+          <button type="button" className="ob-btn ob-btn-sub" onClick={openInstallGuide}>
+            홈 화면에 추가
+          </button>
+        )}
         {user && (
           <button type="button" className="ob-btn ob-btn-sub" onClick={() => void logOut()}>
             로그아웃

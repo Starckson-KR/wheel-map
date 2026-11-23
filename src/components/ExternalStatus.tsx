@@ -2,7 +2,7 @@ import { useCanEdit } from '../lib/account/canEdit'
 import { useState } from 'react'
 import { channelHome } from '../lib/agencyGuide'
 import { findAgencyName } from '../lib/agencyName'
-import { agencyOf, deadlineOf } from '../lib/caseMetrics'
+import { agencyOf } from '../lib/caseMetrics'
 import { EXTERNAL_STAGES, atFromYmd, externalUpdates, hasExternalAnswer, ymdOf } from '../lib/externalStatus'
 import { getMockStatus } from '../lib/mockComplaintApi'
 import { nowMs, useReports, userName } from '../lib/reportStore'
@@ -36,9 +36,6 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
   const officer = userId === 'officer'
   const isMock = c.mode === 'mock'
   const answered = hasExternalAnswer(r)
-  const appDone = r.status === 'resolved' || r.status === 'rechecked'
-  const due = deadlineOf(r, now)
-  const overdue = !!due && now > due.dueMs && !answered && !appDone
   const home = isMock ? null : channelHome(c.channel)
 
   const save = () => {
@@ -69,10 +66,6 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
   return (
     <div className="rf-card ex" aria-label="바깥 처리 상황">
       <strong>바깥 처리 상황</strong>
-      <Sentences as="p" className="bm-meta">{isMock
-          ? '시연용 모의 조회로 불러온 내용이에요. 실제 신문고에서 가져온 것이 아니에요.'
-          : '신문고 같은 앱 밖에서 진행된 처리 상황을 시민이 직접 적어 두는 곳이에요. 앱 안의 처리 상태는 바뀌지 않아요.'}</Sentences>
-
       {list.length === 0 ? (
         <p className="bm-meta">아직 기록이 없어요.</p>
       ) : (
@@ -91,25 +84,17 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
           ))}
         </ol>
       )}
-      {c.external?.lastCheckedAt && <span className="bm-meta">마지막으로 기록한 때: {fmtDay(c.external.lastCheckedAt)}</span>}
-
-      {overdue && (
-        <Sentences as="p" className="ps-flag" role="status">{`⚠ ${isMock ? '처리기한이 지났어요.' : '처리기한이 지났어요. 누리집에서 결과를 확인하고 기록해 주세요.'}`}</Sentences>
-      )}
-
       {answered && r.status !== 'rechecked' && (
         <div className="ex-recheck" role="status">
           {r.status === 'resolved' && !readOnly ? (
             <>
-              <Sentences as="p">답변이 있었어요. 현장이 실제로 고쳐졌는지 재확인을 요청할 수 있어요.</Sentences>
+              <p>답변이 있었어요.</p>
               <button type="button" onClick={goRecheck}>
                 재확인 하러 가기
               </button>
             </>
           ) : (
-            <Sentences as="p">
-              답변이 있었어요. 현장이 실제로 고쳐졌는지 직접 확인해 보세요. 앱 안에서 조치가 완료로 기록되면 이 화면에서 재확인을 요청할 수 있어요.
-            </Sentences>
+            <p>답변이 있었어요.</p>
           )}
         </div>
       )}
@@ -119,8 +104,6 @@ export default function ExternalStatus({ report: r, readOnly = false }: { report
           누리집에서 처리 상황 확인하기
         </a>
       )}
-      {!readOnly && home && <Sentences as="span" className="bm-meta">{`${c.channel} 누리집 첫 화면이 새 창으로 열려요. 거기서 접수번호로 조회해 주세요.`}</Sentences>}
-
       {!readOnly && officer && <Sentences as="p" className="bm-meta">바깥 처리 상황은 시민이 기록해요.</Sentences>}
 
       {!readOnly && canEdit && !officer && isMock && (

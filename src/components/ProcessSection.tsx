@@ -1,14 +1,16 @@
 import { useCanEdit } from '../lib/account/canEdit'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import ReportPhotos from './ReportPhotos'
 import BeforeAfter from './BeforeAfter'
 import { MockBadge } from './ComplaintGuide'
 import ExternalStatus from './ExternalStatus'
 import { resizeImage, savePhoto } from '../lib/photoStore'
-import { STATUS_LABEL, nowMs, useReports, userName } from '../lib/reportStore'
+import { STATUS_LABEL, useReports, userName } from '../lib/reportStore'
 import { findAgencyName } from '../lib/agencyName'
-import { agencyOf, flagsOf, pendingTransfer } from '../lib/caseMetrics'
+import { agencyOf, pendingTransfer } from '../lib/caseMetrics'
 import { listAgencies } from '../lib/agencyGuide'
+import { reportNo } from '../lib/externalStatus'
+import { copyNo } from '../lib/copyNo'
 import type { Report } from '../types'
 import { Sentences } from './Sentences'
 import { fmtDateTime as fmt } from '../lib/format'
@@ -16,7 +18,7 @@ import { fmtDateTime as fmt } from '../lib/format'
 const DAY = 86400000
 
 const STEPS: { label: string; on: (s: Report['status']) => boolean }[] = [
-  { label: '검증 완료', on: (s) => s === 'verified' },
+  { label: '확인 완료', on: (s) => s === 'verified' },
   { label: '접수·기관 배정', on: (s) => s === 'filed' || s === 'assigned' },
   { label: '조치 중', on: (s) => s === 'in_progress' },
   { label: '조치 완료', on: (s) => s === 'resolved' },
@@ -24,7 +26,18 @@ const STEPS: { label: string; on: (s: Report['status']) => boolean }[] = [
 ]
 const ORDER = ['verified', 'filed', 'assigned', 'in_progress', 'resolved', 'rechecked']
 
-export default function ProcessSection({ report: r, readOnlyExternal = false, nameOf = userName }: { report: Report; readOnlyExternal?: boolean; nameOf?: (id: string) => string }) {
+type Props = {
+  report: Report
+  readOnlyExternal?: boolean
+  nameOf?: (id: string) => string
+  /** 「자세히」 안에 함께 접어 둘 내용(제보 상세가 넘긴다) */
+  extra?: ReactNode
+  /** 「자세히」를 처음부터 펼쳐 둔다(행정 화면) */
+  moreOpen?: boolean
+  onMore?: (open: boolean) => void
+}
+
+export default function ProcessSection({ report: r, readOnlyExternal = false, nameOf = userName, extra, moreOpen = false, onMore }: Props) {
   const userId = useReports((s) => s.userId)
   const offset = useReports((s) => s.offsetDays)
   void offset // 시간 앞당기기가 바뀌면 다시 그려진다
@@ -41,6 +54,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false, na
   const requestTransfer = useReports((s) => s.requestTransfer)
   const [toAgency, setToAgency] = useState('')
   const [reason, setReason] = useState('')
+  const [more, setMore] = useState(moreOpen)
 
   const officer = userId === 'officer'
   const canEdit = useCanEdit(r) // 남의 제보는 서버가 바꾸지 않는다
@@ -48,10 +62,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false, na
   const started = ORDER.indexOf(r.status) >= 0
   const act = (res: { ok: boolean; message?: string }) => setMsg(res.ok ? '' : (res.message ?? '처리하지 못했어요.'))
 
-  // 처리기한·장기 미조치 표시(앱 내부 시각 기준)
-  const now = nowMs() // offset 변경 시 다시 그려지도록 offset을 구독한다
-  const flags = flagsOf(r, now)
-  const dueText = c ? `${fmt(new Date(c.submittedAt).getTime() + c.deadlineDays * DAY)}까지 (접수일부터 ${c.deadlineDays}일)` : ''
+  const dueText = c ? `${fmt(new Date(c.submittedAt).getTime() + c.deadlineDays * DAY)}까지` : ''
 
   const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>, set: (b: Blob | null) => void) => {
     const f = e.target.files?.[0]
@@ -90,55 +101,22 @@ export default function ProcessSection({ report: r, readOnlyExternal = false, na
   return (
     <section className="ps-flow" aria-label="처리 흐름">
       {started && (
-        <>
-          <h3>처리 흐름</h3>
-          <ol className="ps-steps">
-            {STEPS.map((s) => (
-              <li key={s.label} className={s.on(r.status) ? 'on' : ''} aria-current={s.on(r.status) ? 'step' : undefined}>
-                {s.label}
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-
-      {c && (
-        <div className="rf-card">
-          <strong>접수 내용</strong>
-          {c.mode === 'mock' && <MockBadge />}
-          <dl className="pc-dl">
-            <div>
-              <dt>채널</dt>
-              <dd>{c.channel}</dd>
-            </div>
-            <div>
-              <dt>접수번호</dt>
-              <dd>{c.receiptNo}</dd>
-            </div>
-            <div>
-              <dt>접수일</dt>
-              <dd>{fmt(c.submittedAt)}</dd>
-            </div>
-            <div>
-              <dt>처리기한</dt>
-              <dd>{dueText}</dd>
-            </div>
-            {c.assignedAgencyId && (
-              <div>
-                <dt>배정 기관</dt>
-                <dd>{findAgencyName(c.assignedAgencyId)}</dd>
-              </div>
-            )}
-          </dl>
-          {flags.map((f) => (
-            <p key={f} className="ps-flag" role="status">
-              ⚠ {f}
-            </p>
+        <ol className="ps-steps">
+          {STEPS.map((s) => (
+            <li key={s.label} className={s.on(r.status) ? 'on' : ''} aria-current={s.on(r.status) ? 'step' : undefined}>
+              {s.label}
+            </li>
           ))}
+        </ol>
+      )}
+      {r.userId === userId && (
+        <div className="rv-no-row">
+          <span className="rv-no">접수번호 {reportNo(r.id)}</span>
+          <button type="button" className="rv-copy" onClick={() => void copyNo(reportNo(r.id))} aria-label="접수번호 복사">
+            복사
+          </button>
         </div>
       )}
-
-      {c && <ExternalStatus report={r} readOnly={readOnlyExternal} />}
 
       {r.action && (
         <div className="rf-card">
@@ -261,10 +239,10 @@ export default function ProcessSection({ report: r, readOnlyExternal = false, na
           ) : (
             <div className="rf-actions">
               <button type="button" className="rf-primary" onClick={() => act(recheck(r.id, true))}>
-                지나갈 수 있어요 (지도에 ○로 바뀌어요)
+                지나갈 수 있어요
               </button>
               <button type="button" onClick={() => act(recheck(r.id, false))}>
-                아직 못 지나가요 (조치 중으로 되돌려요)
+                아직 못 지나가요
               </button>
             </div>
           )}
@@ -276,19 +254,70 @@ export default function ProcessSection({ report: r, readOnlyExternal = false, na
         </Sentences>
       )}
 
-      <div>
-        <strong>처리 기록</strong>
-        <ol className="ps-timeline">
-          {r.history.map((h, i) => (
-            <li key={i} className={h.status}>
-              <span className={'rp-badge rp-' + h.status}>{STATUS_LABEL[h.status]}</span>
-              <span className="bm-meta"> {fmt(h.at)} <span className="ps-by">· {nameOf(h.by)}</span></span>
-              {h.memo && h.memo !== STATUS_LABEL[h.status] && <div>{h.memo}</div>}
-            </li>
-          ))}
-        </ol>
-      </div>
+      <button
+        type="button"
+        className="ps-more"
+        aria-expanded={more}
+        aria-controls="ps-more-body"
+        onClick={() => {
+          setMore(!more)
+          onMore?.(!more)
+        }}
+      >
+        자세히
+      </button>
+      {more && (
+        <div className="ps-more-body" id="ps-more-body">
+          {extra}
+          {c && (
+            <div className="rf-card">
+              <strong>접수 내용</strong>
+              {c.mode === 'mock' && <MockBadge />}
+              <dl className="pc-dl">
+                <div>
+                  <dt>채널</dt>
+                  <dd>{c.channel}</dd>
+                </div>
+                {c.receiptNo && (
+                  <div>
+                    <dt>기관 접수번호</dt>
+                    <dd>{c.receiptNo}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>접수일</dt>
+                  <dd>{fmt(c.submittedAt)}</dd>
+                </div>
+                <div>
+                  <dt>처리기한</dt>
+                  <dd>{dueText}</dd>
+                </div>
+                {c.assignedAgencyId && (
+                  <div>
+                    <dt>배정 기관</dt>
+                    <dd>{findAgencyName(c.assignedAgencyId)}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          )}
 
+          {c && <ExternalStatus report={r} readOnly={readOnlyExternal} />}
+
+          <div>
+            <strong>처리 기록</strong>
+            <ol className="ps-timeline">
+              {r.history.map((h, i) => (
+                <li key={i} className={h.status}>
+                  <span className={'rp-badge rp-' + h.status}>{STATUS_LABEL[h.status]}</span>
+                  <span className="bm-meta"> {fmt(h.at)} <span className="ps-by">· {nameOf(h.by)}</span></span>
+                  {h.memo && h.memo !== STATUS_LABEL[h.status] && <div>{h.memo}</div>}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

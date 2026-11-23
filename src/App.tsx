@@ -56,7 +56,7 @@ export default function App() {
     page === 'verify' ? <SeedVerify /> :
     page === 'admin' ? <AdminPage /> :
     page === 'report' ? <ReportTab query={query} /> :
-    page === 'me' ? <MeTab /> :
+    page === 'me' ? <MeTab query={query} /> :
     page === 'alerts' ? <AlertsTab query={query} /> :
     page === 'home' ? <HomePage /> :
     null

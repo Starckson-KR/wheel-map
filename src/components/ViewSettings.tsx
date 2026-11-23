@@ -94,7 +94,6 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
-                <p className="bm-meta">자동은 기기 화면 크기에 맞춰요. PC는 넓은 화면으로 보여요.</p>
               </div>
               <div className="ms-sec">
                 <h3>화면 색</h3>
@@ -115,7 +114,6 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
-                <p className="bm-meta">시스템은 기기 설정을 따라요. 지도 바탕은 그대로 밝게 보여요.</p>
               </div>
               <div className="ms-sec">
                 <h3>글자 크기</h3>
@@ -136,7 +134,6 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
-                <p className="bm-meta">크게를 고르면 화면의 글자가 커져요.</p>
               </div>
               <div className="ms-sec">
                 <h3>움직임 줄이기</h3>
@@ -148,7 +145,6 @@ export default function ViewSettings({ floating = false, row = false, open: open
                     </button>
                   ))}
                 </div>
-                <p className="bm-meta">켜면 화면이 바뀔 때의 움직이는 효과를 줄여요.</p>
               </div>
               {xmas.season && (
                 <div className="ms-sec">

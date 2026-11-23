@@ -41,7 +41,8 @@ function Line({ row, me }: { row: RankRow; me: boolean }) {
   )
 }
 
-export default function ParticipationRanking() {
+// bare: 내 정보 「내 기여」의 접힌 줄 안에 끼울 때(카드·제목 없이)
+export default function ParticipationRanking({ bare = false }: { bare?: boolean }) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const offsetDays = useReports((s) => s.offsetDays)
@@ -70,8 +71,8 @@ export default function ParticipationRanking() {
   }
 
   return (
-    <section className="pg-card" aria-labelledby="rk-h">
-      <h2 id="rk-h">참여 랭킹</h2>
+    <section className={bare ? 'pg-bare' : 'pg-card'} aria-label="참여 랭킹">
+      {!bare && <h2>참여 랭킹</h2>}
       <div className="rk-seg" role="tablist" aria-label="랭킹 기간">
         {PERIODS.map((p, i) => (
           <button

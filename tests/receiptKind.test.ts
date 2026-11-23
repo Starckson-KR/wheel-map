@@ -17,7 +17,8 @@ test('접수번호 찾기: 앱 번호(R-…)와 기관 접수번호를 둘 다, 
 })
 
 test('장소 유형: 핵심 6개 + 기타 직접 입력, 옛 8개 값은 소관 기관 안내에 그대로 쓰인다', () => {
-  assert.equal(REPORT_LOCATION_CHOICES.length, 7)
+  assert.equal(REPORT_LOCATION_CHOICES.length, 8)
+  assert.ok(REPORT_LOCATION_CHOICES.includes('공사 현장'))
   assert.ok(REPORT_LOCATION_CHOICES.includes(guessLocationKind('쪽문') as never)) // 추정값이 새 목록 안에 있다
   for (const t of ['정류장', '횡단보도', '기관', '보도']) assert.ok(REPORT_LOCATION_CHOICES.includes(guessLocationKind(t) as never))
   assert.ok(REPORT_LOCATION_CHOICES.every((k) => (LOCATION_KINDS as readonly string[]).includes(k)))

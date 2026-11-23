@@ -10,7 +10,7 @@ export const PROGRESS_ORDER: ProgressStage[] = ['intake', 'agency', 'overdue', '
 
 // glyph: 색만으로 구분하지 않도록 지도 핀·범례·칩에 같이 쓰는 글자
 export const PROGRESS_INFO: Record<ProgressStage, { label: string; short: string; glyph: string }> = {
-  intake: { label: '접수·검증 중', short: '접수', glyph: '접' },
+  intake: { label: '접수·확인 중', short: '접수', glyph: '접' },
   agency: { label: '기관 처리 중', short: '처리 중', glyph: '처' },
   overdue: { label: '기한 지남', short: '기한 지남', glyph: '!' },
   done: { label: '조치 완료', short: '조치 완료', glyph: '완' },

@@ -146,40 +146,19 @@
   color: var(--text-strong);
 }
 
-/* 칸마다 면을 깔지 않고 위아래 선과 칸 사이 세로선으로 나눈다 */
-.rw-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.rw-stats div {
-  display: grid;
-  justify-items: center;
-  gap: var(--s-1);
-  padding: var(--s-4) var(--s-1);
-}
-
-.rw-stats div + div {
-  border-left: 1px solid var(--line);
-}
-
-.rw-stats b {
+/* 엠블럼 한 줄(누르면 진열장이 펼쳐진다) */
+.bm button.rw-fold {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  width: 100%;
+  padding: 0 var(--s-1);
+  background: none;
   color: var(--text-strong);
-  font-size: var(--fs-head);
   font-weight: 600;
-}
-
-.rw-stats span {
-  color: var(--text-sub);
-  font-size: var(--fs-caption);
-  text-align: center;
-}
-
-.bm button.rw-link {
-  min-height: 48px;
-  border-radius: var(--r-lg);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
 }
 
 .rw-events {

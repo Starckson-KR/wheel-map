@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
 import { Swap } from './motionKit'
 import { findByReceipt, reportNo } from '../lib/externalStatus'
-import { go, TO } from '../lib/nav'
 import { STATUS_LABEL, useReports } from '../lib/reportStore'
 import type { Report } from '../types'
 import { Sentences } from './Sentences'
@@ -36,7 +35,7 @@ export default function ReceiptLookup({ onOpen }: { onOpen: (id: string) => void
   return (
     <form className="rcpt" onSubmit={search} noValidate>
       <label className="rf-field ob-vh" htmlFor="rl-q">
-        접수번호로 내 제보 찾기
+        접수번호 찾기
       </label>
       <input
         ref={inputRef}
@@ -62,13 +61,6 @@ export default function ReceiptLookup({ onOpen }: { onOpen: (id: string) => void
       <button type="submit" className="pg-wide">
         찾기
       </button>
-      {found && found.length === 0 && (
-        <div className="empty-act">
-          <button type="button" className="pg-wide" onClick={() => go(TO.newReport)}>
-            문제 제보하러 가기
-          </button>
-        </div>
-      )}
       {found && found.length > 1 && (
         <ul className="rp-list" aria-label="찾은 제보">
           {found.map((r) => (

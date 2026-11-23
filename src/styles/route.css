@@ -7,7 +7,7 @@
   display: none;
 }
 
-/* 모바일: 지도가 위쪽에 보이도록 화면의 아래쪽 42%만 쓴다 */
+/* 모바일: 펼친 시트는 화면의 아래쪽 52%. 결과가 나온 직후의 낮은 시트(.rt-low)는 맨 아래 규칙 */
 @media (max-width: 767px) {
   :root:not([data-view='desktop']) .rp.rt {
     inset: auto 0 0 0;
@@ -17,7 +17,8 @@
     box-shadow: var(--shadow-sheet);
   }
 
-  :root:not([data-view='desktop']) .rt > .sheet-handle {
+  :root:not([data-view='desktop']) .rt > .sheet-handle,
+  :root:not([data-view='desktop']) .rt > .rt-grab {
     position: sticky;
     top: 0;
     z-index: 6;
@@ -38,7 +39,8 @@
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     box-shadow: var(--shadow-sheet);
   }
-:root[data-view='mobile'] .rt > .sheet-handle {
+:root[data-view='mobile'] .rt > .sheet-handle,
+:root[data-view='mobile'] .rt > .rt-grab {
     position: sticky;
     top: 0;
     z-index: 6;
@@ -58,19 +60,6 @@
 }
 :root[data-view='mobile'] .rp.rt {
   padding-bottom: calc(var(--tabbar-h) + var(--s-8, 32px));
-}
-
-.rt-head-btns {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bm .rt-head-btns button:not(.bm-close) {
-  min-height: 36px;
-  padding: 0 var(--s-3);
-  border-radius: var(--r-full);
-  font-size: var(--fs-small);
 }
 
 .rt-sec {
@@ -178,6 +167,34 @@
   margin: 0;
 }
 
+/* 출발 칸을 접어 둔 한 줄: 「출발 내 위치 ›」. 누르면 바꾸는 칸이 펼쳐진다 */
+.bm button.rt-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--grey-100);
+  text-align: left;
+}
+.rt-fold-l {
+  flex: none;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.rt-fold strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rt-fold .lr-chev {
+  margin-left: auto;
+}
+
 .rt-row {
   display: flex;
   gap: 8px;
@@ -239,46 +256,6 @@
 }
 
 /* 구간 막대 */
-
-/* 지도 보기로 접었을 때 */
-.rt-mini {
-  position: absolute;
-  left: var(--s-4);
-  right: var(--s-4);
-  bottom: var(--s-4);
-  z-index: 37;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-2);
-  padding: var(--s-3);
-  border-radius: var(--r-xl);
-  background: var(--bg);
-  box-shadow: var(--shadow-2);
-  animation: rise var(--t-sheet) var(--ease-drawer) backwards;
-}
-
-.rt-mini > span {
-  flex: 1 1 160px;
-  padding-left: var(--s-2);
-  color: var(--text-strong);
-  font-size: var(--fs-small);
-  font-weight: 600;
-}
-
-@media (min-width: 768px) {
-  :root:not([data-view='mobile']) .rt-mini {
-    right: auto;
-    width: 392px;
-  }
-}
-
-/*  data-view="desktop" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
-
-:root[data-view='desktop'] .rt-mini {
-    right: auto;
-    width: 392px;
-  }
 
 /* 지도 위 표시 */
 .rt-flag {
@@ -369,21 +346,17 @@
 .rt-m-overpass { background: #00838f; }
 .rt-m-flood { background: #0277bd; }
 
-@media all {
-  html.motion-reduce .rt-mini {
-    animation: none;
-  }
-}
-
 @media (min-width: 768px) {
-  :root:not([data-view='mobile']) .rt > .sheet-handle {
+  :root:not([data-view='mobile']) .rt > .sheet-handle,
+  :root:not([data-view='mobile']) .rt > .rt-grab {
     display: none;
   }
 }
 
 /*  data-view="desktop" 강제 보기용(위 미디어쿼리와 같은 규칙)  */
 
-:root[data-view='desktop'] .rt > .sheet-handle {
+:root[data-view='desktop'] .rt > .sheet-handle,
+:root[data-view='desktop'] .rt > .rt-grab {
     display: none;
   }
 
@@ -785,10 +758,6 @@ details.rt-more > summary {
   display: none;
 }
 
-.bm button.hm-locate.rt-locate.rt-locate-mini {
-  bottom: 96px;
-}
-
 @media (min-width: 768px) {
   :root:not([data-view='mobile']) .bm button.hm-locate.rt-locate {
     top: auto;
@@ -836,31 +805,12 @@ details.rt-more > summary {
   text-decoration: underline;
 }
 
-.rt-avoid {
-  margin: 0;
-  padding: var(--s-3);
-  border-radius: var(--r-lg);
-  background: var(--primary-weak);
-  color: var(--text-strong);
-  font-size: var(--fs-small);
-  line-height: 1.5;
-}
-
 .rt-s-glyph {
   display: inline-block;
   min-width: 1.2em;
   color: var(--primary);
   font-weight: 600;
   text-align: center;
-}
-
-.tl-note.rt-s-avoid {
-  color: var(--primary);
-  font-weight: 600;
-}
-
-.bm button.rf-primary.rt-g-start {
-  width: 100%;
 }
 
 /* 안내 모드 카드(시트 대신 아래에 작게) */
@@ -1158,60 +1108,7 @@ details.rt-more > summary {
   color: inherit;
 }
 
-/* ───── 경로 카드: 옆으로 넘겨 고른다(scroll-snap). 옆 카드가 살짝 보여 넘길 수 있다는 단서가 된다 ───── */
-.rc-rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  margin: 0 calc(-1 * var(--s-4));
-}
-.rc-list.rc-snap {
-  flex-direction: row;
-  gap: var(--s-2);
-  padding: 2px var(--s-4);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding: 0 var(--s-4);
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.rc-list.rc-snap::-webkit-scrollbar {
-  display: none;
-}
-.rc-list.rc-snap > .rc {
-  flex: 0 0 78%;
-  scroll-snap-align: center;
-  scroll-snap-stop: always;
-}
-.rc.off {
-  opacity: 0.6;
-}
-.bm button.rc-btn:disabled {
-  cursor: default;
-}
-.rc-hint {
-  margin: 0;
-  padding: 0 var(--s-4);
-  color: var(--text-sub);
-  font-size: var(--fs-small);
-  font-weight: 400;
-  text-align: center;
-}
-html.motion-reduce .rc-list.rc-snap {
-  scroll-behavior: auto;
-}
-
-/* 경로 카드 아래 「가는 길에 있어요」 */
-.rc-near {
-  padding: 0 var(--s-4) var(--s-4);
-}
-.rc-near h4 {
-  margin: 0 0 var(--s-1);
-  color: var(--text-sub);
-  font-size: var(--fs-small);
-  font-weight: 600;
-}
+/* 「자세히 보기」 안의 「가는 길에 있어요」 */
 .rc-near ul {
   display: flex;
   flex-direction: column;
@@ -1249,4 +1146,237 @@ html.motion-reduce .rc-list.rc-snap {
 .rc-near-s {
   margin-left: auto;
   color: var(--text-sub);
+}
+
+/* ───── 결과 시트: 낮은 시트(기본)와 펼친 시트 ─────
+   낮은 시트는 손잡이 + 요약 한 줄(시간·거리·배지·길 안내 시작) + 돌아가는 까닭 한 줄 + 경로 한 줄 고르기만 보인다.
+   상세 시트(z 38)보다 아래에 두어, 장애요소 상세를 열면 그 밑에 남았다가 닫으면 바로 다시 보인다. */
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .rp.rt.rt-low {
+    height: auto;
+    z-index: 37;
+    /* 탭 바 위로 솟은 [제보] 원(16px)에 한 줄 고르기가 가리지 않을 만큼만 띄운다 */
+    padding-bottom: 20px; /* 시트는 탭 바 위(.bm-main)에서 끝난다 */
+    overflow-y: hidden;
+  }
+
+  :root:not([data-view='desktop']) .rt > .rt-sum {
+    top: 28px;
+  }
+}
+:root[data-view='mobile'] .rt > .rt-sum {
+  top: 28px;
+}
+:root[data-view='mobile'] .rp.rt.rt-low {
+  height: auto;
+  z-index: 37;
+  padding-bottom: 20px; /* 시트는 탭 바 위(.bm-main)에서 끝난다 */
+  overflow-y: hidden;
+}
+
+.bm button.hm-locate.rt-locate.rt-locate-low {
+  z-index: 37;
+}
+
+.rt-top[hidden],
+.rt-pair-sum[hidden] {
+  display: none;
+}
+
+/* 손잡이: 끌거나 눌러서 펼친다. 오른쪽의 「펼치기·접기」 글자 버튼은 키보드·스크린리더용 대안 */
+.rt-grab {
+  margin-bottom: calc(var(--s-4) * -1);
+  cursor: pointer;
+}
+
+.bm .rt .sheet-handle-btn {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 var(--s-2);
+  background: transparent;
+  color: var(--text-sub);
+  font-size: var(--fs-caption);
+}
+
+.rt-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: -10px;
+}
+
+/* 첫 줄: 11분 · 866m [주의] [길 안내 시작] [닫기] */
+.rt-sum {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 40px;
+  background: var(--bg);
+}
+
+.rt-sum-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.rt-sum-main > .tds-badge {
+  flex: none;
+}
+
+.rt-sum-main strong {
+  flex: none;
+  color: var(--text-strong);
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.rt-sum-dist {
+  overflow: hidden;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+}
+
+.bm button.rt-g-start {
+  flex: none;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+/* 둘째 줄: 돌아가는 까닭 한 줄. 누르면 펼쳐지고 이름 목록이 나온다 */
+.rt-why,
+.bm button.rt-why {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 30px;
+  margin: 0;
+  padding: 5px var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--primary-weak);
+  color: var(--text-strong);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  word-break: keep-all;
+}
+
+.rt-why.rt-why-alert,
+.bm button.rt-why.rt-why-alert {
+  background: var(--r-x-soft);
+  color: var(--r-x-text);
+  font-weight: 600;
+}
+
+.rt-why.rt-why-warn,
+.bm button.rt-why.rt-why-warn {
+  background: var(--amber-50);
+  color: var(--amber-700);
+}
+
+.rt-chev {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: -3px 4px 0;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.rt-chev.on {
+  margin-top: 3px;
+  transform: rotate(-135deg);
+}
+
+.rt-why-list {
+  margin: var(--s-1) 0 0;
+  padding: 0 var(--s-3);
+  list-style: none;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+
+/* 경로 한 줄 고르기 */
+.rt-pick {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-md);
+  background: var(--grey-100);
+}
+
+.bm .rt-pick button {
+  flex: 1 1 auto;
+  min-height: 36px;
+  padding: 0 6px;
+  border-radius: calc(var(--r-md) - 2px);
+  background: transparent;
+  color: var(--text-sub);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.bm .rt-pick button.on {
+  background: var(--bg);
+  box-shadow: var(--shadow-1, 0 1px 2px rgb(0 0 0 / 0.12));
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.rt-top > .rc-chips {
+  margin: 0;
+}
+
+/* 단계의 주의 지점 요약 한 줄(누르면 목록) */
+.bm button.tl-more {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: 32px;
+  margin: 2px -8px 0;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--text-strong);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: left;
+  word-break: keep-all;
+}
+
+/* 길 안내 카드: 주 버튼은 「다음」「끝내기」, 나머지는 ⋯ 안에 접는다 */
+.rt-g-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.bm .rt-g-meta button.rt-g-link {
+  min-height: 32px;
+}
+
+.bm .rt-g-btns > button.rt-g-next {
+  flex: 2;
+}
+
+.bm .rt-g-btns > button.rt-g-more {
+  flex: none;
+  width: 44px;
+  padding: 0;
+  font-size: 1.25rem;
 }

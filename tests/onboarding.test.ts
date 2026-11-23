@@ -2,22 +2,22 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  SCREENS, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, mobilityToWheelchair, nameHint, nameOk, parsePreview, parseProfile, startScreen, toBenefitPrefs,
+  DOT_COUNT, SCREENS, afterAuth, authMessage, cleanName, dotIndex, isSkipHash, mobilityToWheelchair, nameHint, nameOk, parsePreview, parseProfile, startScreen, toBenefitPrefs,
 } from '../src/components/onboarding/flow.ts'
 import { GUIDE_SLIDES, clampSlide, homeAfterClose } from '../src/lib/usageGuide.ts'
 import { RESET_KEYS, RESET_VERSION, RESET_VERSION_KEY, resetOnce } from '../src/lib/resetOnce.ts'
 import { effectiveLang, parseLang } from '../src/lib/i18n/index.ts'
 
-test('시작 화면: 로그인 안 됨 → 첫 화면, 로그인만 → 이동 방식, 둘 다 → 앱', () => {
+test('시작 화면: 로그인 안 됨 → 첫 화면, 로그인됨 → 바로 앱', () => {
   assert.equal(startScreen({ loggedIn: false, onboarded: false }), 'welcome')
   assert.equal(startScreen({ loggedIn: false, onboarded: true }), 'welcome')
-  assert.equal(startScreen({ loggedIn: true, onboarded: false }), 'mobility')
+  assert.equal(startScreen({ loggedIn: true, onboarded: false }), null)
   assert.equal(startScreen({ loggedIn: true, onboarded: true }), null)
 })
 
-test('인증 뒤 화면', () => {
-  assert.equal(afterAuth(false), 'mobility')
-  assert.equal(afterAuth(true), null)
+test('인증 뒤에는 설정 화면 없이 바로 앱', () => {
+  assert.equal(afterAuth(), null)
+  assert.ok(!SCREENS.includes('lang' as never) && !SCREENS.includes('choose' as never) && !SCREENS.includes('done' as never))
 })
 
 test('개발·행정 화면은 건너뜀', () => {
@@ -28,16 +28,21 @@ test('개발·행정 화면은 건너뜀', () => {
 })
 
 test('미리보기 해시', () => {
-  assert.deepEqual(parsePreview('#/onboarding-preview?step=done'), { on: true, step: 'done' })
-  assert.deepEqual(parsePreview('#/onboarding-preview?step=nope'), { on: true, step: 'lang' })
+  assert.deepEqual(parsePreview('#/onboarding-preview?step=name'), { on: true, step: 'name' })
+  assert.deepEqual(parsePreview('#/onboarding-preview?step=nope'), { on: true, step: 'name' })
+  // 없앤 화면(언어·계정 유무·완료)을 가리키는 옛 주소는 이름 화면으로
+  assert.deepEqual(parsePreview('#/onboarding-preview?step=done'), { on: true, step: 'name' })
+  assert.deepEqual(parsePreview('#/onboarding-preview?step=lang'), { on: true, step: 'name' })
+  assert.deepEqual(parsePreview('#/onboarding-preview?step=choose'), { on: true, step: 'name' })
   assert.equal(parsePreview('#/map').on, false)
 })
 
 test('진행 점', () => {
-  assert.equal(dotIndex('lang'), 0)
-  assert.equal(dotIndex('confirm'), 1)
-  assert.equal(dotIndex('view'), 4)
-  assert.equal(dotIndex('done'), -1)
+  assert.equal(DOT_COUNT, 3)
+  assert.equal(dotIndex('mobility'), 0)
+  assert.equal(dotIndex('interests'), 1)
+  assert.equal(dotIndex('view'), 2)
+  for (const s of ['name', 'pin', 'confirm'] as const) assert.equal(dotIndex(s), -1)
 })
 
 test('이동 방식 → 맞춤 혜택 설정', () => {

@@ -11,6 +11,7 @@ type Props = {
   lineName?: string // 길찾기에서 탈 노선. 있으면 그 노선을 먼저 보여 준다
   warns?: BoardingWarn[] // 이 정류장의 '버스 타기 불편' 장애요소
   autoLoad?: boolean
+  listClosed?: boolean // 버스 목록을 접어 둔다(지점 상세)
   compact?: boolean // 길찾기 단계 안에 넣는 한 줄 보기(상자·목록 없이 한 줄과 작은 새로 고침)
 }
 
@@ -25,7 +26,7 @@ function Row({ a, mark }: { a: Arrival; mark?: boolean }) {
   )
 }
 
-export default function BusArrivals({ choices, lineName, warns = [], autoLoad = true, compact = false }: Props) {
+export default function BusArrivals({ choices, lineName, warns = [], autoLoad = true, compact = false, listClosed = false }: Props) {
   const [idx, setIdx] = useState(0)
   const [res, setRes] = useState<ArrivalResult | null>(null)
   const [lineLow, setLineLow] = useState<LineLowResult | null>(null)
@@ -180,8 +181,8 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
             })()}
 
           {res.arrivals.length > 0 ? (
-            <details className="bus-more" open={!lineName}>
-              <summary>이 정류장에 오는 버스 {res.arrivals.length}대</summary>
+            <details className="bus-more" open={!lineName && !listClosed}>
+              <summary>{listClosed ? `버스 ${res.arrivals.length}대` : `이 정류장에 오는 버스 ${res.arrivals.length}대`}</summary>
               <ul className="bus-list">
                 {res.arrivals.slice(0, 8).map((a, i) => (
                   <Row key={i} a={a} />

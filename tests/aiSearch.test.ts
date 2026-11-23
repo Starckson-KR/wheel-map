@@ -118,7 +118,7 @@ test('키워드 폴백: 칭호·등수·순위 계열은 my_score, 내 신고 �
 })
 
 test('이동 대상: 순위를 묻는 점수 질문은 랭킹 탭, 나머지는 고정 주소', () => {
-  assert.equal(targetFor('my_score', '몇 등이에요').hash, '#/alerts?tab=ranking')
+  assert.equal(targetFor('my_score', '몇 등이에요').hash, '#/me?section=ranking')
   assert.equal(targetFor('my_score', '내 포인트').hash, '#/me')
   assert.equal(targetFor('report_new').hash, '#/map?go=report')
   assert.equal(targetFor('help').hash, null)

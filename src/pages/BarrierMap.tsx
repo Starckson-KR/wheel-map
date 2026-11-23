@@ -57,7 +57,7 @@ import {
 import { Sentences } from '../components/Sentences'
 import SituationChips from '../components/SituationChips'
 import SheetHandle from '../components/SheetHandle'
-import { BUS_NEAR_M, NEAR_M, applyChips, chipOrder, chipSummary, chipsOf, countNear, nearestM, parseChips, toggleChip, type ChipId, type SummaryCounts } from '../lib/layerPresets'
+import { BUS_NEAR_M, NEAR_M, chipOf, chipOrder, chipSummary, countNear, nearestM, pressChip, type ChipId, type SummaryCounts } from '../lib/layerPresets'
 import { useWeather } from '../lib/weather/store'
 import { toiletAccessible } from '../lib/publicLayers'
 import { Wordmark } from '../components/Wordmark'
@@ -175,13 +175,13 @@ const SNAP_BTN: Record<Snap, { label: string }> = {
   2: { label: '지도 넓게 보기' },
 }
 
-// 길 안내 새 지도 시험판(MapLibre): 안내를 시작할 때 처음 내려받는다(첫 화면 번들에 넣지 않는다). 기본은 꺼짐: 개발 서버이거나 주소에 navmap=gl일 때만.
+// 길 안내 3D 지도(MapLibre): 안내를 시작할 때 처음 내려받는다(첫 화면 번들에 넣지 않는다). 기본 켜짐, 주소에 navmap=off가 있으면 카카오 지도로 안내한다.
 const GuideGlMap = lazy(() => import('../components/GuideGlMap'))
 const XmasBurst = lazy(() => import('../components/XmasBurst'))
 // 「메리 크리스마스」가 켜져 있는지: 길찾기를 열면 이 화면이 새로 만들어지므로(App의 key) 화면 밖에 기억해 둔다. 새로고침하면 꺼진다.
 let merryKept = false
 const XMAS_ROUTE = '#d0342c' // 「메리 크리스마스」 동안의 도보 경로: 흰 테두리 위 빨강 점선(지팡이 사탕 줄무늬)
-const GL_NAV_ON = glNavEnabled(import.meta.env.DEV, location.search, location.hash)
+const GL_NAV_ON = glNavEnabled(location.search, location.hash)
 
 // 지도 아래를 덮는 시트(요약·상세)의 높이(px). 작은 화면에서 지금 보이는 시트 중 윗변이 가장 높은 것 기준. 큰 화면은 왼쪽 패널이라 0.
 function coverOf(mapEl: HTMLElement | null): number {
@@ -326,10 +326,11 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     routePickRef.current = routePick
   }, [routePick])
   // 시트가 가린 아래쪽만큼 여백을 두고 범위를 맞춘다(처음 진입·경로 강조·시트 단계 변경 뒤 다시 맞춤)
-  const fitWithSheet = (map: kakao.maps.Map, bounds: kakao.maps.LatLngBounds, top: number) => {
+  // side·gap: 작은 화면에서 좌우 여백과 시트 위 여백(경로는 깃발·끝점 원이 가장자리에 붙지 않게 더 넓게 준다)
+  const fitWithSheet = (map: kakao.maps.Map, bounds: kakao.maps.LatLngBounds, top: number, side = 40, gap = 24) => {
     const d = isDesktopLayout()
-    const bottom = d ? 60 : Math.max(40, Math.round(Math.min(coverOf(container.current), (container.current?.clientHeight ?? 600) * 0.6)) + 24)
-    map.setBounds(bounds, d ? 60 : Math.max(top, topCoverOf(container.current) + 12), d ? 60 : 40, bottom, d ? 460 : 40)
+    const bottom = d ? 60 : Math.max(40, Math.round(Math.min(coverOf(container.current), (container.current?.clientHeight ?? 600) * 0.6)) + gap)
+    map.setBounds(bounds, d ? 60 : Math.max(top, topCoverOf(container.current) + 12), d ? 60 : side, bottom, d ? 460 : side)
   }
   // 시트 단계가 바뀌고 멈춘 뒤 한 번만: 선택한 핀이 시트·상단에 가려졌을 때만 부드럽게 옮기고, 선택이 없으면 처음 맞춤을 새 여백으로 다시 맞춘다(사용자가 지도를 움직였으면 하지 않는다)
   const revealSelected = () => {
@@ -524,6 +525,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return makeNearRoute(paths, NEAR_ROUTE_M)
   }, [overlay])
   const mapLevel = view?.level ?? 4
+  const routeOn = !!overlay // 길찾기 결과가 떠 있거나 길 안내 중
 
   // 점·선·영역을 ○△X 색으로 그린다. 글자(○△X)도 같이 표시해 색만으로 구분하지 않게 한다.
   // 핀은 줌 단계에 따라 점 → 점+종류 → 이름까지 보여 주고, 화면에서 겹치는 핀은 숫자 묶음으로 합친다.
@@ -591,7 +593,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         else if (pickingRef.current && e?.latLng) setDraftPos({ lat: e.latLng.getLat(), lng: e.latLng.getLng() })
         else select()
       }
-      if (g.kind === 'line') {
+      // 길찾기 중 경로에서 먼 선·영역은 그리지 않는다(핀은 아래에서 뺀다)
+      if (dim && !isSel) {
+        /* 숨김 */
+      } else if (g.kind === 'line') {
         const line = new k.maps.Polyline({
           map,
           path: g.path.map((p) => new k.maps.LatLng(p[0], p[1])),
@@ -968,6 +973,8 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       const info = PUB_LAYERS.find((l) => l.id === g.layer)
       if (!info) continue
       for (const it of g.items) {
+        // 길찾기 결과·길 안내 중에는 상황 칩 점을 숨긴다(고른 점 하나만 남긴다). 경로 근처 화장실·정류장은 경로 딱지가 따로 그린다
+        if (routeOn && !(pubSel?.item.id === it.id && pubSel.layer === g.layer)) continue
         const warn = g.layer === 'crosswalk' && it.fields['보도턱낮춤여부'] === 'N'
         const acc = g.layer === 'voucher' && it.fields['access'] === 'info' // 출입구 정보가 있는 가맹점
         const isSel = pubSel?.item.id === it.id && pubSel.layer === g.layer
@@ -999,7 +1006,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       }
     }
     return () => shapes.forEach((s) => s.setMap(null))
-  }, [ready, pubVisible, pubSel, mapLevel])
+  }, [ready, pubVisible, pubSel, mapLevel, routeOn])
 
   // 길찾기 결과: 경로선(최단=회색 점선, 우회=파란 실선), 출발·도착, 경로상 장애요소 강조, 횡단보도·정류장 표시
   useEffect(() => {
@@ -1081,7 +1088,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     return () => shapes.forEach((x) => x.setMap(null))
   }, [ready, overlay, mapLevel])
 
-  // 출발·도착 표시와 버스 번호 칩: 화면에서 겹치면 위로 비켜 놓고, 너무 멀리서 볼 때는 칩을 숨긴다(칩은 타는 곳에 노선마다 하나).
+  // 출발·도착 표시와 버스 번호 칩: 버스 번호 칩은 화면에서 겹치면 위로 비켜 놓고,너무 멀리서 볼 때는 칩을 숨긴다(칩은 타는 곳에 노선마다 하나).
   useEffect(() => {
     const k = kRef.current
     const map = mapRef.current
@@ -1114,13 +1121,20 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       const q = proj.containerPointFromCoords(new k.maps.LatLng(m.lat, m.lng))
       placed.push({ x: q.x, y: q.y })
     }
+    // 출발·도착 깃발은 끝점 바로 위에 붙인다(정류장 딱지보다 위에 그려지므로 겹쳐도 된다). 깃발끼리 겹칠 때만 한 칸(28px) 올린다
+    const flags: { x: number; y: number }[] = []
     for (const lb of labs) {
       const pt = proj.containerPointFromCoords(new k.maps.LatLng(lb.lat, lb.lng))
       let up = 0
-      for (let i = 0; i < 5; i++) {
-        const y = pt.y - 18 - up
-        if (placed.some((q) => Math.abs(q.x - pt.x) < 62 && Math.abs(q.y - y) < 34)) up += 40
-        else break
+      if (lb.el.classList.contains('rt-flag')) {
+        if (flags.some((q) => Math.abs(q.x - pt.x) < 62 && Math.abs(q.y - (pt.y - 18)) < 28)) up = 28
+        flags.push({ x: pt.x, y: pt.y - 18 - up })
+      } else {
+        for (let i = 0; i < 5; i++) {
+          const y = pt.y - 18 - up
+          if (placed.some((q) => Math.abs(q.x - pt.x) < 62 && Math.abs(q.y - y) < 34)) up += 40
+          else break
+        }
       }
       placed.push({ x: pt.x, y: pt.y - 18 - up })
       shapes.push(new k.maps.CustomOverlay({ position: new k.maps.LatLng(lb.lat, lb.lng), content: lb.el, map, xAnchor: 0.5, yAnchor: 1 + (6 + up) / 24, zIndex: lb.z }))
@@ -1165,10 +1179,23 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
       if (overlay.guide) return // 안내 모드에서는 지금 단계로 맞춘다(아래 효과)
       const b = new k.maps.LatLngBounds()
       for (const p of [...(overlay.base ?? []), ...(overlay.detour ?? []), ...(overlay.legs ?? []).flatMap((l) => l.coords)]) b.extend(new k.maps.LatLng(p[0], p[1]))
+      // 시트·탭 바에 가리지 않는 영역에 경로를 맞춘다. 위는 끝점 위에 서는 깃발(약 40px)까지 들어오게 넉넉히 둔다
+      const key = overlay.fitKey
+      const fit = () => fitWithSheet(map, b, 104, 56, 44)
+      let cover = -1
+      let at: kakao.maps.LatLng | null = null
       setTimeout(() => {
         map.relayout()
-        fitWithSheet(map, b, 70) // 위 검색줄·헤더와 아래 시트가 가린 만큼 여백을 둔다
+        cover = coverOf(container.current)
+        fit()
+        at = map.getCenter()
       }, 100)
+      // 시트가 낮은 시트로 줄어든 뒤라면 한 번 더 맞춘다(그 사이 지도를 직접 움직였으면 두지 않는다)
+      setTimeout(() => {
+        const c = map.getCenter()
+        if (lastFit.current !== key || !at || c.getLat() !== at.getLat() || c.getLng() !== at.getLng()) return
+        if (Math.abs(coverOf(container.current) - cover) >= 8) fit()
+      }, 450)
     } else if (overlay.focus) {
       const h = overlay.hits.find((x) => x.o.id === overlay.focus)
       if (h) map.panTo(new k.maps.LatLng(h.anchor[0], h.anchor[1]))
@@ -1490,52 +1517,33 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const restCats = CATEGORY_ORDER.filter((c) => c !== 'hard' && c !== 'boarding' && c !== 'caution' && c !== 'zone' && hereCount(c) > 0)
   // 상황 칩: 지금 켜진 레이어가 어떤 칩의 묶음과 같으면 그 칩이 골라진 것으로 보인다. 날씨가 비·눈이면 「비 오는 날」이 맨 앞.
   const weather = useWeather()
-  // 칩은 여러 개 고를 수 있다. 고른 순서는 따로 저장해 두고, 켜진 레이어와 맞을 때만 쓴다(직접 바꾸면 저절로 풀린다)
-  const [chipHint, setChipHint] = useState<ChipId[]>(() => {
-    try {
-      return parseChips(localStorage.getItem('wheelmap.chips'))
-    } catch {
-      return []
-    }
-  })
-  const picked = useMemo(() => chipsOf(layers, chipHint), [layers, chipHint])
+  // 칩은 한 번에 하나만 켜진다(다른 칩을 누르면 바뀌고, 같은 칩을 다시 누르면 꺼진다)
+  const picked = useMemo(() => chipOf(layers), [layers])
   const chips = useMemo(() => chipOrder(weather), [weather])
   const pickChip = (id: ChipId) => {
     setPubSel(null)
-    const sel = toggleChip(picked, id)
-    setChipHint(sel)
-    try {
-      localStorage.setItem('wheelmap.chips', JSON.stringify(sel))
-    } catch {
-      /* 저장소를 못 써도 이번 방문에는 동작 */
-    }
     setLayers((prev) => {
-      const n = applyChips(sel, prev)
+      const n = pressChip(id, prev)
       saveLayers(n)
       return n
     })
   }
-  // 요약 한 줄의 숫자: 지도 가운데 기준으로 센다(화장실 거리는 내 위치를 알 때만)
+  // 요약 한 줄의 숫자: 지도 가운데 기준으로 센다. 화장실만 지도에 그린 점을 그대로 센다(거리는 내 위치를 알 때만)
   const chipSum = useMemo(() => {
-    // 요약 한 줄은 가장 나중에 고른 칩 가운데 숫자가 있는 것 하나
-    if (picked.length === 0 || !view) return null
+    if (!picked || !chips.includes(picked) || !view || routeOn) return null // 길찾기 중에는 점을 숨기므로 숫자도 내지 않는다
     const c = { lat: (view.b[0] + view.b[2]) / 2, lng: (view.b[1] + view.b[3]) / 2 }
     const toilets = pubData.toilet?.items.filter(toiletAccessible)
+    const toiletDots = pubVisible.find((x) => x.layer === 'toilet')?.items.length
     const counts: SummaryCounts = {
       bus: pubData.bus && countNear(pubData.bus.items, c, BUS_NEAR_M),
-      toilet: toilets && countNear(toilets, c, NEAR_M),
+      toilet: toiletDots || undefined, // 그린 점이 없으면(너무 넓게 봄·화면 안에 없음) 숫자를 내지 않는다
       toiletM: toilets && myPos ? nearestM(toilets, myPos) : null,
       flood: pubData.flood && countNear(pubData.flood.items, c, NEAR_M),
       schoolZone: pubData.schoolZone && countNear(pubData.schoolZone.items, c, NEAR_M),
       shade: pubData.shade && countNear(pubData.shade.items, c, NEAR_M),
     }
-    for (const id of [...picked].reverse()) {
-      if (!chips.includes(id)) continue
-      const sum = chipSummary(id, counts)
-      if (sum) return sum
-    }
-    return null
-  }, [picked, chips, view, pubData, myPos])
+    return chipSummary(picked, counts)
+  }, [picked, chips, view, pubData, pubVisible, myPos, routeOn])
 
   const overlayOpen = flowOpen || panelOpen || routeOpen || picking || !!routePick || progressMode
   const behind = !!(selectedId || selectedReportId || pubSel)
@@ -1803,6 +1811,12 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           <Suspense fallback={null}>
             <GuideGlMap
               path={glPath}
+              legs={overlay.legs}
+              hits={overlay.hits}
+              markers={overlay.markers}
+              start={overlay.start}
+              end={overlay.end}
+              focus={overlay.focus}
               guide={overlay.guide}
               me={myPos}
               headingRef={headingRef}
@@ -1822,7 +1836,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         )}
 
         <div className="hm-panel">
-        <header className={'hm-top' + (routeOpen || behind ? ' hm-top--route' : '') + (searchOpen ? ' hm-top--search' : '') + (progressMode ? '' : ' hm-top--chips')}>
+        <header className={'hm-top' + (routeOpen || behind ? ' hm-top--route' : '') + (searchOpen ? ' hm-top--search' : '') + (progressMode ? '' : ' hm-top--chips') + (picking ? ' hm-top--pick' : '')}>
           <div className="hm-card">
             <div className="hm-bar hm-bar--desk">
               <h1 className="hm-brand">
@@ -1913,10 +1927,10 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
                 </i>
                 {PUB_MEANING[l.id] ? (
                   <button type="button" className="hm-term" aria-expanded={legendTerm === l.id} aria-label={`${l.label} 뜻 보기`} onClick={() => setLegendTerm((t) => (t === l.id ? null : l.id))}>
-                    {l.label} (참고)
+                    {l.label}
                   </button>
                 ) : (
-                  <>{l.label} (참고)</>
+                  <>{l.label}</>
                 )}
               </li>
             ))}
@@ -2082,7 +2096,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
 
         {picking && <CenterPin lifted={pinLifted} landed={pinLanded} />}
         {picking && (
-          <div className="rf-pick" role="status">
+          <div className="rf-pick rf-pick--bottom" role="status">
             <Sentences as="span">지도를 끌어 핀을 맞추거나, 눌러서 정해 주세요.</Sentences>
             <button
               type="button"
@@ -2116,7 +2130,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
           />
         )}
 
-        {/* 새 지도(MapLibre)는 왼쪽 아래에 자체 출처(OpenStreetMap 포함)를 표시하므로 겹치지 않게 숨긴다 */}
+        {/* 3D 지도(MapLibre)는 왼쪽 아래에 자체 출처(OpenStreetMap 포함)를 표시하므로 겹치지 않게 숨긴다 */}
         {routeOpen && overlay?.osm && !glOn && (
           <a className="rt-osm-corner" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
             길 자료 © OpenStreetMap contributors

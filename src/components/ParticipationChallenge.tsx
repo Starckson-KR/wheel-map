@@ -15,7 +15,7 @@ const SHOW_WAITING = 3
 const TEXT: Record<ChallengeId, { title: string; desc: string }> = {
   infoGap: { title: '정보가 부족한 곳 살펴보기', desc: '평가가 없는 곳 근처에서 새 제보를 남겨요.' },
   recheck: { title: '개선 여부 확인하기', desc: '조치가 끝났다는 곳에서 지금은 지나갈 수 있는지 확인해 주세요.' },
-  newReport: { title: '새 장애요인 알리기', desc: '길에서 만난 불편을 알려요.' },
+  newReport: { title: '불편한 곳 알리기', desc: '길에서 만난 불편을 알려요.' },
 }
 
 function placeOf(r: Report): string {
@@ -40,7 +40,8 @@ function Row({ c, children }: { c: Challenge; children?: React.ReactNode }) {
   )
 }
 
-export default function ParticipationChallenge() {
+// bare: 내 정보 「내 기여」의 접힌 줄 안에 끼울 때(카드·제목 없이)
+export default function ParticipationChallenge({ bare = false }: { bare?: boolean }) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const offsetDays = useReports((s) => s.offsetDays)
@@ -54,8 +55,8 @@ export default function ParticipationChallenge() {
   const get = (id: ChallengeId) => week.items.find((x) => x.id === id) as Challenge
 
   return (
-    <section className="pg-card" aria-labelledby="ch-h">
-      <h2 id="ch-h">이번 주 챌린지</h2>
+    <section className={bare ? 'pg-bare' : 'pg-card'} aria-label="이번 주 챌린지">
+      {!bare && <h2>이번 주 챌린지</h2>}
       <p className="bm-meta">{week.range.label}</p>
       <ul className="ch-list">
         <Row c={get('infoGap')}>
@@ -81,7 +82,7 @@ export default function ParticipationChallenge() {
           )}
         </Row>
         <Row c={get('newReport')}>
-          <button type="button" className="ch-go" onClick={() => go(TO.newReport)}>문제 제보하기</button>
+          <button type="button" className="ch-go" onClick={() => go(TO.newReport)}>제보하기</button>
         </Row>
       </ul>
     </section>

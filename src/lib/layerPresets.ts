@@ -9,11 +9,11 @@ export type LayerKey = 'team' | PubLayerId
 
 export type ChipInfo = { id: ChipId; label: string; icon: string; on: LayerKey[] }
 
-// docs/레이어_활용_시안.md 2장 표 그대로
+// docs/레이어_활용_시안.md 2장 표. 「화장실 찾기」만 장애인화장실 하나로 줄였다(11/23: 안내 숫자와 지도 점이 같은 것을 세게)
 export const CHIPS: Record<ChipId, ChipInfo> = {
   walk: { id: 'walk', label: '길 가기', icon: 'walk', on: ['team', 'overpass', 'toilet'] },
   bus: { id: 'bus', label: '버스 타기', icon: 'bus', on: ['bus', 'team'] },
-  toilet: { id: 'toilet', label: '화장실 찾기', icon: 'toilet', on: ['toilet', 'facility'] },
+  toilet: { id: 'toilet', label: '화장실 찾기', icon: 'toilet', on: ['toilet'] },
   rain: { id: 'rain', label: '비 오는 날', icon: 'rain', on: ['flood', 'bus', 'team'] },
   child: { id: 'child', label: '아이와 함께', icon: 'child', on: ['schoolZone', 'yellow', 'overpass', 'parkingZone'] },
   hot: { id: 'hot', label: '더운 날', icon: 'sun', on: ['shade', 'airSignal', 'toilet'] },
@@ -40,48 +40,13 @@ export function chipOf(layers: LayerState): ChipId | null {
   return null
 }
 
-// ───── 칩 여러 개 고르기 ─────
-/** 고른 칩들의 레이어를 합쳐서 켠다(합집합). 장애인화장실이 하나라도 들어 있으면 장애인용만 보기를 켠다. 가맹점 보기 설정은 건드리지 않는다. */
-export function applyChips(ids: readonly ChipId[], prev: LayerState): LayerState {
+// ───── 칩은 한 번에 하나 ─────
+/** 칩을 눌렀을 때 다음 레이어. 다른 칩이면 그 칩으로 바뀌고, 켜진 칩을 다시 누르면 꺼져서 장애요소(○△X)만 남는다. */
+export function pressChip(id: ChipId, prev: LayerState): LayerState {
+  if (chipOf(prev) !== id) return applyChip(id, prev)
   const next = { ...prev }
-  const on = new Set<LayerKey>(ids.flatMap((id) => CHIPS[id].on))
-  for (const k of LAYER_KEYS) next[k] = on.has(k)
-  if (on.has('toilet')) next.toiletAccessibleOnly = true
+  for (const k of LAYER_KEYS) next[k] = k === 'team'
   return next
-}
-
-const sameLayers = (ids: readonly ChipId[], layers: LayerState) => {
-  const on = new Set<LayerKey>(ids.flatMap((id) => CHIPS[id].on))
-  return LAYER_KEYS.every((k) => layers[k] === on.has(k))
-}
-
-/** 지금 골라진 칩들. 저장해 둔 고른 순서(hint)가 켜진 레이어와 맞으면 그대로, 아니면(직접 바꿨거나 옛 한 개짜리 값) 묶음이 똑같은 칩 하나, 그것도 없으면 빈 목록 */
-export function chipsOf(layers: LayerState, hint: readonly ChipId[] = []): ChipId[] {
-  if (hint.length > 0 && sameLayers(hint, layers)) return [...hint]
-  const one = chipOf(layers)
-  return one ? [one] : []
-}
-
-/** 칩을 눌렀을 때 다음 선택. 이미 골랐으면 그 칩만 빼고, 마지막 하나를 빼면 기본(길 가기)으로 돌아간다 */
-export function toggleChip(sel: readonly ChipId[], id: ChipId): ChipId[] {
-  if (!sel.includes(id)) return [...sel, id]
-  const rest = sel.filter((x) => x !== id)
-  return rest.length > 0 ? rest : ['walk']
-}
-
-/** 저장해 둔 칩 목록 읽기: 배열이 아니거나 모르는 이름이 섞여 있으면 걸러 낸다. 한 개짜리 옛 값(문자열 하나)도 읽는다 */
-export function parseChips(raw: string | null): ChipId[] {
-  if (!raw) return []
-  let v: unknown = raw
-  try {
-    v = JSON.parse(raw)
-  } catch {
-    /* 따옴표 없는 옛 한 개짜리 값 */
-  }
-  const list = Array.isArray(v) ? v : [v]
-  const out: ChipId[] = []
-  for (const x of list) if (typeof x === 'string' && x in CHIPS && !out.includes(x as ChipId)) out.push(x as ChipId)
-  return out
 }
 
 export const isHot = (w: WeatherNow | null) => !!w && !isWet(w) && w.tempC >= HIGH_TEMP_C
@@ -136,7 +101,7 @@ export function chipSummary(id: ChipId, c: SummaryCounts): Summary | null {
   if (id === 'bus' && c.bus != null) return { icon: 'bus', color: '#1e6fb5', before: '가까운 정류장 ', strong: `${n(c.bus)}곳`, after: '을 보여 드려요' }
   if (id === 'toilet') {
     if (c.toiletM != null) return { icon: 'toilet', color: '#5e35b1', before: '가장 가까운 장애인화장실까지 ', strong: distText(c.toiletM), after: '' }
-    if (c.toilet != null) return { icon: 'toilet', color: '#5e35b1', before: '가까운 장애인화장실 ', strong: `${n(c.toilet)}곳`, after: '을 보여 드려요' }
+    if (c.toilet != null) return { icon: 'toilet', color: '#5e35b1', before: '이 화면에 장애인화장실 ', strong: `${n(c.toilet)}곳`, after: '' }
   }
   // 정류장에 지붕이 있는지는 자료에 없다. 「가까운 정류장」이라고만 쓴다.
   if (id === 'rain' && c.flood != null) return { icon: 'drop', color: '#0277bd', before: '물이 찼던 곳 ', strong: `${n(c.flood)}곳`, after: '과 가까운 정류장을 보여 드려요' }

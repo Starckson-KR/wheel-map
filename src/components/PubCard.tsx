@@ -5,7 +5,8 @@ import type { VoucherFields } from '../lib/vouchers'
 import { facilityTitle, usableName } from '../lib/facilityName'
 import { facilityLabel, membersOf } from '../lib/facilityGroups'
 
-const BUKGU_LAYERS: PubLayerId[] = ['overpass', 'welfare', 'yellow', 'flood', 'shade', 'airSignal', 'schoolZone', 'parkingZone']
+/** 편의시설 항목을 한 줄로: 쉼표로 적힌 자료를 가운뎃점으로 잇고, 두 번 적힌 항목은 한 번만 */
+const dots = (v: unknown) => (typeof v === 'string' ? [...new Set(v.split(',').map((x) => x.trim()).filter(Boolean))].join(' · ') : '')
 
 type Props = { layer: PubLayerId; item: PubItem; dataset: PubDataset; onClose: () => void }
 
@@ -31,11 +32,7 @@ function rows(layer: PubLayerId, it: PubItem): [string, string][] {
     ]
   }
   if (layer === 'facility') {
-    return [
-      ['시설 유형', String(f['faclTyCd'] ?? '정보 없음')],
-      ['영업 상태', String(f['salStaNm'] ?? '정보 없음')],
-      ['편의시설 항목', typeof f['evalInfo'] === 'string' && f['evalInfo'] ? f['evalInfo'] : '자료에 아직 없음(상세 미조회)'],
-    ]
+    return [['시설 유형', String(f['faclTyCd'] ?? '정보 없음')]]
   }
   if (layer === 'voucher') {
     const v = f as unknown as VoucherFields
@@ -135,7 +132,7 @@ export default function PubCard({ layer, item, onClose }: Props) {
           {membersOf(item).map((m) => (
             <li key={m.key}>
               <strong>{facilityTitle({ name: m.name, address: m.address, fields: m.fields })}</strong>
-              <span>{m.evalInfo || '정보 없음'}</span>
+              <span>{dots(m.evalInfo) || '정보 없음'}</span>
             </li>
           ))}
         </ul>
@@ -149,7 +146,7 @@ export default function PubCard({ layer, item, onClose }: Props) {
         ))}
       </dl>
       )}
-      {BUKGU_LAYERS.includes(layer) ? null : <p className="bm-meta">공공데이터라서 실제로 지나갈 수 있는지를 판정한 건 아니에요.</p>}
+      {layer === 'facility' && membersOf(item).length <= 1 && dots(item.fields['evalInfo']) && <p className="pc-items">{dots(item.fields['evalInfo'])}</p>}
       {layer === 'voucher' && <p className="bm-meta">방문 전에 가맹 여부를 확인해 주세요.</p>}
     </aside>
   )

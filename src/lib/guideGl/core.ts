@@ -5,15 +5,27 @@ import type { Pt } from '../routing/engine.ts'
 export const GL_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
 
 /**
- * 시험판을 켤지: 개발 서버이거나 주소에 navmap=gl이 있을 때만(navmap=off면 개발 서버에서도 끈다).
- * 주소는 해시 라우터라 ?navmap=gl이 해시 안에 있을 수도 있어 둘 다 본다.
+ * 길 안내에 3D 지도를 쓸지: 기본 켜짐, 주소에 navmap=off가 있을 때만 카카오 지도로 안내한다(발표 중 문제가 생기면 끄는 길).
+ * 주소는 해시 라우터라 ?navmap=off가 해시 안에 있을 수도 있어 둘 다 본다.
  */
-export function glNavEnabled(dev: boolean, search: string, hash: string): boolean {
+export function glNavEnabled(search: string, hash: string): boolean {
   const q = new URLSearchParams(search)
   const hq = hash.includes('?') ? new URLSearchParams(hash.slice(hash.indexOf('?') + 1)) : new URLSearchParams()
-  const v = q.get('navmap') ?? hq.get('navmap')
-  if (v === 'off') return false
-  return dev || v === 'gl'
+  return (q.get('navmap') ?? hq.get('navmap')) !== 'off'
+}
+
+/**
+ * 경로선 그림 자료: 구간(legs)이 있으면 구간마다 한 줄(색은 colorOf), 없으면 전체 경로 한 줄.
+ * 걷는 구간과 버스 구간이 다른 색으로 그려진다(카카오 지도의 길 안내와 같다).
+ */
+export function routeCollection(
+  path: Pt[],
+  legs: { coords: Pt[]; kind: 'walk' | 'bus'; route?: string }[] | undefined,
+  colorOf: (leg: { kind: 'walk' | 'bus'; route?: string }) => string,
+) {
+  const feat = (pts: Pt[], color: string) => ({ type: 'Feature' as const, properties: { color }, geometry: { type: 'LineString' as const, coordinates: pts.map(toLngLat) } })
+  const list = legs?.filter((l) => l.coords.length >= 2) ?? []
+  return { type: 'FeatureCollection' as const, features: list.length ? list.map((l) => feat(l.coords, colorOf(l))) : [feat(path, colorOf({ kind: 'walk' }))] }
 }
 
 type Layer = { id?: string; type?: string; layout?: Record<string, unknown> }

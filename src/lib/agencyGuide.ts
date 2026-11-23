@@ -36,10 +36,9 @@ export const LOCATION_KINDS = [
 ] as const
 export type LocationKind = (typeof LOCATION_KINDS)[number]
 
-// 새 제보의 「어떤 곳인가요?」에 보이는 핵심 장소 7개 + 「기타(직접 입력)」.
+// 새 제보의 「어떤 곳인가요?」에 보이는 핵심 장소 8개 + 「기타(직접 입력)」.
 // LOCATION_KINDS(옛 8개)는 저장된 제보·시연 데이터·소관 기관 찾기를 위해 그대로 둔다(저장값은 바꾸지 않는다).
-// 「공사 현장」으로 올라온 옛 제보도 findAgencies가 그대로 알아본다.
-export const REPORT_LOCATION_CHOICES = ['구·시 도로의 보도', '버스정류장', '횡단보도·신호', '공공건물 출입', '민간 건물 출입', '대학 캠퍼스 내부', '공원'] as const
+export const REPORT_LOCATION_CHOICES = ['구·시 도로의 보도', '버스정류장', '횡단보도·신호', '공공건물 출입', '민간 건물 출입', '대학 캠퍼스 내부', '공원', '공사 현장'] as const
 export const OTHER_KIND = '기타'
 export const OTHER_KIND_MAX = 30
 // 기타는 「기타: 입력한 글」로 저장한다. 어느 기관 소관인지는 지어내지 않는다(findAgencies에 걸리지 않아 「소관 기관을 찾지 못했어요」로 안내된다).
@@ -76,7 +75,28 @@ export function findAgencies(type: string, kind: string): AgencyMatch[] {
   return out.sort((x, y) => rank(x) - rank(y))
 }
 
-export type ChannelLink = { label: string; url?: string; text?: string }
+// tel·sms는 화면에 보이는 하이픈 번호. 링크용 숫자는 telHref()로 만든다.
+export type ChannelLink = { label: string; url?: string; text?: string; tel?: string; sms?: string }
+
+export const telHref = (num: string, scheme: 'tel' | 'sms' = 'tel') => `${scheme}:${num.replace(/\D/g, '')}`
+
+// 공식 누리집에서 확인한 번호(2026-11-23)만 눌러서 걸 수 있게 한다. 이 밖의 번호는 글자 그대로 둔다.
+const PHONES = { safety: '1600-7395', epeople: '110', c120: '062-120', bukgu: '062-410-8000', bukguText: '010-4107-8572' }
+
+// 전화번호 문구를 걸 수 있는 번호(PHONES)와 그 밖의 글자로 나눈다.
+export type PhonePart = { text: string; tel?: string }
+export function phoneParts(text: string): PhonePart[] {
+  const re = new RegExp(String.raw`(?<![\d-])(${[PHONES.safety, PHONES.c120, PHONES.bukgu].join('|')})(?![\d-])`, 'g')
+  const out: PhonePart[] = []
+  let last = 0
+  for (const m of text.matchAll(re)) {
+    if (m.index > last) out.push({ text: text.slice(last, m.index) })
+    out.push({ text: m[1], tel: m[1] })
+    last = m.index + m[1].length
+  }
+  if (last < text.length) out.push({ text: text.slice(last) })
+  return out
+}
 
 const URLS = {
   safety: 'https://www.safetyreport.go.kr/#safereport/safereport',
@@ -96,16 +116,16 @@ export function channelLinks(agencies: Agency[], nowMs: number): ChannelLink[] {
     if (!out.some((o) => o.label === l.label)) out.push(l)
   }
   for (const c of names) {
-    if (c.startsWith('안전신문고')) push({ label: '안전신문고', url: URLS.safety })
-    else if (c.startsWith('국민신문고')) push({ label: '국민신문고', url: URLS.epeople })
-    else if (c.startsWith('120')) push({ label: '120 빛고을콜센터', url: URLS.c120 })
+    if (c.startsWith('안전신문고')) push({ label: '안전신문고', url: URLS.safety, tel: PHONES.safety })
+    else if (c.startsWith('국민신문고')) push({ label: '국민신문고', url: URLS.epeople, tel: PHONES.epeople })
+    else if (c.startsWith('120')) push({ label: '120 빛고을콜센터', url: URLS.c120, tel: PHONES.c120 })
     else if (c.startsWith('북구 주민생활불편신고')) {
       if (afterCutover) {
         const info = CHANNELS.find((a) => a.id === 'channel-bukgu-inconvenience')
-        push({ label: '국민신문고', url: URLS.epeople })
-        push({ label: '북구청장 바로문자 365·생활불편신고 콜센터', text: info ? info.channel.slice(1).join(' / ') : '확인 필요' })
+        push({ label: '국민신문고', url: URLS.epeople, tel: PHONES.epeople })
+        push({ label: '북구청장 바로문자 365·생활불편신고 콜센터', sms: PHONES.bukguText, text: info ? info.channel.slice(1).join(' / ') : '확인 필요' })
       } else push({ label: '북구 주민생활불편신고(2026-10-31 종료)', url: URLS.bukguOld })
-    } else if (c.startsWith('북구청 누리집')) push({ label: '북구청 누리집 민원', url: URLS.bukguCivil })
+    } else if (c.startsWith('북구청 누리집')) push({ label: '북구청 누리집 민원', url: URLS.bukguCivil, tel: PHONES.bukgu })
     else if (c.startsWith('TODO')) push({ label: '접수 창구', text: '확인 필요' })
     else push({ label: c, text: '직접 요청 또는 해당 기관 안내를 따릅니다.' })
   }

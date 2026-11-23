@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { channelLinks, deadlineFor, findAgencies, hasTodoLaw, legalLines } from '../lib/agencyGuide'
+import { channelLinks, deadlineFor, findAgencies, hasTodoLaw, legalLines, phoneParts, telHref, type ChannelLink } from '../lib/agencyGuide'
 import { buildComplaintText, criteriaFor, relatedInfo } from '../lib/complaintText'
 import { loadKakao, reverseGeocode } from '../lib/kakao'
 import { submitMockComplaint } from '../lib/mockComplaintApi'
@@ -87,7 +87,7 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
 
   const submitLink = () => {
     if (!receipt.trim()) {
-      setErr('접수하고 받은 접수번호를 적어 주세요.')
+      setErr('접수번호를 적어 주세요.')
       return
     }
     const res = fileComplaint(r.id, { channel: chosen, receiptNo: receipt.trim(), submittedAt: new Date(nowMs()).toISOString(), mode: 'link', agencyIds, deadlineDays: deadline.days })
@@ -148,7 +148,20 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
             </ul>
           )}
           {hasTodoLaw(m.agency) && <div className="bm-meta">근거 조문 일부는 확인이 필요해요.</div>}
-          {m.agency.phone && <div className="bm-meta">전화: {m.agency.phone}</div>}
+          {m.agency.phone && (
+            <div className="bm-meta">
+              전화:{' '}
+              {phoneParts(m.agency.phone).map((p, i) =>
+                p.tel ? (
+                  <a key={i} className="cg-tel inline" href={telHref(p.tel)} aria-label={`${m.agency.name}에 전화 걸기 ${p.tel}`}>
+                    ☎ {p.text}
+                  </a>
+                ) : (
+                  <span key={i}>{p.text}</span>
+                ),
+              )}
+            </div>
+          )}
           {m.candidate && (
             <details className="cg-note">
               <summary>후보인 이유 (조사 메모)</summary>
@@ -178,17 +191,20 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
 
       <h4>접수 채널</h4>
       <div className="cg-links">
-        {channels.map((c) =>
-          c.url ? (
-            <a key={c.label} className="rf-btn" href={c.url} target="_blank" rel="noopener noreferrer">
-              {c.label} 열기
-            </a>
-          ) : (
-            <span key={c.label} className="cg-textch">
-              {c.label}: {c.text}
-            </span>
-          ),
-        )}
+        {channels.map((c) => (
+          <div key={c.label} className="cg-ch">
+            {c.url ? (
+              <a className="rf-btn" href={c.url} target="_blank" rel="noopener noreferrer">
+                {c.label} 열기
+              </a>
+            ) : (
+              <span className="cg-textch">
+                {c.label}: {c.text}
+              </span>
+            )}
+            <ChannelCall c={c} />
+          </div>
+        ))}
       </div>
       <Sentences as="p" className="bm-meta">외부 사이트는 새 탭에서 열려요. 두 신문고 모두 본인 인증이 필요해서 앱이 대신 제출할 수는 없어요.</Sentences>
 
@@ -220,7 +236,6 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
       </label>
       {mode === 'link' ? (
         <>
-          <p className="bm-meta">위 채널에서 접수하고 받은 접수번호를 적어 주세요.</p>
           <label className="rf-field">
             접수번호
             <input type="text" value={receipt} onChange={(e) => setReceipt(e.target.value)} placeholder="접수하고 받은 번호" autoComplete="off" />
@@ -249,5 +264,24 @@ export default function ComplaintGuide({ report: r, seeds }: Props) {
         </>
       )}
     </section>
+  )
+}
+
+// 접수 창구 버튼 아래 한 줄: 누르면 바로 전화(또는 문자 작성)가 열린다.
+function ChannelCall({ c }: { c: ChannelLink }) {
+  if (!c.tel && !c.sms) return null
+  return (
+    <>
+      {c.tel && (
+        <a className="cg-tel" href={telHref(c.tel)} aria-label={`${c.label}에 전화 걸기`}>
+          ☎ {c.tel}
+        </a>
+      )}
+      {c.sms && (
+        <a className="cg-tel" href={telHref(c.sms, 'sms')} aria-label={`${c.label}에 문자 보내기`}>
+          문자 {c.sms}
+        </a>
+      )}
+    </>
   )
 }

@@ -6,10 +6,10 @@ import ComplaintGuide from './ComplaintGuide'
 import ProcessSection from './ProcessSection'
 import { VOTES_REQUIRED, canVerifierConfirm, canVote } from '../lib/config'
 import { RATING_STYLE } from '../lib/rating'
-import { fmtDate } from '../lib/caseMetrics'
+import { flagsOf, fmtDate } from '../lib/caseMetrics'
 import { useRecurrence } from '../lib/useRecurrence'
-import { CATEGORY_LABEL, REJECT_REASONS } from '../lib/reportTypes'
-import { DEMO_USERS, STATUS_LABEL, isExpired, useReports, userName } from '../lib/reportStore'
+import { REJECT_REASONS } from '../lib/reportTypes'
+import { DEMO_USERS, STATUS_LABEL, isExpired, nowMs, useReports, userName } from '../lib/reportStore'
 import { coordText, useAddress } from '../lib/addressCache'
 import { isSampleReport } from '../lib/samplePhotos'
 import type { Barrier, Rating } from '../types'
@@ -54,6 +54,10 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
   const [msg, setMsg] = useState('')
   const recurrence = useRecurrence()
   const account = useAccount((s) => s.user)
+  const offset = useReports((s) => s.offsetDays)
+  void offset // 시간 앞당기기가 바뀌면 처리기한 표시가 다시 그려진다
+  const admin = !!readOnlyExternal // 행정 화면은 오른쪽 카드라 처음부터 다 펼친다
+  const [open, setOpen] = useState(admin) // 낮은 시트(기본) ↔ 펼친 시트
 
   const r = reports.find((x) => x.id === reportId)
   if (!r) {
@@ -92,8 +96,8 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
   const canReject = editable && me.role === 'verifier' && r.status === 'pending'
 
   return (
-    <aside className="bm-detail rd" data-sheet aria-label="제보 상세">
-      <SheetHandle onDown={onClose} />
+    <aside className={'bm-detail rd' + (open ? '' : ' bm-low')} data-sheet aria-label="제보 상세">
+      <SheetHandle onDown={open && !admin ? () => setOpen(false) : onClose} onUp={() => setOpen(true)} expanded={open} onToggle={() => setOpen((o) => !o)} exit={!open || admin} />
       <div className="bm-detail-head">
         <h2>
           {r.seedId ? `${seedName(r.seedId) ?? '팀 조사 지점'} · ${r.type}` : `${theirs ? '이웃' : '시민'} 제보 · ${r.type}`}
@@ -103,29 +107,20 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
         </button>
       </div>
 
-      <p>
-        <span className={'rp-badge rp-' + r.status}><Swap k={r.status}>{STATUS_LABEL[r.status]}</Swap></span>{' '}
-        <span className={'rf-cat rf-cat-' + r.category}>{CATEGORY_LABEL[r.category]}</span>
-        {isSampleReport(r) && (
-          <>
-            {' '}
-            <span className="rv-chip">샘플 사진</span>
-          </>
-        )}
-        {r.demoSet === 'large' && (
-          <>
-            {' '}
-            <span className="adm-demo">시연용 가상 데이터 · 실제 제보가 아니에요</span>
-          </>
-        )}
+      <p className="rd-verdict">
+        <span className={'rp-badge rp-' + r.status}><Swap k={r.status}>{STATUS_LABEL[r.status]}</Swap></span>
         {r.status === 'verified' && (
-          <>
-            {' '}
-            <span className="bm-badge" style={{ background: style.color, color: style.ink }}>
-              {v.rating ? style.label : '검증자 판정 대기'}
-            </span>
-          </>
+          <span className="bm-badge" style={{ background: style.color, color: style.ink }}>
+            {v.rating ? style.label : '검증자 판정 대기'}
+          </span>
         )}
+        {flagsOf(r, nowMs()).map((f) => (
+          <span key={f} className="ps-flag" role="status">
+            {f}
+          </span>
+        ))}
+        {isSampleReport(r) && <span className="rv-chip">샘플 사진</span>}
+        {r.demoSet === 'large' && <span className="adm-demo">시연용 가상 데이터</span>}
       </p>
 
       {r.status === 'merged' && (
@@ -153,49 +148,25 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
       )}
 
       {r.category === 'temporary' && r.expiresAt && (
-        <Sentences as="p" className={expired ? 'rf-warn' : 'rf-notice'} role="status">{`${expired ? '유효기간이 지났어요. 다시 확인이 필요해요.' : `${fmt(r.expiresAt)}까지 유효해요.`}${expired ? '' : ' 지나면 다시 확인해야 해요.'}`}</Sentences>
+        <Sentences as="p" className={expired ? 'rf-warn' : 'rf-notice'} role="status">{expired ? '유효기간이 지났어요.' : `${fmt(r.expiresAt)}까지 유효해요.`}</Sentences>
       )}
 
-      <dl>
-        <dt>{theirs ? '제보와 시간' : '제보한 사람과 시간'}</dt>
-        <dd>
-          {theirs ? '이웃 제보' : userName(r.userId)} · {fmt(r.createdAt)}
-        </dd>
-        <dt>위치</dt>
-        <dd>
-          <ReportPlace lat={r.lat} lng={r.lng} kind={r.locationKind} />
-        </dd>
-        <dt>설명</dt>
-        <dd>{r.description}</dd>
-        {r.measurements && (
-          <>
-            <dt>직접 잰 값</dt>
-            <dd>
-              {r.measurements.widthM !== undefined && <>폭 {r.measurements.widthM}m </>}
-              {r.measurements.curbCm !== undefined && <>턱 높이 {r.measurements.curbCm}cm</>}
-              <br />
-              <span className="bm-meta">시민이 적은 값이라, 현장에서 확인하기 전에는 오차가 있을 수 있어요.</span>
-            </dd>
-          </>
-        )}
-        <dt>사진</dt>
-        <dd>
+      {r.photos.length > 0 && (
+        <div className="bm-shot">
           <ReportPhotos keys={r.photos} />
-        </dd>
-        <dt>검증</dt>
-        <dd>
-          {canVote() && r.status !== 'merged' && (
-            <>
-              시민 {v.votes}/{VOTES_REQUIRED}명이 확인했어요
-              {v.voterIds.length > 0 && !theirs && <> ({v.voterIds.map(who).join(', ')})</>}
-              <br />
-            </>
-          )}
-          {v.result === 'rejected' && <>반려 사유: {v.reason}</>}
-          {r.status === 'verified' && !v.rating && <><span className="sent">검증자 판정을 기다리고 있어요.</span></>}
-          {v.rating && <>검증자 판정: {RATING_STYLE[v.rating].label} ({who(v.verifierId ?? 'verifier')})</>}
-        </dd>
-      </dl>
+        </div>
+      )}
+      {r.description && <p className="rd-desc">{r.description}</p>}
+      <p className="bm-meta rd-place">
+        <ReportPlace lat={r.lat} lng={r.lng} kind={r.locationKind} />
+      </p>
+      {v.result === 'rejected' && <p className="rf-warn">반려 사유: {v.reason}</p>}
+      {canVote() && r.status === 'pending' && (
+        <p className="bm-meta">
+          시민 {v.votes}/{VOTES_REQUIRED}명 확인
+          {v.voterIds.length > 0 && !theirs && <> ({v.voterIds.map(who).join(', ')})</>}
+        </p>
+      )}
 
       {(canVoteNow || canConfirm || canRate || canReject) && (
         <section className="rf-card" aria-label="검증 처리">
@@ -213,8 +184,8 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
           )}
           {(canConfirm || canRate) && (
             <>
-              <details open className="rf-criteria">
-                <summary>○△X 판정 기준 (실제로 지나갈 수 있는지가 먼저예요)</summary>
+              <details className="rf-criteria">
+                <summary>○△X 판정 기준</summary>
                 <ul>
                   <li>
                     <b>○ 괜찮음</b>: 보도 유효폭 2m 이상 / 횡단보도 턱 2cm 이하 / 출입문 0.9m 이상·자동문 / 경사로 폭 1.2m 이상·1/12 이하
@@ -272,25 +243,55 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
         </Sentences>
       )}
 
-      {merged.length > 0 && (
-        <div>
-          <strong>합쳐진 제보 {merged.length}건</strong>
-          <ul className="lr-list bm-children">
-            {merged.map((m) => (
-              <li key={m.id}>
-                <button type="button" onClick={() => onOpenReport(m.id)}>
-                  {who(m.userId)} · {fmt(m.createdAt)}
-                </button>
-                <br />
-                <span className="bm-meta">{m.description}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {r.status === 'verified' && <ComplaintGuide report={r} seeds={seeds} />}
-      <ProcessSection report={r} readOnlyExternal={readOnlyExternal} nameOf={hideNames ? who : undefined} />
+      <ProcessSection
+        report={r}
+        readOnlyExternal={readOnlyExternal}
+        nameOf={hideNames ? who : undefined}
+        moreOpen={admin}
+        onMore={(on) => on && setOpen(true)}
+        extra={
+          <>
+            {(!hideNames || r.measurements) && (
+              <dl>
+                {!hideNames && (
+                  <>
+                    <dt>제보한 사람과 시간</dt>
+                    <dd>
+                      {userName(r.userId)} · {fmt(r.createdAt)}
+                    </dd>
+                  </>
+                )}
+                {r.measurements && (
+                  <>
+                    <dt>직접 잰 값</dt>
+                    <dd>
+                      {r.measurements.widthM !== undefined && <>폭 {r.measurements.widthM}m </>}
+                      {r.measurements.curbCm !== undefined && <>턱 높이 {r.measurements.curbCm}cm</>}
+                    </dd>
+                  </>
+                )}
+              </dl>
+            )}
+            {merged.length > 0 && (
+              <div>
+                <strong>합쳐진 제보 {merged.length}건</strong>
+                <ul className="lr-list bm-children">
+                  {merged.map((m) => (
+                    <li key={m.id}>
+                      <button type="button" onClick={() => onOpenReport(m.id)}>
+                        {who(m.userId)} · {fmt(m.createdAt)}
+                      </button>
+                      <br />
+                      <span className="bm-meta">{m.description}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        }
+      />
     </aside>
   )
 }

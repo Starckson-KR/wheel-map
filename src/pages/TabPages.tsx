@@ -21,7 +21,6 @@ import { loadBarriers } from '../lib/seed'
 import AccountCard from '../components/onboarding/AccountCard'
 import { Sentences } from '../components/Sentences'
 import { openGuide } from '../lib/usageGuide'
-import { DATA_SOURCES } from '../lib/dataSources'
 import { Wordmark } from '../components/Wordmark'
 import { getMotionReduce } from '../lib/viewPrefs'
 import { isMockReport } from '../lib/realFirst'
@@ -98,11 +97,41 @@ function Page({ title, children, toTop = false }: { title: string; children: Rea
   )
 }
 
+// 제보 탭에서 접어 두는 구역. 주소(?section=)로 들어오면 그 구역을 펼친다.
+type FoldId = 'receipt' | 'verify' | 'agency'
+const foldOf = (query: string): FoldId | null => {
+  const s = new URLSearchParams(query).get('section')
+  return s === 'receipt' || s === 'verify' || s === 'agency' ? s : null
+}
+
+// 한 줄짜리 접기 머리: 누르면 아래 내용이 펼쳐진다
+function FoldLine({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" className="pg-line" aria-expanded={open} onClick={onToggle}>
+      <span className="pg-line-t">
+        <strong>{label}</strong>
+      </span>
+      <span className={'hp-nchev' + (open ? ' on' : '')}><Icon name="chev" size={16} /></span>
+    </button>
+  )
+}
+
 export function ReportTab({ query }: { query: string }) {
   const agencies = useMemo(() => listAgencies().filter((a) => a.verified), [])
   const [allAg, setAllAg] = useState(false)
+  const mineN = useReports((s) => s.reports.filter((r) => r.userId === s.userId).length)
+  // 펼친 구역. 주소가 바뀌면 그 주소의 구역을 더 펼친다(이미 펼친 것은 그대로).
+  const [fold, setFold] = useState<{ q: string; open: Partial<Record<FoldId, boolean>> }>(() => {
+    const f = foldOf(query)
+    return { q: query, open: f ? { [f]: true } : {} }
+  })
+  if (fold.q !== query) {
+    const f = foldOf(query)
+    setFold({ q: query, open: f ? { ...fold.open, [f]: true } : fold.open })
+  }
+  const toggle = (id: FoldId) => setFold((v) => ({ ...v, open: { ...v.open, [id]: !v.open[id] } }))
   useEffect(() => {
-    // 구역 이동: agency(담당 기관 안내), receipt(접수번호로 찾기), mine(내 제보 진행 상황), verify(이웃 제보 확인). AI 검색창이 이 주소로 안내한다.
+    // 구역 이동: agency(담당 기관 안내), receipt(접수번호 찾기), mine(내 제보), verify(이웃 제보 확인). AI 검색창이 이 주소로 안내한다.
     const id = ({ agency: 'pg-agency', receipt: 'pg-receipt', mine: 'pg-mine', verify: 'pg-verify' } as Record<string, string>)[new URLSearchParams(query).get('section') ?? '']
     if (!id) return
     const el = document.getElementById(id)
@@ -112,49 +141,78 @@ export function ReportTab({ query }: { query: string }) {
   return (
     <Page title="제보" toTop>
       <section className="pg-card">
-        <h2>길에서 만난 불편</h2>
-        <p className="bm-meta">위치와 사진을 함께 남겨요</p>
         <button type="button" className="rf-primary pg-wide" onClick={() => go(TO.newReport)}>
-          문제 제보하기
+          제보하기
         </button>
       </section>
-      <VerifyDeck />
-      <section className="pg-card pg-flat" id="pg-receipt">
-        <h2>접수번호로 찾기</h2>
-        <ReceiptLookup onOpen={(id) => go(TO.openReport(id))} />
-      </section>
       <section className="pg-card pg-flat" id="pg-mine">
-        <h2>내 제보 진행 상황</h2>
-        <ReportsPanel embedded onOpen={(id) => go(TO.openReport(id))} />
+        <h2>내 제보{mineN > 0 ? ` ${mineN}건` : ''}</h2>
+        <ReportsPanel embedded limit={3} onOpen={(id) => go(TO.openReport(id))} />
+        <div id="pg-receipt" className="pg-fold">
+          <FoldLine label="접수번호 찾기" open={!!fold.open.receipt} onToggle={() => toggle('receipt')} />
+          {fold.open.receipt && <ReceiptLookup onOpen={(id) => go(TO.openReport(id))} />}
+        </div>
       </section>
-      <section className="pg-card pg-flat" id="pg-agency" tabIndex={-1}>
-        <h2>담당 기관 안내</h2>
-        <Sentences as="p" className="bm-meta">제보하면 담당 기관과 접수 방법을 알려 드려요</Sentences>
-        <ul className="pg-agencies">
-          {(allAg ? agencies : agencies.slice(0, 5)).map((a) => (
-            <li key={a.id}>
-              <strong>{a.name}</strong>
-              {a.types.length > 0 && <span className="bm-meta">{a.types.join(' · ')}</span>}
-            </li>
-          ))}
-        </ul>
-        {agencies.length > 5 && (
-          <button type="button" className="pg-wide" aria-expanded={allAg} onClick={() => setAllAg((v) => !v)}>
-            {allAg ? '접기' : `더보기 (${agencies.length - 5}곳)`}
-          </button>
+      <VerifyDeck open={!!fold.open.verify} onToggle={() => toggle('verify')} />
+      <section className="pg-card pg-flat" id="pg-agency" tabIndex={-1} aria-label="담당 기관 안내">
+        <FoldLine label="담당 기관 안내" open={!!fold.open.agency} onToggle={() => toggle('agency')} />
+        {fold.open.agency && (
+          <>
+            <ul className="pg-agencies">
+              {(allAg ? agencies : agencies.slice(0, 5)).map((a) => (
+                <li key={a.id}>
+                  <strong>{a.name}</strong>
+                  {a.types.length > 0 && <span className="bm-meta">{a.types.join(' · ')}</span>}
+                </li>
+              ))}
+            </ul>
+            {agencies.length > 5 && (
+              <button type="button" className="pg-wide" aria-expanded={allAg} onClick={() => setAllAg((v) => !v)}>
+                {allAg ? '접기' : `더보기 (${agencies.length - 5}곳)`}
+              </button>
+            )}
+          </>
         )}
       </section>
     </Page>
   )
 }
 
-export function MeTab() {
+// 내 정보 「내 기여」 아래에 접어 두는 구역. 주소(#/me?section=)로 들어오면 그 구역을 펼친다.
+type MeFoldId = 'ranking' | 'challenge'
+const meFoldOf = (query: string): MeFoldId | null => {
+  const s = new URLSearchParams(query).get('section')
+  return s === 'ranking' || s === 'challenge' ? s : null
+}
+
+export function MeTab({ query = '' }: { query?: string }) {
+  const [fold, setFold] = useState<{ q: string; open: Partial<Record<MeFoldId, boolean>> }>(() => {
+    const f = meFoldOf(query)
+    return { q: query, open: f ? { [f]: true } : {} }
+  })
+  if (fold.q !== query) {
+    const f = meFoldOf(query)
+    setFold({ q: query, open: f ? { ...fold.open, [f]: true } : fold.open })
+  }
+  const toggle = (id: MeFoldId) => setFold((v) => ({ ...v, open: { ...v.open, [id]: !v.open[id] } }))
+  useEffect(() => {
+    const f = meFoldOf(query)
+    if (f) document.getElementById('pg-' + f)?.scrollIntoView({ block: 'start' })
+  }, [query])
   return (
     <Page title="내 정보">
       <AccountCard />
       <section className="pg-card">
         <h2>내 기여</h2>
         <MyRewards embedded barriers={BARRIERS} onOpenReports={() => go(TO.report)} onOpenReport={(id) => go(TO.openReport(id))} />
+        <div id="pg-ranking" className="pg-fold">
+          <FoldLine label="랭킹" open={!!fold.open.ranking} onToggle={() => toggle('ranking')} />
+          {fold.open.ranking && <ParticipationRanking bare />}
+        </div>
+        <div id="pg-challenge" className="pg-fold">
+          <FoldLine label="챌린지" open={!!fold.open.challenge} onToggle={() => toggle('challenge')} />
+          {fold.open.challenge && <ParticipationChallenge bare />}
+        </div>
       </section>
       <section className="pg-card" aria-label="이용 안내">
         <ul className="pg-lines">
@@ -168,25 +226,15 @@ export function MeTab() {
             </button>
           </li>
         </ul>
-        <details className="pg-src">
-          <summary>데이터 출처</summary>
-          <ul>
-            {DATA_SOURCES.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
-        </details>
       </section>
     </Page>
   )
 }
 
-type AlertsTabId = 'alerts' | 'benefits' | 'ranking' | 'challenge'
+type AlertsTabId = 'alerts' | 'benefits'
 const ALERT_TABS: { id: AlertsTabId; label: string }[] = [
   { id: 'benefits', label: '혜택' },
   { id: 'alerts', label: '알림' },
-  { id: 'ranking', label: '랭킹' },
-  { id: 'challenge', label: '챌린지' },
 ]
 
 type Alert = { key: string; at: string; kind: 'report' | 'points'; icon: string; text: string; points?: number; to: string; mock?: boolean }
@@ -199,12 +247,12 @@ const FILTERS: { id: AlertFilter; label: string }[] = [
 
 // 민원 상태가 바뀐 기록을 한 줄 문장으로
 const STATUS_TEXT: Partial<Record<ReportStatus, { icon: string; text: (t: string) => string }>> = {
-  pending: { icon: 'clock', text: (t) => `${t} 제보가 검증을 기다리고 있어요` },
-  verified: { icon: 'check', text: (t) => `${t} 제보가 검증됐어요` },
+  pending: { icon: 'clock', text: (t) => `${t} 제보가 확인을 기다리고 있어요` },
+  verified: { icon: 'check', text: (t) => `${t} 제보가 확인됐어요` },
   filed: { icon: 'report', text: (t) => `${t} 제보가 접수됐어요` },
   assigned: { icon: 'building', text: (t) => `${t} 제보가 담당 기관에 배정됐어요` },
-  in_progress: { icon: 'route', text: (t) => `${t} 문제를 조치하고 있어요` },
-  resolved: { icon: 'check', text: (t) => `${t} 문제가 해결됐어요. 재확인을 기다려요` },
+  in_progress: { icon: 'route', text: (t) => `${t} 조치를 시작했어요` },
+  resolved: { icon: 'check', text: (t) => `${t} 조치가 끝났어요. 재확인을 기다려요` },
   rechecked: { icon: 'check', text: (t) => `${t} 조치 결과를 재확인했어요` },
   rejected: { icon: 'close', text: (t) => `${t} 제보가 반려됐어요` },
   merged: { icon: 'list', text: (t) => `${t} 제보가 같은 곳의 기존 건과 합쳐졌어요` },
@@ -247,14 +295,20 @@ export function AlertsTab({ query = '' }: { query?: string }) {
     return out.sort((a, b) => Number(!!a.mock) - Number(!!b.mock) || b.at.localeCompare(a.at)) // 실제 제보 알림이 체험 제보 알림보다 먼저
   }, [reports, userId, rw])
   const shown = items.filter((x) => filter === 'all' || x.kind === filter).slice(0, 40)
-  // 한 화면에 한 구역: 혜택(기본) · 알림 · 랭킹 · 챌린지. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
+  // 한 화면에 한 구역: 혜택(기본) · 알림. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
   const qs = new URLSearchParams(query)
+  // 랭킹·챌린지는 내 정보 「내 기여」로 옮겼다. 예전 주소(#/alerts?tab=ranking|challenge)는 그쪽으로 넘긴다.
+  const moved = meFoldOf('section=' + (qs.get('tab') ?? ''))
+  useEffect(() => {
+    if (moved) location.replace(TO.meSection(moved))
+  }, [moved])
   const tab: AlertsTabId = ALERT_TABS.find((t) => t.id === qs.get('tab'))?.id ?? 'benefits'
   const riseAlerts = useRiseOnce('alerts-list')
   const pickTab = (id: AlertsTabId) => {
     go(id === 'benefits' ? TO.alerts : `#/alerts?tab=${id}`)
   }
 
+  if (moved) return null
   return (
     <Page title="혜택알림">
       <div className="rf-seg al-seg" role="tablist" aria-label="혜택알림 구역">
@@ -269,8 +323,6 @@ export function AlertsTab({ query = '' }: { query?: string }) {
       <AnimatePresence mode="popLayout" initial={false}>
       <AlPanel key={tab} tab={tab}>
       {tab === 'benefits' && <MyBenefits />}
-      {tab === 'ranking' && <ParticipationRanking />}
-      {tab === 'challenge' && <ParticipationChallenge />}
       {tab === 'alerts' && (
       <section className="pg-card" aria-labelledby="al-h">
         <h2 id="al-h">알림</h2>
@@ -290,7 +342,7 @@ export function AlertsTab({ query = '' }: { query?: string }) {
                   : '아직 받은 알림이 없어요.'}</Sentences>
             <div className="empty-act">
               <button type="button" className="pg-wide" onClick={() => go(filter === 'points' ? TO.map : TO.newReport)}>
-                {filter === 'points' ? '지도 보기' : '문제 제보하러 가기'}
+                {filter === 'points' ? '지도 보기' : '제보하기'}
               </button>
             </div>
           </div>

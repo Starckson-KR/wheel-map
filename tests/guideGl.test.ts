@@ -1,17 +1,28 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { bearingAhead, bearingOf, firstSymbolId, followPadding, glNavEnabled, koreanizeStyle, toLngLat } from '../src/lib/guideGl/core.ts'
+import { bearingAhead, bearingOf, firstSymbolId, followPadding, glNavEnabled, koreanizeStyle, routeCollection, toLngLat } from '../src/lib/guideGl/core.ts'
 import type { Pt } from '../src/lib/routing/engine.ts'
 
 const near = (a: number | null, b: number, e = 1) => assert.ok(a !== null && Math.abs(a - b) <= e, `${a} ≈ ${b}`)
 
-test('시험판 켜기: 기본 꺼짐, 개발 서버이거나 navmap=gl일 때만, navmap=off는 개발에서도 끈다', () => {
-  assert.equal(glNavEnabled(false, '', '#/map'), false)
-  assert.equal(glNavEnabled(false, '?navmap=gl', '#/map'), true)
-  assert.equal(glNavEnabled(false, '', '#/map?navmap=gl'), true)
-  assert.equal(glNavEnabled(false, '?navmap=x', ''), false)
-  assert.equal(glNavEnabled(true, '', ''), true)
-  assert.equal(glNavEnabled(true, '?navmap=off', ''), false)
+test('3D 지도 켜기: 기본 켜짐, navmap=off일 때만 끈다(주소 앞쪽·해시 안쪽 모두)', () => {
+  assert.equal(glNavEnabled('', '#/map'), true)
+  assert.equal(glNavEnabled('?navmap=gl', '#/map'), true)
+  assert.equal(glNavEnabled('?navmap=x', ''), true)
+  assert.equal(glNavEnabled('?navmap=off', '#/map'), false)
+  assert.equal(glNavEnabled('', '#/map?navmap=off'), false)
+})
+
+test('경로선 자료: 구간이 있으면 구간마다 색을 달리, 없으면 전체 한 줄', () => {
+  const colorOf = (l: { kind: string; route?: string }) => (l.kind === 'bus' ? '#2e9b4a' : '#2272eb')
+  const w: Pt[] = [[35, 127], [35, 127.001]]
+  const b: Pt[] = [[35, 127.001], [35.001, 127.001]]
+  const two = routeCollection([...w, ...b], [{ coords: w, kind: 'walk' }, { coords: b, kind: 'bus', route: '지선:1' }], colorOf)
+  assert.deepEqual(two.features.map((f) => f.properties.color), ['#2272eb', '#2e9b4a'])
+  assert.deepEqual(two.features[0].geometry.coordinates[0], [127, 35]) // [lng,lat]
+  const one = routeCollection(w, undefined, colorOf)
+  assert.equal(one.features.length, 1)
+  assert.equal(routeCollection(w, [{ coords: [[35, 127]], kind: 'walk' }], colorOf).features.length, 1) // 점 하나짜리 구간은 건너뛰고 전체로
 })
 
 test('한글 라벨: name:nonlatin 식을 name:ko → name 순서로 바꾸고, 도로 번호(ref)와 원본은 건드리지 않는다', () => {

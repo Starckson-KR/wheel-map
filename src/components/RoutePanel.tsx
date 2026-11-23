@@ -1,6 +1,7 @@
 import { obstacleName, stripId } from '../lib/display'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ROUTE_CFG, ROUTE_CROSSWALK_RADIUS_M, ROUTE_DEST_RADIUS_M, ROUTE_OFF_ROUTE_M, ROUTE_STOP_RADIUS_M, WALK_CFG } from '../lib/config'
+import { bareName, detourLine, summarizeAvoid, summarizeNear } from '../lib/routing/guideNotes'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { ROUTE_CFG, ROUTE_OFF_ROUTE_M, WALK_CFG } from '../lib/config'
 import { keywordSearch } from '../lib/kakao'
 import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import { isExpired } from '../lib/reportStore'
@@ -9,13 +10,14 @@ import { buildSteps, stepText, type Step, type Turn } from '../lib/routing/guide
 import { autoStep } from '../lib/routing/followNav.ts'
 import { searchOwn, type OwnSearch } from '../lib/routing/ownSearch.ts'
 import { searchDelay, showRecommended } from '../lib/routing/searchUi.ts'
-import { busCardState, cardOrder, initialCard, settledCard, stepCard, type CardId } from '../lib/routing/cards.ts'
+import { busCardState, cardOrder, initialCard, stepCard, type CardId } from '../lib/routing/cards.ts'
 import { hasStoredNoRoute, hasStoredTransit, storedTransitSummary, TRANSIT_FREE_SEARCH } from '../lib/transit/provider.ts'
 import { getWalkGraph } from '../lib/routing/walkData.ts'
 import { nearWalkNet, type OwnRoute } from '../lib/routing/walkRoute.ts'
 import { demoStartOf, pickStart, resolveStart, startPlan, START_HINT } from '../lib/routing/startPlace.ts'
 import { hasGeo, locateOnce, readGeoPermission } from '../lib/routing/locateOnce.ts'
 import { crosswalksOnRoute, loadExtras, type Extras } from '../lib/routing/extras.ts'
+import { toiletAccessible } from '../lib/publicLayers'
 import { recordNoAlt } from '../lib/routing/noAlt.ts'
 import { buildObstacles } from '../lib/routing/obstacles.ts'
 import type { RouteMarker, RouteOverlay } from '../lib/routing/overlay.ts'
@@ -27,11 +29,12 @@ import SheetHandle from './SheetHandle'
 import TransitView from './TransitView'
 import { Sentences } from './Sentences'
 import { WeatherBand } from './WeatherBits'
-import { Badge, RouteCard, Tl, TlHit, TlStep, VerdictBadge } from './RouteUi'
+import { Badge, Tl, TlHit, TlStep, VerdictBadge } from './RouteUi'
 import { fmtDist, fmtMin, WALK_COLOR } from './routeFmt'
-import { prefersCalm } from '../lib/viewPrefs'
+import { isDesktopLayout } from '../lib/viewPrefs'
 import { useWeather } from '../lib/weather/store'
 import { isWet } from '../lib/weather/model'
+import { isHot } from '../lib/layerPresets'
 import { loadLayerPool } from '../lib/routing/layerData.ts'
 import { alongRows, cardNotes, routeFacts, type LayerPool, type RouteFacts } from '../lib/routing/layerRoute.ts'
 import Icon from './Icon'
@@ -66,7 +69,9 @@ type Props = {
   myPos?: { lat: number; lng: number } | null
 }
 
-type Card = { id: 'base' | 'detour'; title: string; route: RouteData; hits: Hit[] }
+type Card = { id: 'base' | 'detour'; route: RouteData; hits: Hit[] }
+/** 결과 시트의 한 줄 알림(돌아가는 까닭·돌아갈 길 없음 등). 누르면 이름 목록이 열린다 */
+type Why = { key: string; tone: 'alert' | 'avoid' | 'warn'; text: string; names: string[] }
 type Guide = { idx: number; manual: boolean } // manual: 이전·다음을 눌러 직접 넘기는 중(내 위치로 자동 넘김 잠시 멈춤)
 
 const TURN_GLYPH: Record<Turn, string> = { straight: '↑', 'slight-left': '↖', left: '←', 'sharp-left': '↙', 'slight-right': '↗', right: '→', 'sharp-right': '↘', uturn: '↩' }
@@ -105,10 +110,12 @@ function PlacePicker(props: {
   /** 값이 비어 있을 때 대신 보이는 이름(내 위치를 기다리는 중)과 곁글 */
   pendingName?: string
   pendingNote?: string
-  /** 값이 비어 있을 때 '아직 정하지 않았어요.' 대신 보이는 한 줄 */
+  /** 값이 비어 있을 때 보이는 한 줄(없으면 줄을 두지 않는다) */
   emptyText?: string
+  /** 한 줄로 접어 둔다(출발 칸) */
+  fold?: boolean
 }) {
-  const { label, value, k, allowCurrent, active, onChange, onPickMap, preset, which, onQuery, pendingName, pendingNote, emptyText } = props
+  const { label, value, k, allowCurrent, active, onChange, onPickMap, preset, which, onQuery, pendingName, pendingNote, emptyText, fold } = props
   const [q, setQ] = useState(preset ?? '')
   const first = useRef(!!preset) // 홈 검색에서 가져온 말만 기다리지 않고 바로 찾는다
   const reqId = useRef(0)
@@ -168,10 +175,27 @@ function PlacePicker(props: {
       { enableHighAccuracy: true, timeout: 8000 },
     )
   }
+  // 접어 두는 칸(출발): 값이 있거나 내 위치를 기다리는 동안은 한 줄로만 보이고, 누르면 바꿀 수 있게 펼친다
+  const [unfolded, setUnfolded] = useState(false)
+  useEffect(() => {
+    if (value) setUnfolded(false)
+  }, [value])
+  if (fold && !unfolded && (value || (pendingName && !preset))) {
+    return (
+      <button type="button" className="rt-fold" aria-expanded={false} aria-label={`${label} ${value?.name ?? pendingName}, 바꾸기`} onClick={() => setUnfolded(true)}>
+        <span className="rt-fold-l">{label}</span>
+        <strong>{value?.name ?? pendingName}</strong>
+        {!value && pendingNote && <span className="bm-meta">{pendingNote}</span>}
+        <span className="lr-chev" aria-hidden="true" />
+      </button>
+    )
+  }
   return (
     <fieldset className="rt-place">
       <legend>{label}</legend>
-      <p className="rt-val">{value ? <strong>{value.name}</strong> : pendingName ? <><strong>{pendingName}</strong>{pendingNote && <span className="bm-meta"> {pendingNote}</span>}</> : <span className="bm-meta">{emptyText ?? '아직 정하지 않았어요'}</span>}</p>
+      {(value || pendingName || emptyText) && (
+        <p className="rt-val">{value ? <strong>{value.name}</strong> : pendingName ? <><strong>{pendingName}</strong>{pendingNote && <span className="bm-meta"> {pendingNote}</span>}</> : <span className="bm-meta">{emptyText}</span>}</p>
+      )}
       <div className="rt-row">
         <input
           type="search"
@@ -185,6 +209,14 @@ function PlacePicker(props: {
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search()}
         />
+        <button type="button" onClick={onPickMap} aria-pressed={active} className={active ? 'on' : ''}>
+          {active ? '지도를 눌러 주세요…' : '지도에서 선택'}
+        </button>
+        {allowCurrent && (
+          <button type="button" onClick={current}>
+            현재 위치
+          </button>
+        )}
       </div>
       {msg && <Sentences as="p" className="bm-meta">{msg}</Sentences>}
       {preset && !value && items.length > 0 && <Sentences as="p" className="bm-meta">검색에서 가져온 말이에요. 아래에서 장소를 골라 주세요.</Sentences>}
@@ -208,16 +240,6 @@ function PlacePicker(props: {
           ))}
         </ul>
       )}
-      <div className="rt-row">
-        <button type="button" onClick={onPickMap} aria-pressed={active} className={active ? 'on' : ''}>
-          {active ? '지도를 눌러 주세요…' : '지도에서 선택'}
-        </button>
-        {allowCurrent && (
-          <button type="button" onClick={current}>
-            현재 위치
-          </button>
-        )}
-      </div>
     </fieldset>
   )
 }
@@ -250,16 +272,24 @@ export default function RoutePanel(props: Props) {
   useEffect(() => () => clearTimeout(typingOff.current), [])
   const [typing, setTyping] = useState(false) // 입력칸에 커서가 있는 동안: 휴대폰에서는 시트를 키워 키보드에 가려지지 않게 한다
   const topRef = useRef<HTMLDivElement>(null)
-  const [collapsed, setCollapsed] = useState(false)
+  // 결과 시트: false=낮은 시트(지도가 넓게 보인다), true=펼침
+  const [open, setOpen] = useState(false)
+  const [whyOpen, setWhyOpen] = useState<string | null>(null)
+  const [notesOpen, setNotesOpen] = useState<number | null>(null) // 주의 목록을 펼친 단계
+  const [gMore, setGMore] = useState(false) // 길 안내 카드의 접어 둔 버튼
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const pickRef = useRef<HTMLDivElement>(null)
+  const grabY = useRef(0)
+  const [lowH, setLowH] = useState(0)
   const [mode, setMode] = useState<'walk' | 'bus'>('walk') // 고른 카드가 버스 타고이면 'bus'
   const [transitOv, setTransitOv] = useState<RouteOverlay | null>(null)
   const [openStop, setOpenStop] = useState<string | null>(null)
   const runId = useRef(0)
   const weather = useWeather()
   const wet = weather ? isWet(weather) : false
+  const hot = isHot(weather)
   const [engineMode, setEngineMode] = useState<'own' | 'tmap'>('own') // 개발 모드에서만 바꿀 수 있다(비교용)
   const [guide, setGuide] = useState<Guide | null>(null)
-  const [guideMsg, setGuideMsg] = useState('')
   const [offRoute, setOffRoute] = useState<Pt | null>(null)
   // 버스 타고 가는 길·정류장 경고에 쓰는 장애요소(걷는 경로와 같은 규칙)
   const obstaclesNow = useMemo(
@@ -363,7 +393,6 @@ export default function RoutePanel(props: Props) {
       setTo(picked.place)
       if (autoFromRef.current === 'pending') void fillFromHere()
     }
-    setCollapsed(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picked])
 
@@ -377,6 +406,9 @@ export default function RoutePanel(props: Props) {
       setFocus(null)
       setGuide(null)
       setOffRoute(null)
+      setOpen(false)
+      setWhyOpen(null)
+      setNotesOpen(null)
     }
     const stats = newStats()
     try {
@@ -437,57 +469,22 @@ export default function RoutePanel(props: Props) {
     }
   }
 
-  // 접거나 다시 열면 남은 지도 영역에 맞춰 경로를 다시 맞춘다
+  // 펼치거나 낮추면 남은 지도 영역에 맞춰 경로를 다시 맞춘다
   useEffect(() => {
     setFitN((n) => n + 1)
-  }, [collapsed])
+  }, [open])
 
-  // 카드를 고르면 그 경로가 지도에 그려지고 아래에 단계별 안내가 나온다
-  const railRef = useRef<HTMLUListElement>(null)
-  const progUntil = useRef(0)
-  const settleTimer = useRef<number | undefined>(undefined)
-  const onSettleRef = useRef<() => void>(() => {})
-  // 손으로 넘기다 멈추면 가운데에 온 카드를 고른다(scrollend가 없으면 scroll 멈춤 120ms 뒤)
-  onSettleRef.current = () => {
-    const rail = railRef.current
-    if (!rail || Date.now() < progUntil.current) return
-    const rr = rail.getBoundingClientRect()
-    const spots = Array.from(rail.querySelectorAll<HTMLElement>('[data-card]')).map((el) => {
-      const r = el.getBoundingClientRect()
-      return { id: el.dataset.card as CardId, center: r.left + r.width / 2, disabled: el.dataset.card === 'bus' && busState === 'none' }
-    })
-    const id = settledCard(rr.left + rr.width / 2, spots)
-    if (id && id !== sel) pickCard(id)
-  }
-  useEffect(() => {
-    const rail = railRef.current
-    if (!rail) return
-    const hasEnd = 'onscrollend' in window
-    const fire = () => onSettleRef.current()
-    const onScroll = () => {
-      window.clearTimeout(settleTimer.current)
-      settleTimer.current = window.setTimeout(fire, 120)
-    }
-    if (hasEnd) rail.addEventListener('scrollend', fire)
-    else rail.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.clearTimeout(settleTimer.current)
-      rail.removeEventListener('scrollend', fire)
-      rail.removeEventListener('scroll', onScroll)
-    }
-  }, [status, result, active, mode])
+  // 경로를 고르면 그 길이 지도에 그려지고 펼친 시트에 단계별 안내가 나온다
   const pickCard = (id: CardId, focus = false) => {
-    if (id === 'bus' && busState === 'none') return // 흐린 버스 카드는 고를 수 없다
+    if (id === 'bus' && busState === 'none') return
     if (id === 'bus') setMode('bus')
     else {
       setMode('walk')
       setActive(id)
     }
+    setNotesOpen(null)
     setFitN((n) => n + 1)
-    const el = railRef.current?.querySelector<HTMLElement>(`[data-card="${id}"]`)
-    progUntil.current = Date.now() + 700 // 이 사이에 생기는 스크롤 이벤트는 우리가 움직인 것이라 무시
-    el?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: prefersCalm() ? 'auto' : 'smooth' })
-    if (focus) el?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
+    if (focus) pickRef.current?.querySelector<HTMLElement>(`[data-card="${id}"]`)?.focus({ preventScroll: true })
   }
 
   const choosePair = (p: DemoPair) => {
@@ -512,8 +509,8 @@ export default function RoutePanel(props: Props) {
     if (!result?.res.base) return []
     const r = result.res
     const out: Card[] = []
-    if (r.detour) out.push({ id: 'detour', title: result.own ? (r.unresolved.length > 0 ? '일부만 피해 가는 길' : '피해 가는 길') : r.unresolved.length + r.untested.length > 0 ? '일부만 돌아가는 길' : '돌아가는 길', route: r.detour, hits: r.detourHits })
-    out.push({ id: 'base', title: '가장 짧은 길', route: r.base as RouteData, hits: r.baseHits })
+    if (r.detour) out.push({ id: 'detour', route: r.detour, hits: r.detourHits })
+    out.push({ id: 'base', route: r.base as RouteData, hits: r.baseHits })
     return out
   }, [result])
 
@@ -555,9 +552,8 @@ export default function RoutePanel(props: Props) {
   const startedLoc = useRef(false)
   const startGuide = () => {
     setGuide({ idx: 0, manual: false })
-    setGuideMsg('')
+    setGMore(false)
     setOffRoute(null)
-    setCollapsed(true)
     // 길 안내를 시작하면 내 위치를 가운데에 두고 따라간다(누른 동작 안에서 위치·나침반 권한을 요청한다)
     if (props.locMode !== 'follow') {
       startedLoc.current = props.locMode === 'off' || props.locMode === undefined
@@ -567,8 +563,7 @@ export default function RoutePanel(props: Props) {
   const endGuide = () => {
     setGuide(null)
     setOffRoute(null)
-    setGuideMsg('')
-    setCollapsed(false)
+    setOpen(false)
     if (startedLoc.current) props.onStopLocate?.()
     startedLoc.current = false
   }
@@ -582,12 +577,11 @@ export default function RoutePanel(props: Props) {
     cancelAuto()
     setFrom(f)
     setPairId(null)
-    setCollapsed(false)
     void run(f, result.end, null, `${f.name} → ${result.end.name}`)
   }
   const openObstacle = (o: Obstacle) => {
     setFocus(o.id)
-    setCollapsed(true)
+    setOpen(false) // 낮은 시트는 상세 시트 아래에 남아, 상세를 닫으면 바로 다시 보인다
     if (o.origin === 'report') onOpenReport(o.id)
     else onOpenSeed(o.id)
   }
@@ -644,7 +638,7 @@ export default function RoutePanel(props: Props) {
         markers.push({ lat, lng, text, title, cls })
       }
       for (const x of f.toilet.items) add(x.item.lat, x.item.lng, '화장실', x.item.name, 'rt-m-toilet')
-      for (const x of f.shade.items) add(x.item.lat, x.item.lng, '그늘막', x.item.name, 'rt-m-shade')
+      if (hot) for (const x of f.shade.items) add(x.item.lat, x.item.lng, '그늘막', x.item.name, 'rt-m-shade')
       for (const x of f.stop.items) add(x.item.lat, x.item.lng, '정류장', x.item.name, 'rt-m-bus')
       for (const o of f.overpass) add(o.lat, o.lng, '육교', '육교', 'rt-m-overpass')
       for (const o of f.flood) add(o.lat, o.lng, '침수', '침수 이력', 'rt-m-flood')
@@ -667,13 +661,13 @@ export default function RoutePanel(props: Props) {
     })
     // onOverlay는 부모의 setState라 의존성에서 뺀다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result, activeCard, perRoute, facts, focus, unresolvedIds, mode, transitOv, active, fitN, guide, steps])
+  }, [result, activeCard, perRoute, facts, focus, unresolvedIds, mode, transitOv, active, fitN, guide, steps, hot])
 
   useEffect(() => () => onOverlay(null), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openHit = (h: Hit) => {
     setFocus(h.o.id)
-    setCollapsed(true)
+    setOpen(false)
     if (h.o.origin === 'report') onOpenReport(h.o.id)
     else onOpenSeed(h.o.id)
   }
@@ -684,32 +678,42 @@ export default function RoutePanel(props: Props) {
   const inkOf = (st: { color: string }) => (st as { ink?: string }).ink ?? '#fff'
   const WHERE: Record<'route' | 'start' | 'end', string> = { route: '경로 위', start: '출발 근처', end: '도착 근처' }
 
-  const railIds = cardOrder(!!result?.res.detour)
   const sel: CardId = mode === 'bus' ? 'bus' : active
   const busState = hasStoredNoRoute(pairId) ? 'none' : busCardState(hasStoredTransit(pairId), TRANSIT_FREE_SEARCH)
-  const nearWalk = hasStoredNoRoute(pairId) // 가까워서 저장본이 '길 없음'인 쌍
-  // 카드 아래 배지: 「피했어요」(초록)와 지나는 곳 수(주황)
-  const chipsOf = (id: 'base' | 'detour') => {
-    const cur = facts.get(id)
-    if (!cur || !baseFacts) return undefined
-    const n = cardNotes(cur, baseFacts, id === 'base')
-    if (n.avoided.length === 0 && n.passes.overpass === 0 && n.passes.flood === 0) return undefined
+  // 한 줄 고르기에는 고를 수 있는 것만 둔다(버스 길을 볼 수 없는 경로면 버스는 뺀다)
+  const picks = cardOrder(!!result?.res.detour).filter((id) => id !== 'bus' || busState !== 'none')
+  const pickLabel = (id: CardId): string => {
+    if (id === 'bus') {
+      const sm = storedTransitSummary(pairId)
+      return sm ? `버스 ${fmtMin(sm.time)}` : '버스'
+    }
+    const c = cards.find((x) => x.id === id)
+    const name = id === 'base' ? '짧은 길' : result?.own ? '피해 가는 길' : '돌아가는 길'
+    return c ? `${name} ${fmtMin(c.route.time)}` : name
+  }
+  // 고른 길의 배지: 「피했어요」(초록)와 지나는 곳 수(주황)
+  const chips = (() => {
+    const cur = facts.get(active)
+    if (mode !== 'walk' || !cur || !baseFacts) return null
+    const n = cardNotes(cur, baseFacts, active === 'base')
+    if (n.avoided.length === 0 && n.passes.overpass === 0 && n.passes.flood === 0) return null
     return (
-      <>
+      <p className="rc-chips">
         {n.avoided.includes('overpass') && <Badge tone="green">육교 피했어요</Badge>}
         {n.avoided.includes('flood') && <Badge tone="green">침수 이력 피했어요</Badge>}
         {n.passes.overpass > 0 && <Badge tone="orange">육교 {n.passes.overpass}곳</Badge>}
         {n.passes.flood > 0 && <Badge tone="orange">침수 이력 {n.passes.flood}곳</Badge>}
-      </>
+      </p>
     )
-  }
-  const alongBlock = (id: 'base' | 'detour') => {
-    const f = facts.get(id)
-    const rows = f ? alongRows(f) : []
-    if (rows.length === 0) return undefined
+  })()
+  // 가는 길에 있는 곳: 그늘막은 더운 날에만, 정류장 수는 아래 「가까운 정류장」과 겹쳐 뺀다
+  const alongBlock = (() => {
+    const f = facts.get(active)
+    const rows = (f ? alongRows(f) : []).filter((r) => r.key !== 'stop' && (r.key !== 'shade' || hot))
+    if (rows.length === 0) return null
     return (
-      <div className="rc-near">
-        <h4>가는 길에 있어요</h4>
+      <section className="rt-sec rc-near">
+        <h3>가는 길에 있어요</h3>
         <ul>
           {rows.map((r) => (
             <li key={r.key}>
@@ -719,119 +723,130 @@ export default function RoutePanel(props: Props) {
             </li>
           ))}
         </ul>
-      </div>
+      </section>
     )
-  }
+  })()
   const finalId: 'base' | 'detour' = result?.res.detour ? 'detour' : 'base'
   const finalSummary = result?.res.summary[finalId] ?? null
 
-  const stopsBlock = result?.extras && (
-    <section className="rf-card rt-sec">
-      <h3>출발·도착 근처 버스정류장 ({ROUTE_STOP_RADIUS_M}m 안)</h3>
-      <Sentences as="p" className="bm-meta">정류장을 누르면 다음 저상버스를 볼 수 있어요. 정류장에 버스 타기 불편한 곳이 있으면 같이 알려 드려요.</Sentences>
-      {(
+  // 돌아가는 까닭·돌아갈 길 없음은 한 줄씩만. 낮은 시트에는 맨 앞 한 줄만 보인다
+  const whys: Why[] = []
+  if (result && mode === 'walk') {
+    const r = result.res
+    const namesOf = (hs: Hit[]) => hs.map((h) => bareName(obstacleName(h.o)))
+    if (r.unresolved.length > 0) whys.push({ key: 'none', tone: 'alert', text: `돌아갈 길이 없어요 · ${r.unresolved.length}곳`, names: namesOf(r.unresolved) })
+    const dl = active === 'detour' ? detourLine(avoidedNames, extraM > 0 ? fmtDist(extraM) : null) : null
+    if (dl) whys.push({ key: 'avoid', tone: 'avoid', text: dl, names: avoidedNames.length > 1 ? avoidedNames.map(bareName) : [] })
+    if (r.endpoint.length > 0) whys.push({ key: 'end', tone: 'warn', text: `출발·도착 지점에 지나기 어려운 곳 ${r.endpoint.length}곳`, names: namesOf(r.endpoint) })
+    if (r.untested.length > 0) whys.push({ key: 'untested', tone: 'warn', text: `돌아갈 수 있는지 확인 못 한 곳 ${r.untested.length}곳`, names: namesOf(r.untested) })
+  }
+
+  const hasResult = status === 'done' && !!result && !!activeCard
+  // 낮은 시트: 결과가 나온 직후의 기본. 큰 화면은 왼쪽 패널이라 늘 펼쳐 둔다
+  const low = hasResult && !open && formHidden && !isDesktopLayout()
+  const expand = () => setOpen(true)
+  const lower = () => {
+    setOpen(false)
+    setFormOpen(false)
+    setPairsOpen(false)
+  }
+  const canGuide = mode === 'walk' && !!result?.own && steps.length > 0
+
+  // 내 위치 버튼을 낮은 시트 바로 위에 두려고 시트 높이를 잰다
+  useLayoutEffect(() => {
+    setLowH(low && sheetRef.current ? sheetRef.current.offsetHeight : 0)
+  }, [low, result, active, mode, picking, guide])
+
+  const stopGroups = result?.extras
+    ? (
         [
           ['출발', result.extras.stops.start],
           ['도착', result.extras.stops.end],
         ] as const
-      ).map(([lab, list]) => (
+      ).filter(([, list]) => list.length > 0)
+    : []
+  const stopsBlock = stopGroups.length > 0 && (
+    <section className="rt-sec">
+      <h3>가까운 정류장</h3>
+      {stopGroups.map(([lab, list]) => (
         <div key={lab}>
           <p>
-            <b>{lab} 근처</b> {list.length === 0 && <span className="bm-meta">정류장 자료가 없어요.</span>}
+            <b>{lab}</b>
           </p>
-          {list.length > 0 && (
-            <ul className="rt-plain">
-              {list.slice(0, 5).map((s) => {
-                const key = lab + s.item.id
-                const open = openStop === key
-                return (
-                  <li key={key}>
-                    <button type="button" className="bus-dir" aria-expanded={open} onClick={() => setOpenStop(open ? null : key)}>
-                      {s.item.name} · {s.distM}m{s.item.fields['NEXT_BUSSTOP'] ? ` · ${String(s.item.fields['NEXT_BUSSTOP'])} 방면` : ''}
-                    </button>
-                    {open && (
-                      <BusArrivals
-                        key={s.item.id}
-                        choices={[{ stationId: s.item.id, name: s.item.name, next: s.item.fields['NEXT_BUSSTOP'] as string | undefined }]}
-                        warns={boardingNear(obstaclesNow, [s.item.lat as number, s.item.lng as number])}
-                      />
-                    )}
-                  </li>
-                )
-              })}
-              {list.length > 5 && <li className="bm-meta">외 {list.length - 5}곳</li>}
-            </ul>
-          )}
+          <ul className="rt-plain">
+            {list.slice(0, 5).map((s) => {
+              const key = lab + s.item.id
+              const on = openStop === key
+              return (
+                <li key={key}>
+                  <button type="button" className="bus-dir" aria-expanded={on} onClick={() => setOpenStop(on ? null : key)}>
+                    {s.item.name} · {s.distM}m{s.item.fields['NEXT_BUSSTOP'] ? ` · ${String(s.item.fields['NEXT_BUSSTOP'])} 방면` : ''}
+                  </button>
+                  {on && (
+                    <BusArrivals
+                      key={s.item.id}
+                      choices={[{ stationId: s.item.id, name: s.item.name, next: s.item.fields['NEXT_BUSSTOP'] as string | undefined }]}
+                      warns={boardingNear(obstaclesNow, [s.item.lat as number, s.item.lng as number])}
+                    />
+                  )}
+                </li>
+              )
+            })}
+            {list.length > 5 && <li className="bm-meta">외 {list.length - 5}곳</li>}
+          </ul>
         </div>
       ))}
     </section>
   )
 
+  // 횡단보도·목적지 자료는 값이 있을 때만 구역을 만든다
+  const noCurb = activeCard ? (perRoute.get(activeCard.id)?.noCurb ?? []) : []
+  const destToilets = result?.extras ? result.extras.dest.toilets.filter((t) => toiletAccessible(t.item)) : []
+  const destFacilities = result?.extras?.dest.facilities ?? []
   const extrasBlock = result && (
     <>
-      {result.extrasError && <p className="rf-warn">공공데이터(횡단보도·정류장·편의시설)를 불러오지 못했어요.</p>}
-      {result.extras && activeCard && (
-        <details className="rf-card rt-more">
-          <summary>근처 공공데이터 보기 (참고)</summary>
-          <section className="rt-sec">
-            <h3>경로 근처 횡단보도</h3>
-            {(() => {
-              const cw = perRoute.get(activeCard.id)
-              if (!cw) return null
-              return (
-                <>
-                  <p>
-                    경로 {ROUTE_CROSSWALK_RADIUS_M}m 안에 횡단보도가 <b>{cw.all.length}곳</b> 있고, 이 중 보도턱을 낮추지 않은 곳이 <b>{cw.noCurb.length}곳</b>이에요.
-                  </p>
-                  {cw.noCurb.length > 0 && (
-                    <ul className="rt-plain">
-                      {cw.noCurb.map((c, i) => (
-                        <li key={`${c.item.id}-${i}`}>
-                          <b>횡! 주의</b> {c.item.name} · 경로에서 {c.distM}m, 보도턱 낮춤이 없어요
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <Sentences as="p" className="bm-meta">보도턱 낮춤은 있고 없고만 알 수 있어요. ○△X 판정은 아니에요.</Sentences>
-                </>
-              )
-            })()}
-          </section>
-
-          <section className="rt-sec">
-            <h3>목적지 정보 · {result.end.name}</h3>
-            <p>
-              <b>장애인편의시설</b> ({ROUTE_DEST_RADIUS_M}m 안, 이름과 주소가 맞는 시설을 먼저 보여 줘요)
-            </p>
-            {result.extras.dest.facilities.length === 0 ? (
-              <Sentences as="p" className="bm-meta">이 범위에 등록된 장애인편의시설 자료가 없어요. 자료에 없다는 뜻이고, 시설이 없다고 확인한 건 아니에요.</Sentences>
-            ) : (
-              <ul className="rt-plain">
-                {result.extras.dest.facilities.slice(0, 6).map((f, i) => (
-                  <li key={`${f.item.id}-${i}`}>
-                    {f.matched && <b>이름·주소 일치 </b>}
-                    {f.item.name} · {f.distM}m · {String(f.item.fields['faclTyCd'] ?? '')}
+      {result.extrasError && <p className="rf-warn">공공데이터를 불러오지 못했어요.</p>}
+      {noCurb.length > 0 && (
+        <section className="rt-sec">
+          <h3>보도턱 낮춤이 없는 횡단보도 {noCurb.length}곳</h3>
+          <ul className="rt-plain">
+            {noCurb.map((c, i) => (
+              <li key={`${c.item.id}-${i}`}>
+                {c.item.name} · {c.distM}m
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {destToilets.length > 0 && (
+        <section className="rt-sec">
+          <h3>목적지 장애인화장실 {destToilets.length}곳</h3>
+          <ul className="rt-plain">
+            {destToilets.slice(0, 4).map((t, i) => (
+              <li key={`${t.item.id}-${i}`}>
+                {t.item.name} · {t.distM}m
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {destFacilities.length > 0 && (
+        <section className="rt-sec">
+          <h3>목적지 장애인편의시설 {destFacilities.length}곳</h3>
+          <ul className="rt-plain">
+            {destFacilities.slice(0, 6).map((f, i) => (
+              <li key={`${f.item.id}-${i}`}>
+                {f.item.name} · {f.distM}m
+                {f.item.fields['evalInfo'] ? (
+                  <>
                     <br />
-                    <span className="bm-meta">{f.item.fields['evalInfo'] ? `편의시설: ${String(f.item.fields['evalInfo'])}` : '편의시설 항목은 아직 모으지 못했어요.'}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p>
-              <b>장애인화장실</b> ({ROUTE_DEST_RADIUS_M}m 안): 공중화장실 {result.extras.dest.toilets.length}곳 중 장애인용 시설이 있는 곳은 {result.extras.dest.accessibleToilets}곳이에요.
-            </p>
-            {result.extras.dest.toilets.length > 0 && (
-              <ul className="rt-plain">
-                {result.extras.dest.toilets.slice(0, 4).map((t, i) => (
-                  <li key={`${t.item.id}-${i}`}>
-                    {t.item.name} · {t.distM}m · 장애인용 위생시설 {String(t.item.fields['장애인용위생시설합계'] ?? 0)}개
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Sentences as="p" className="bm-meta">공공데이터라서 판정은 아니에요.</Sentences>
-          </section>
-        </details>
+                    <span className="bm-meta">{String(f.item.fields['evalInfo'])}</span>
+                  </>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </>
   )
@@ -839,7 +854,8 @@ export default function RoutePanel(props: Props) {
   const locBtn = props.onLocate && (
     <button
       type="button"
-      className={'hm-locate rt-locate' + (collapsed ? ' rt-locate-mini' : '') + (props.locMode === 'follow' ? ' on' : props.locMode === 'free' ? ' free' : '')}
+      className={'hm-locate rt-locate' + (low ? ' rt-locate-low' : '') + (props.locMode === 'follow' ? ' on' : props.locMode === 'free' ? ' free' : '')}
+      style={low && lowH > 0 ? { bottom: lowH + 12 } : undefined}
       onClick={props.onLocate}
       aria-pressed={props.locMode !== undefined && props.locMode !== 'off'}
       aria-label={props.locMode === 'follow' ? '내 위치 따라가기 끄기' : props.locMode === 'free' ? '내 위치로 돌아가 따라가기' : '내 위치로 이동'}
@@ -849,10 +865,14 @@ export default function RoutePanel(props: Props) {
     </button>
   )
 
-  // 접어도 시트는 숨겨서 남겨 둔다(지도의 경로 선은 시트가 정한다). 끝내기를 눌러야 지워진다.
+  // 길 안내 중에도 시트는 숨겨서 남겨 둔다(지도의 경로 선은 시트가 정한다)
   const gStep = guide ? steps[guide.idx] : undefined
   const gText = gStep ? stepText(gStep) : null
+  // 주의 안내는 종류별 한 줄씩만: 제보가 많은 구간에서 줄이 지도를 덮지 않게 한다
+  const gAvoid = gStep ? summarizeAvoid(gStep.notes.filter((n) => n.kind === 'avoid').map((n) => obstacleName(n.o))) : null
+  const gNear = gStep ? summarizeNear(gStep.notes.filter((n) => n.kind !== 'avoid').map((n) => obstacleName(n.o))) : null
   const gLeft = gStep && activeCard ? Math.max(0, Math.round(activeCard.route.distance - gStep.startM)) : 0
+  const gFollowing = props.locMode === 'follow' && !guide?.manual
   const guidePanel = guide && gStep && gText && (
     <div className="rt-guide" role="region" aria-label="길 안내" aria-live="polite" data-sheet>
       <div className="rt-g-main" key={guide.idx}>
@@ -867,17 +887,8 @@ export default function RoutePanel(props: Props) {
           {guide.idx + 1}/{steps.length}
         </span>
       </div>
-      {gStep.notes.map((n, i) =>
-        n.kind === 'avoid' ? (
-          <p key={i} className="rt-g-note">
-            {obstacleName(n.o)} 때문에 돌아가요
-          </p>
-        ) : (
-          <p key={i} className="rt-g-note rt-g-warn">
-            이 근처에 {obstacleName(n.o)}
-          </p>
-        ),
-      )}
+      {gAvoid && <p className="rt-g-note">{gAvoid}</p>}
+      {gNear && <p className="rt-g-note rt-g-warn">{gNear}</p>}
       {offRoute && (
         <p className="rt-g-note rt-g-warn" role="alert">
           길에서 벗어났어요.{' '}
@@ -886,56 +897,67 @@ export default function RoutePanel(props: Props) {
           </button>
         </p>
       )}
-      {guideMsg && <p className="rt-g-note">{guideMsg}</p>}
-      <p className="rt-g-meta">남은 거리 {fmtDist(gLeft)}</p>
-      <div className="rt-g-btns">
-        <button type="button" onClick={() => setGuide({ idx: Math.max(0, guide.idx - 1), manual: true })} disabled={guide.idx === 0}>
-          이전
-        </button>
-        <button type="button" className="rf-primary" onClick={() => setGuide({ idx: Math.min(steps.length - 1, guide.idx + 1), manual: true })} disabled={guide.idx >= steps.length - 1}>
-          다음
-        </button>
-      </div>
-      <div className="rt-g-btns">
-        {props.locMode === 'follow' && !guide.manual ? (
-          <button type="button" aria-pressed="true" className="on" onClick={() => props.onStopLocate?.()}>
-            내 위치 따라가기 끄기
-          </button>
-        ) : (
-          <button type="button" className="rf-recenter" onClick={recenter}>
+      <p className="rt-g-meta">
+        남은 거리 {fmtDist(gLeft)}
+        {/* 지도를 옮겼거나 단계를 손으로 넘겼을 때만: 다시 내 위치를 따라간다 */}
+        {!gFollowing && (
+          <button type="button" className="rt-g-link" onClick={recenter}>
             {props.locMode === 'off' || props.locMode === undefined ? '내 위치 따라가기' : '다시 가운데로'}
           </button>
         )}
+      </p>
+      <div className="rt-g-btns">
+        <button type="button" className="rf-primary rt-g-next" onClick={() => setGuide({ idx: Math.min(steps.length - 1, guide.idx + 1), manual: true })} disabled={guide.idx >= steps.length - 1}>
+          다음
+        </button>
         <button type="button" onClick={endGuide}>
-          안내 끝내기
+          끝내기
+        </button>
+        <button type="button" className="rt-g-more" aria-expanded={gMore} aria-label="더 보기" onClick={() => setGMore(!gMore)}>
+          <span aria-hidden="true">⋯</span>
         </button>
       </div>
+      {gMore && (
+        <div className="rt-g-btns">
+          <button type="button" onClick={() => setGuide({ idx: Math.max(0, guide.idx - 1), manual: true })} disabled={guide.idx === 0}>
+            이전
+          </button>
+          {gFollowing && (
+            <button type="button" onClick={() => props.onStopLocate?.()}>
+              내 위치 따라가기 끄기
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 
-  const mini = collapsed && !guide && (
-        <div className="rt-mini" role="status" data-sheet>
-        <span>길찾기 {result ? `· ${result.start.name} → ${result.end.name}` : ''}</span>
-        <button type="button" className="rf-primary" onClick={() => setCollapsed(false)}>
-          다시 열기
-        </button>
-        <button type="button" onClick={onClose}>
-          끝내기
-        </button>
-          </div>
+  const noteBtn = (n: Extract<Step['notes'][number], { kind: 'hit' }>, key: number) => (
+    <button key={key} type="button" className="tl-hit tl-hit-end" onClick={() => openObstacle(n.o)}>
+      <span className="tl-hit-name">{bareName(obstacleName(n.o))}</span>
+      <span className="tl-hit-sub">{n.role === 'X' ? '지나가기 어려워요' : '지날 때 주의해요'}</span>
+    </button>
   )
+  const entryBtns =
+    finalSummary &&
+    finalSummary.entryDest.map((h) => (
+      <button key={h.o.id} type="button" className="tl-hit tl-hit-end" onClick={() => openHit(h)}>
+        <span className="tl-hit-name">{bareName(obstacleName(h.o))}</span>
+        <span className="tl-hit-sub">{h.o.rating === 'X' ? '들어가기 어려워요' : '들어갈 때 주의해요'}</span>
+      </button>
+    ))
 
   return (
     <>
     {locBtn}
-    {mini}
     {guidePanel}
     <div
-      className={'rp rt' + (picking ? ' rt-hidden' : '') + (typing ? ' rt-typing' : '')}
+      ref={sheetRef}
+      className={'rp rt' + (picking ? ' rt-hidden' : '') + (typing ? ' rt-typing' : '') + (low ? ' rt-low' : '')}
       data-sheet
       role="dialog"
       aria-label="길찾기"
-      hidden={!!picking || collapsed || !!guide}
+      hidden={!!picking || !!guide}
       onFocus={(e) => {
         if (!(e.target instanceof HTMLInputElement)) return
         clearTimeout(typingOff.current)
@@ -947,22 +969,124 @@ export default function RoutePanel(props: Props) {
         typingOff.current = setTimeout(() => setTyping(false), 250)
       }}
     >
-      <SheetHandle exit={!result} onDown={() => (result ? setCollapsed(true) : onClose())} />
-      <div className="rf-head">
-        <h2>길찾기</h2>
-        <span className="rt-head-btns">
-          <button type="button" onClick={() => setCollapsed(true)} disabled={!result}>
-            지도 보기
-          </button>
+      {hasResult ? (
+        // 손잡이: 끌어도 되고 눌러도 된다(끈 뒤에 따라오는 클릭은 누르기로 보지 않는다)
+        <div
+          className="rt-grab"
+          onPointerDownCapture={(e) => (grabY.current = e.clientY)}
+          onClick={(e) => {
+            if ((e.target as Element).closest('button') || Math.abs(e.clientY - grabY.current) > 6) return
+            if (low) expand()
+            else lower()
+          }}
+        >
+          <SheetHandle exit={false} onUp={low ? expand : undefined} onDown={low ? undefined : lower} expanded={!low} onToggle={low ? expand : lower} />
+        </div>
+      ) : (
+        <SheetHandle onDown={onClose} />
+      )}
+      {!hasResult && (
+        <div className="rf-head">
+          <h2>길찾기</h2>
           <button type="button" className="bm-close" onClick={onClose}>
             닫기
           </button>
-        </span>
-      </div>
+        </div>
+      )}
+
+      {hasResult && result && activeCard && (
+        <>
+          <div className="rt-sum" aria-live="polite">
+            <p className="rt-sum-main">
+              {mode === 'bus' ? (
+                <strong>{pickLabel('bus')}</strong>
+              ) : (
+                <>
+                  <strong>{fmtMin(activeCard.route.time)}</strong>
+                  <span className="rt-sum-dist">· {fmtWalk(activeCard.route.distance)}</span>
+                  <VerdictBadge v={result.res.summary[activeCard.id]?.verdict ?? 'pass'} />
+                </>
+              )}
+            </p>
+            {canGuide && (
+              <button type="button" className="rf-primary rt-g-start" onClick={startGuide}>
+                길 안내 시작
+              </button>
+            )}
+            {mode === 'bus' && low && (
+              <button type="button" className="rt-g-start" onClick={expand}>
+                자세히
+              </button>
+            )}
+            <button type="button" className="bm-close" onClick={onClose}>
+              닫기
+            </button>
+          </div>
+          {(whys.length > 0 || picks.length > 1) && (
+          <div className="rt-head">
+          {(low ? whys.slice(0, 1) : whys).map((w) => {
+            const on = !low && whyOpen === w.key
+            const cls = 'rt-why rt-why-' + w.tone
+            if (!low && w.names.length === 0)
+              return (
+                <p key={w.key} className={cls} role={w.tone === 'alert' ? 'alert' : undefined}>
+                  {w.text}
+                </p>
+              )
+            return (
+              <div key={w.key} className="rt-why-box">
+                <button
+                  type="button"
+                  className={cls}
+                  aria-expanded={on}
+                  onClick={() => {
+                    if (low) {
+                      expand()
+                      setWhyOpen(w.names.length > 0 ? w.key : null)
+                    } else setWhyOpen(on ? null : w.key)
+                  }}
+                >
+                  <span>{w.text}</span>
+                  <span className={'rt-chev' + (on ? ' on' : '')} aria-hidden="true" />
+                </button>
+                {on && (
+                  <ul className="rt-why-list">
+                    {w.names.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
+          {picks.length > 1 && (
+            <div
+              ref={pickRef}
+              className="rt-pick"
+              role="group"
+              aria-label="경로 고르기"
+              onKeyDown={(e) => {
+                const nx = stepCard(picks, sel, e.key)
+                if (!nx) return
+                e.preventDefault()
+                if (nx !== sel) pickCard(nx, true)
+              }}
+            >
+              {picks.map((id) => (
+                <button key={id} type="button" data-card={id} aria-pressed={sel === id} className={sel === id ? 'on' : ''} onClick={() => pickCard(id)}>
+                  {pickLabel(id)}
+                </button>
+              ))}
+            </div>
+          )}
+          </div>
+          )}
+        </>
+      )}
 
       {boot && <p className="rf-notice" role="status">내 위치를 찾고 있어요…</p>}
       {formHidden && !pairId && from && to && (
-        <div className="rt-pair-sum">
+        <div className="rt-pair-sum" hidden={low}>
           <span className="rt-pair-name">
             {from.name} → {to.name}
             {noLoc && <span className="bm-meta rt-noloc" role="status">현재 위치를 못 찾았어요</span>}
@@ -985,7 +1109,7 @@ export default function RoutePanel(props: Props) {
             </button>
           ))}
         </div>}
-        <PlacePicker which="from" label="출발" value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), cancelAuto(), setFrom(p))} onPickMap={() => (cancelAuto(), onPickRequest(picking === 'from' ? null : 'from'))} preset={props.presetFrom ?? undefined} pendingName={autoFrom === 'pending' || autoFrom === 'asking' ? '내 위치' : undefined} pendingNote={autoFrom === 'asking' ? '찾는 중…' : undefined} emptyText={autoFrom === 'failed' ? START_HINT : undefined} />
+        <PlacePicker which="from" label="출발" fold value={from} k={k} allowCurrent active={picking === 'from'} onChange={(p) => (setPairId(null), cancelAuto(), setFrom(p))} onPickMap={() => (cancelAuto(), onPickRequest(picking === 'from' ? null : 'from'))} preset={props.presetFrom ?? undefined} pendingName={autoFrom === 'pending' || autoFrom === 'asking' ? '내 위치' : undefined} pendingNote={autoFrom === 'asking' ? '찾는 중…' : undefined} emptyText={autoFrom === 'failed' ? START_HINT : undefined} />
         {noLoc && <p className="bm-meta rt-noloc" role="status">현재 위치를 못 찾았어요</p>}
         <PlacePicker which="to" label="도착" value={to} k={k} allowCurrent={false} active={picking === 'to'} onChange={(p) => (setPairId(null), setTo(p), autoFromRef.current === 'pending' && void fillFromHere())} onPickMap={() => onPickRequest(picking === 'to' ? null : 'to')} preset={props.presetTo ?? undefined} onQuery={setDestQ} />
         <button type="button" className="rf-primary" disabled={!canRun} onClick={() => from && to && run(from, to, pairId, `${from.name} → ${to.name}`)}>
@@ -994,7 +1118,7 @@ export default function RoutePanel(props: Props) {
       </section>
 
       {pairId && !pairsOpen && from && to ? (
-        <div className="rt-pair-sum">
+        <div className="rt-pair-sum" hidden={low}>
           <span className="rt-pair-name">
             {from.name} → {to.name}
           </span>
@@ -1033,132 +1157,42 @@ export default function RoutePanel(props: Props) {
         </Sentences>
       )}
 
-      {status === 'done' && result && activeCard && (
-        <div ref={topRef} className="rt-top" aria-live="polite">
+      {hasResult && result && activeCard && (
+        <div ref={topRef} className="rt-top" hidden={low}>
           <WeatherBand floodCount={result.wet && wet ? (baseFacts?.flood.length ?? 0) : 0} />
-          <div className="rc-rail" role="group" aria-label="경로 고르기. 옆으로 넘기거나 좌우 화살표 키를 눌러요">
-            <ul
-              ref={railRef}
-              className="rc-list rc-snap"
-              onKeyDown={(e) => {
-                const nx = stepCard(busState === 'none' ? railIds.filter((x) => x !== 'bus') : railIds, sel, e.key)
-                if (!nx) return
-                e.preventDefault()
-                if (nx !== sel) pickCard(nx, true)
-              }}
-            >
-              {railIds.map((id) => {
-                if (id === 'bus') {
-                  const sm = storedTransitSummary(pairId)
-                  const ok = busState !== 'none'
-                  return (
-                    <RouteCard
-                      key="bus"
-                      id="bus"
-                      on={sel === 'bus'}
-                      disabled={!ok}
-                      onPick={() => pickCard('bus')}
-                      time={sm ? fmtMin(sm.time) : '버스 타고'}
-                      sub={nearWalk ? '가까워서 걷는 게 나아요' : sm ? '버스 타고' : ok ? '버스 경로 찾기' : '이 경로는 버스 길을 볼 수 없어요'}
-                    />
-                  )
-                }
-                const c = cards.find((x) => x.id === id)
-                if (!c) return null
-                const sm = result.res.summary[c.id]
-                return (
-                  <RouteCard
-                    key={c.id}
-                    id={c.id}
-                    on={sel === c.id}
-                    onPick={() => pickCard(c.id)}
-                    time={fmtMin(c.route.time)}
-                    sub={`${fmtWalk(c.route.distance)} · ${c.title}`}
-                    chips={chipsOf(c.id)}
-                    foot={sel === c.id ? alongBlock(c.id) : undefined}
-                    badges={
-                      <>
-                        {c.id === 'detour' && <Badge tone="blue">추천</Badge>}
-                        <VerdictBadge v={sm?.verdict ?? 'pass'} />
-                      </>
-                    }
-                  />
-                )
-              })}
-            </ul>
-            <p className="rc-hint" aria-hidden="true">
-              옆으로 넘겨 보세요 · {railIds.indexOf(sel) + 1}/{railIds.length}
-            </p>
-          </div>
+          {chips}
 
           {mode === 'bus' && <TransitView fitSeed={fitN} from={from} to={to} pairId={pairId} obstacles={obstaclesNow} onOverlay={setTransitOv} onOpenHit={openHit} />}
-    
+
           {mode === 'walk' && <>
           {result.fallback && <Sentences as="p" className="rf-warn">이 구간은 길 자료가 부족해서 다른 방식으로 찾았어요. 장애요소를 다 피하지 못할 수 있어요.</Sentences>}
-          {avoidedNames.length > 0 && (
-            <p className="rt-avoid" role="status">
-              <b>{avoidedNames.join(', ')}</b> 때문에 돌아가요
-              <br />
-              <span className="bm-meta">가장 짧은 길보다 {fmtDist(extraM)} 더 걸어요</span>
-            </p>
-          )}
-          {result.res.unresolved.length > 0 && (
-            <p className="rt-alert" role="alert">
-              <b>돌아갈 길이 없어요</b>
-              <br />
-              {result.res.unresolved.map((h) => obstacleName(h.o)).join(', ')}
-              <br />
-              이곳을 피하는 길을 찾지 못했어요.
-            </p>
-          )}
-          {result.res.endpoint.length > 0 && (
-            <p className="rt-warn" role="status">
-              <b>출발·도착 지점 자체가 X예요</b>
-              <br />
-              {result.res.endpoint.map((h) => obstacleName(h.o)).join(', ')}. 길로 피할 수 없어서 돌아가지 않았어요.
-            </p>
-          )}
-          {result.res.untested.length > 0 && <p className="rf-warn">돌아갈 수 있는지 확인하지 못한 곳: {result.res.untested.map((h) => obstacleName(h.o)).join(', ')}</p>}
 
-          {(
-            <>
               {result.own && steps.length > 0 ? (
-                <>
-                  <button type="button" className="rf-primary rt-g-start" onClick={startGuide}>
-                    길 안내 시작
-                  </button>
-                  <p className="bm-meta">걷기 약 {fmtMin(activeCard.route.time)} · {fmtWalk(activeCard.route.distance)}</p>
                   <Tl>
                     {steps.map((st, i) => {
                       const tx = stepText(st)
+                      const near = st.notes.filter((n) => n.kind === 'hit')
+                      const on = notesOpen === i
                       return (
                         <TlStep key={i} color={st.kind === 'crossing' || st.kind === 'stairs' ? 'var(--text-sub)' : WALK_COLOR} title={<><span className="rt-s-glyph" aria-hidden="true">{stepGlyph(st)}</span> {tx.title}</>} sub={tx.sub} last={i === steps.length - 1} end={st.kind === 'arrive'}>
-                          {st.notes.map((n, j) =>
-                            n.kind === 'avoid' ? (
-                              <p key={j} className="tl-note rt-s-avoid">
-                                {obstacleName(n.o)} 때문에 돌아가요
-                              </p>
-                            ) : (
-                              <button key={j} type="button" className="tl-hit tl-hit-end" onClick={() => openObstacle(n.o)}>
-                                <span className="tl-hit-name">{obstacleName(n.o)}</span>
-                                <span className="tl-hit-sub">{n.role === 'X' ? '지나가기 어려워요' : '지날 때 주의해요'}</span>
+                          {near.length === 1 && noteBtn(near[0], 0)}
+                          {near.length > 1 && (
+                            <>
+                              <button type="button" className="tl-more" aria-expanded={on} onClick={() => setNotesOpen(on ? null : i)}>
+                                <span>{summarizeNear(near.map((n) => obstacleName(n.o)))}</span>
+                                <span className={'rt-chev' + (on ? ' on' : '')} aria-hidden="true" />
                               </button>
-                            ),
+                              {on && near.map(noteBtn)}
+                            </>
                           )}
-                          {st.kind === 'arrive' && finalSummary && finalSummary.entryDest.map((h) => (
-                            <button key={h.o.id} type="button" className="tl-hit tl-hit-end" onClick={() => openHit(h)}>
-                              <span className="tl-hit-name">{obstacleName(h.o)}</span>
-                              <span className="tl-hit-sub">{h.o.rating === 'X' ? '들어가기 어려워요' : '들어갈 때 주의해요'}</span>
-                            </button>
-                          ))}
+                          {st.kind === 'arrive' && entryBtns}
                         </TlStep>
                       )
                     })}
                   </Tl>
-                </>
               ) : (
               <Tl>
-                <TlStep color={WALK_COLOR} title={<>걷기 약 {fmtMin(activeCard.route.time)} · {fmtWalk(activeCard.route.distance)}</>} sub={result.start.name === result.end.name ? `${result.start.name} 근처` : `${result.start.name}에서 ${result.end.name}까지`} />
+                <TlStep color={WALK_COLOR} title="출발" sub={result.start.name} />
                 {[...passHits]
                   .sort((x, y) => x.atM - y.atM)
                   .map((h) => (
@@ -1177,13 +1211,7 @@ export default function RoutePanel(props: Props) {
                     />
                   ))}
                 <TlStep color="var(--text-sub)" last end title="도착" sub={result.end.name}>
-                  {finalSummary &&
-                    finalSummary.entryDest.map((h) => (
-                      <button key={h.o.id} type="button" className="tl-hit tl-hit-end" onClick={() => openHit(h)}>
-                        <span className="tl-hit-name">{obstacleName(h.o)}</span>
-                        <span className="tl-hit-sub">{h.o.rating === 'X' ? '들어가기 어려워요' : '들어갈 때 주의해요'}</span>
-                      </button>
-                    ))}
+                  {entryBtns}
                 </TlStep>
               </Tl>
               )}
@@ -1191,13 +1219,10 @@ export default function RoutePanel(props: Props) {
               <details className="rt-more">
                 <summary>자세히 보기</summary>
                 <div className="rt-more-in">
-                  {finalSummary && finalSummary.entryMid.length > 0 && (
-                    <Sentences as="p" className="bm-meta">{`길 중간에 들어가기 불편한 건물 ${finalSummary.entryMid.length}곳이 있어요. 지나가는 데는 영향이 없어요.`}</Sentences>
-                  )}
+                  {alongBlock}
                   {finalSummary && finalSummary.stops.length > 0 && (
                     <section className="rt-sec">
-                      <h3>버스 타기 불편한 정류장 {finalSummary.boardingCount}곳</h3>
-                      <Sentences as="p" className="bm-meta">걸어서 지나가는 건 막히지 않아요. 이 정류장에서 버스를 타고 내리기가 불편하다는 뜻이에요.</Sentences>
+                      <h3>타고 내리기 불편한 정류장 {finalSummary.boardingCount}곳</h3>
                       <ul className="rt-hits">
                         {finalSummary.stops.map((s) => (
                           <li key={s.o.id}>
@@ -1205,7 +1230,7 @@ export default function RoutePanel(props: Props) {
                               type="button"
                               className="lr"
                               onClick={() => {
-                                setCollapsed(true)
+                                setOpen(false)
                                 if (s.o.origin === 'report') onOpenReport(s.o.id)
                                 else onOpenSeed(s.o.id)
                               }}
@@ -1214,7 +1239,7 @@ export default function RoutePanel(props: Props) {
                                 {ROLE_STYLE.B.glyph}
                               </i>
                               <span className="lr-main">
-                                <span className="lr-title">{obstacleName(s.o)}</span>
+                                <span className="lr-title">{bareName(obstacleName(s.o))}</span>
                                 <span className="lr-sub">
                                   {WHERE[s.where]} · {s.distM}m
                                 </span>
@@ -1230,8 +1255,6 @@ export default function RoutePanel(props: Props) {
                   {extrasBlock}
                 </div>
               </details>
-            </>
-          )}
           </>}
         </div>
       )}

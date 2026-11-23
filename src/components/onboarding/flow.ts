@@ -1,34 +1,33 @@
 // 초기 설정 흐름의 순수 로직(화면 없음): 어느 화면부터 시작할지, 진행 점, 저장 형식.
 import type { BenefitCategory, BenefitPrefs, WheelchairUse } from '../../lib/benefits'
 
-export type Screen = 'welcome' | 'device' | 'install' | 'lang' | 'choose' | 'name' | 'pin' | 'confirm' | 'mobility' | 'interests' | 'view' | 'done'
+export type Screen = 'welcome' | 'device' | 'install' | 'name' | 'pin' | 'confirm' | 'mobility' | 'interests' | 'view'
 export type Mobility = 'manual' | 'power' | 'companion' | 'none' | 'skip'
 export type Profile = { mobility: Mobility; interests: BenefitCategory[] }
 
 export const ONBOARDED_KEY = 'wheelmap.onboarded'
 export const PROFILE_KEY = 'wheelmap.profile'
-export const SCREENS: Screen[] = ['welcome', 'device', 'install', 'lang', 'choose', 'name', 'pin', 'confirm', 'mobility', 'interests', 'view', 'done']
+export const SCREENS: Screen[] = ['welcome', 'device', 'install', 'name', 'pin', 'confirm', 'mobility', 'interests', 'view']
 export const DEFAULT_PROFILE: Profile = { mobility: 'skip', interests: [] }
 
-/** 앱을 열 때 어느 화면부터 보일지. null이면 초기 설정 없이 바로 앱. */
+/** 앱을 열 때 어느 화면부터 보일지. null이면 바로 앱. 로그인돼 있으면 초기 설정 여부와 상관없이 바로 앱이다. */
 export function startScreen(s: { loggedIn: boolean; onboarded: boolean }): Screen | null {
-  if (!s.loggedIn) return 'welcome'
-  return s.onboarded ? null : 'mobility'
+  return s.loggedIn ? null : 'welcome'
 }
 
-/** 첫 화면의 "시작하기!" 다음 화면. 이미 홈 화면 앱으로 열려 있으면 기기·설치 안내를 건너뛴다. */
-export function afterWelcome(standalone: boolean): Screen {
-  return standalone ? 'lang' : 'device'
+/** 첫 화면의 "시작하기!" 다음 화면 */
+export function afterWelcome(): Screen {
+  return 'name'
 }
 
-/** 기기를 고른 뒤 화면. 고르지 않고 건너뛰면 설치 안내 없이 언어 선택으로 간다. */
-export function afterDevice(device: 'ios' | 'android' | null): Screen {
-  return device ? 'install' : 'lang'
+/** 「홈 화면에 추가」 안내를 열 때 첫 화면. 기기를 알면 바로 안내, 모르면(PC 등) 기기부터 고른다. */
+export function installStart(device: 'ios' | 'android' | null): Screen {
+  return device ? 'install' : 'device'
 }
 
-/** 로그인·가입에 성공한 뒤 이어질 화면. null이면 이미 초기 설정을 마친 기기라 바로 앱. */
-export function afterAuth(onboarded: boolean): Screen | null {
-  return onboarded ? null : 'mobility'
+/** 로그인·가입에 성공한 뒤 이어질 화면. 언제나 null(바로 앱). 이동 방식·관심·보기는 내 정보에서 바꾼다. */
+export function afterAuth(): Screen | null {
+  return null
 }
 
 /** 게이트를 건너뛰는 화면(개발·행정)인지 */
@@ -37,23 +36,21 @@ export function isSkipHash(hash: string, skip: readonly string[]): boolean {
   return skip.includes(seg)
 }
 
-/** 개발 서버 전용 미리보기 해시: #/onboarding-preview?step=done */
+/** 개발 서버 전용 미리보기 해시: #/onboarding-preview?step=name (없는 단계는 name) */
 export function parsePreview(hash: string): { on: boolean; step: Screen } {
   const [p, q = ''] = hash.replace(/^#/, '').split('?')
-  if (p.replace(/^\/+/, '') !== 'onboarding-preview') return { on: false, step: 'lang' }
+  if (p.replace(/^\/+/, '') !== 'onboarding-preview') return { on: false, step: 'name' }
   const step = new URLSearchParams(q).get('step') as Screen | null
-  return { on: true, step: step && SCREENS.includes(step) ? step : 'lang' }
+  return { on: true, step: step && SCREENS.includes(step) ? step : 'name' }
 }
 
-/** 진행 점 5개(언어·계정·이동·관심·보기). 완료 화면은 점이 없다(-1). */
-export const DOT_COUNT = 5
+/** 진행 점 3개(이동·관심·보기). 내 정보에서 다시 여는 설정에만 보인다. 그 밖은 점이 없다(-1). */
+export const DOT_COUNT = 3
 export function dotIndex(s: Screen): number {
   switch (s) {
-    case 'lang': return 0
-    case 'choose': case 'name': case 'pin': case 'confirm': return 1
-    case 'mobility': return 2
-    case 'interests': return 3
-    case 'view': return 4
+    case 'mobility': return 0
+    case 'interests': return 1
+    case 'view': return 2
     default: return -1
   }
 }
@@ -123,3 +120,6 @@ export function nameHint(raw: string): string | null {
 
 /** 다른 화면(내 정보 탭의 AccountCard)이 초기 설정을 다시 열 때 보내는 이벤트 */
 export const ONBOARDING_EVENT = 'wheelmap:onboarding'
+/** 「홈 화면에 추가」 안내(기기·설치 화면)를 열 때 보내는 이벤트(홈의 띠, 내 정보) */
+export const INSTALL_EVENT = 'wheelmap:install-guide'
+export const INSTALL_HINT_KEY = 'wheelmap.installHintClosed'

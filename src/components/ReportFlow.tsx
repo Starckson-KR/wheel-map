@@ -9,10 +9,11 @@ import { SAMPLE_SCENES, markSampleReport, sampleBlob, type SampleSceneId } from 
 import { go as navGo } from '../lib/nav'
 import { findDuplicates } from '../lib/duplicates'
 import { reportNo } from '../lib/externalStatus'
+import { copyNo } from '../lib/copyNo'
 import { OTHER_KIND, OTHER_KIND_MAX, REPORT_LOCATION_CHOICES, composeKind } from '../lib/agencyGuide'
 import { resizeImage, savePhoto } from '../lib/photoStore'
-import { CATEGORY_LABEL, REPORT_TYPES } from '../lib/reportTypes'
-import { newReportId, nowMs, useReports, userName } from '../lib/reportStore'
+import { REPORT_TYPES } from '../lib/reportTypes'
+import { newReportId, nowMs, useReports } from '../lib/reportStore'
 import type { Barrier } from '../types'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { prefersCalm } from '../lib/viewPrefs'
@@ -42,16 +43,16 @@ type Props = {
 }
 
 const GPS_ERR: Record<number, string> = {
-  1: '위치 권한이 꺼져 있어요. 브라우저에서 위치를 허용하거나 "지도에서 선택"을 써 주세요.',
-  2: '현재 위치를 확인할 수 없어요. "지도에서 선택"을 써 주세요.',
-  3: '위치를 확인하는 데 시간이 너무 오래 걸렸어요. 다시 시도하거나 "지도에서 선택"을 써 주세요.',
+  1: '위치 권한이 꺼져 있으니 "지도에서 선택"을 써 주세요.',
+  2: '현재 위치를 확인할 수 없으니 "지도에서 선택"을 써 주세요.',
+  3: '위치 확인이 오래 걸리니 "지도에서 선택"을 써 주세요.',
 }
 
-const STEP_Q: Record<Step, { q: string; sub?: string }> = {
-  1: { q: '어떤 문제를 만났나요?', sub: '가장 가까운 유형을 하나 골라 주세요' },
-  2: { q: '어디에 있나요?', sub: '위치가 정확할수록 확인이 빨라요' },
-  3: { q: '현장을 알려 주세요', sub: '사진과 설명이 있으면 확인하기 쉬워요' },
-  4: { q: '이 내용으로 등록할까요?' },
+const STEP_Q: Record<Step, string> = {
+  1: '어떤 문제를 만났나요?',
+  2: '어디에 있나요?',
+  3: '현장을 알려 주세요',
+  4: '이 내용으로 등록할까요?',
 }
 
 // 사진 임시 번호(화면 표시용). 렌더 밖에서 만들어 순수성 규칙을 지킨다.
@@ -61,20 +62,9 @@ const newPhotoId = () => `p${++photoSeq}-${crypto.randomUUID()}`
 
 const num = (s: string) => (s.trim() === '' ? undefined : Number(s))
 
-// 접수번호 복사: 되면 짧은 알림, 막혀 있으면 직접 복사하라고 알린다.
-async function copyNo(no: string) {
-  try {
-    await navigator.clipboard.writeText(no)
-    toast('접수번호를 복사했어요')
-  } catch {
-    toast('복사하지 못했어요. 번호를 눌러 선택해 주세요')
-  }
-}
-
 export default function ReportFlow({ location, onLocation, onPickStart, hidden, seeds, onClose, onOpenReport, initialType = null, skipType = false }: Props) {
   const reports = useReports((s) => s.reports)
   const addReport = useReports((s) => s.addReport)
-  const userId = useReports((s) => s.userId)
 
   const [presetType] = useState<string | null>(() => (initialType && REPORT_TYPES.some((t) => t.type === initialType) ? initialType : null))
   const [step, setStep] = useState<Step>(skipType && presetType ? 2 : 1)
@@ -94,6 +84,8 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [sampleBusy, setSampleBusy] = useState(false)
+  const [measOpen, setMeasOpen] = useState(false) // 「직접 잰 값」 펼침(기본 접힘)
+  const trial = reports.some((r) => r.demo || r.demoSet) // 체험 데이터를 채운 상태에서만 샘플 사진 버튼을 보인다
   const [done, setDone] = useState<{ id: string; merged: boolean; photoFailed: boolean } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const photosRef = useRef(photos)
@@ -202,7 +194,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const locate = () => {
     setLocSource('gps')
     if (!('geolocation' in navigator)) {
-      setGpsMsg('이 기기에서는 현재 위치를 쓸 수 없어요. "지도에서 선택"을 써 주세요.')
+      setGpsMsg('이 기기에서는 현재 위치를 쓸 수 없으니 "지도에서 선택"을 써 주세요.')
       return
     }
     setGpsBusy(true)
@@ -211,7 +203,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
       (pos) => {
         setGpsBusy(false)
         onLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        setGpsMsg(`현재 위치를 가져왔어요(오차 약 ${Math.round(pos.coords.accuracy)}m). 다르면 "지도에서 선택"으로 옮길 수 있어요. 이동 경로는 저장하지 않아요.`)
+        setGpsMsg(`오차 약 ${Math.round(pos.coords.accuracy)}m · 이동 경로는 저장하지 않아요.`)
       },
       (err) => {
         setGpsBusy(false)
@@ -250,8 +242,8 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
   const validateLocation = () => {
     const errs: Record<string, string> = {}
-    if (!location) errs.location = '위치를 정해 주세요. "현재 위치"나 "지도에서 선택"을 눌러 주세요.'
-    if (!locationChoice) errs.locationKind = '어떤 곳인지 골라 주세요. 소관 기관을 안내하는 데 써요.'
+    if (!location) errs.location = '위치를 정해 주세요.'
+    if (!locationChoice) errs.locationKind = '어떤 곳인지 골라 주세요.'
     else if (locationChoice === OTHER_KIND && !locationOther.trim()) errs.locationKind = '어떤 곳인지 직접 적어 주세요.'
     return failWith(errs)
   }
@@ -259,7 +251,6 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const validateDetail = () => {
     const errs: Record<string, string> = {}
     if (photosRef.current.length < 1 && photos.length < 1) errs.photos = '사진을 1장 이상 올려 주세요.'
-    if (!descRef.current.trim()) errs.description = '설명을 적어 주세요.'
     const w = fieldErr.widthM(widthM)
     const c = fieldErr.curbCm(curbCm)
     if (w) errs.widthM = w
@@ -319,7 +310,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
   const q = STEP_Q[step]
 
   return (
-    <div ref={panelRef} className="rf" role="dialog" aria-modal="true" aria-label="장애요소 제보하기" hidden={hidden}>
+    <div ref={panelRef} className="rf" role="dialog" aria-modal="true" aria-label="제보하기" hidden={hidden}>
       <div className="rf-head">
         {!done && step > 1 && (
           <button type="button" className="bm-back" onClick={() => go((step - 1) as Step)} disabled={busy} aria-label="이전 단계">
@@ -351,38 +342,32 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 복사
               </button>
             </div>
-            <Sentences as="p">{done.merged
-                ? '기존 건의 제보 목록에 추가됐어요.'
-                : '지금은 "검증 대기" 상태예요. 다른 시민이 확인하면 지도에 나타나요.'}</Sentences>
-            {!done.merged && (
-              <>
-                <ol className="rv-steps" aria-label="다음에 일어나는 일">
-                  <li>
-                    <span className="n" aria-hidden="true">1</span>
-                    <span>
-                      <strong>다른 시민 확인</strong>
-                      <span className="t">다른 시민 {VOTES_REQUIRED}명이 현장이 맞다고 확인하면 검증돼요.</span>
-                    </span>
-                  </li>
-                  <li>
-                    <span className="n" aria-hidden="true">2</span>
-                    <span>
-                      <strong>기관 접수</strong>
-                      <span className="t">검증된 제보는 담당 기관에 접수하는 방법을 안내해요.</span>
-                    </span>
-                  </li>
-                  <li>
-                    <span className="n" aria-hidden="true">3</span>
-                    <span>
-                      <strong>처리 결과 알림</strong>
-                      <span className="t">기관이 고치면 알려 드리고, 시민이 다시 확인해요.</span>
-                    </span>
-                  </li>
-                </ol>
-                <Sentences as="p" className="rv-tip">
-                  다른 리뷰어가 내 제보를 확인해 줄 수 있어요.
-                </Sentences>
-              </>
+            {done.merged ? (
+              <Sentences as="p">기존 건의 제보 목록에 추가됐어요.</Sentences>
+            ) : (
+              <ol className="rv-steps" aria-label="다음에 일어나는 일">
+                <li>
+                  <span className="n" aria-hidden="true">1</span>
+                  <span>
+                    <strong>다른 시민 확인</strong>
+                    <span className="t">다른 시민 {VOTES_REQUIRED}명이 현장이 맞다고 하면 확인 완료가 돼요.</span>
+                  </span>
+                </li>
+                <li>
+                  <span className="n" aria-hidden="true">2</span>
+                  <span>
+                    <strong>기관 접수</strong>
+                    <span className="t">확인된 제보는 담당 기관에 접수하는 방법을 안내해요.</span>
+                  </span>
+                </li>
+                <li>
+                  <span className="n" aria-hidden="true">3</span>
+                  <span>
+                    <strong>처리 결과 알림</strong>
+                    <span className="t">기관이 고치면 알려 드리고, 시민이 다시 확인해요.</span>
+                  </span>
+                </li>
+              </ol>
             )}
             {done.photoFailed && <Sentences as="p" className="rf-warn">일부 사진은 이 브라우저에 저장하지 못했어요. 제보 기록은 저장됐어요.</Sentences>}
           </div>
@@ -398,63 +383,54 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 navGo('#/report?section=mine')
               }}
             >
-              내 제보 현황
+              내 제보
             </button>
           </div>
         </div>
       ) : (
         <div className="rf-body">
           <div key={step}>
-            <h2 className="rf-q">{q.q}</h2>
-            {q.sub && <p className="rf-q-sub">{q.sub}</p>}
+            <h2 className="rf-q">{q}</h2>
           </div>
 
           {step === 1 && (
             <>
-              {presetType && !skipType && type === presetType && (
-                <Sentences as="p" className="bm-meta rf-preset" role="status">
-                  미리 고른 유형이에요. 다르면 바꿔 주세요.
-                </Sentences>
-              )}
-              {(['fixed', 'temporary'] as const).map((cat) => (
-                <fieldset key={cat} className="rf-group">
-                  <legend>
-                    {CATEGORY_LABEL[cat]}
-                  </legend>
-                  <div className="rf-types">
-                    {REPORT_TYPES.filter((t) => t.category === cat).map((t) => (
-                      <m.button
-                        key={t.type}
-                        type="button"
-                        className={'rf-type mt' + (type === t.type ? ' on' : '')}
-                        aria-pressed={type === t.type}
-                        whileTap="press"
-                        variants={{ press: { scale: TAP } }}
-                        transition={SPRING.press}
-                        onClick={() => {
-                          haptic('tick')
-                          setType(t.type)
-                        }}
-                      >
-                        {/* 누르면 아이콘이 커졌다가 손을 뗄 때 튕겨 돌아온다(C2) */}
-                        <m.span className="rf-icon" aria-hidden="true" variants={{ press: { scale: 1.25 } }} transition={SPRING.pop}>
-                          <ReportTypeIcon type={t.type} size={22} />
-                        </m.span>
-                        <span className="rf-type-text">
-                          <strong>{t.type}</strong>
-                          <span>{t.desc}</span>
-                        </span>
-                        {type === t.type && <span className="rf-check">선택했어요</span>}
-                      </m.button>
-                    ))}
-                  </div>
-                </fieldset>
-              ))}
-              <div className="rf-actions">
-                <button type="button" className="rf-primary" disabled={!type} onClick={() => go(2)}>
-                  다음
-                </button>
+              <div className="rf-types rf-types--2" role="group" aria-label="문제 유형">
+                {REPORT_TYPES.map((t) => (
+                  <m.button
+                    key={t.type}
+                    type="button"
+                    className={'rf-type mt' + (type === t.type ? ' on' : '')}
+                    aria-pressed={type === t.type}
+                    whileTap="press"
+                    variants={{ press: { scale: TAP } }}
+                    transition={SPRING.press}
+                    onClick={() => {
+                      // 고르면 바로 위치 단계로 넘어간다
+                      haptic('tick')
+                      setType(t.type)
+                      go(2)
+                    }}
+                  >
+                    {/* 누르면 아이콘이 커졌다가 손을 뗄 때 튕겨 돌아온다(C2) */}
+                    <m.span className="rf-icon" aria-hidden="true" variants={{ press: { scale: 1.25 } }} transition={SPRING.pop}>
+                      <ReportTypeIcon type={t.type} size={22} />
+                    </m.span>
+                    <span className="rf-type-text">
+                      <strong>{t.type}</strong>
+                    </span>
+                    {type === t.type && <span className="rf-check">선택했어요</span>}
+                  </m.button>
+                ))}
               </div>
+              {/* 이미 고른 유형이 있을 때(미리 고름·이전으로 돌아옴)만 그대로 넘어가는 버튼을 둔다 */}
+              {type && (
+                <div className="rf-actions">
+                  <button type="button" className="rf-primary" onClick={() => go(2)}>
+                    다음
+                  </button>
+                </div>
+              )}
             </>
           )}
 
@@ -484,44 +460,48 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   className={'rf-pos' + (location ? ' ok' : '')}
                   role="status"
                   aria-invalid={!!errors.location}
-                  aria-describedby={errors.location ? 'rf-e-location' : undefined}
+                  aria-describedby={errors.location && !location ? (gpsMsg && locSource === 'gps' ? 'rf-gps-msg' : 'rf-e-location') : undefined}
                 >
                   {location ? `위치를 정했어요 · ${placeText}` : '아직 위치를 정하지 않았어요'}
                 </div>
-                {errors.location && !location && (
+                {/* 위치를 못 잡은 까닭(권한 꺼짐 등)이 떠 있으면 그 한 줄만 보인다 */}
+                {errors.location && !location && !(gpsMsg && locSource === 'gps') && (
                   <p id="rf-e-location" className="rf-err" role="alert">
                     <Sentences as="span">{errors.location}</Sentences>
                   </p>
                 )}
                 {gpsMsg && (
-                  <Sentences as="p" className={locSource === 'gps' && !location ? 'rf-warn' : 'bm-meta'} role="status">
+                  <Sentences as="p" id="rf-gps-msg" className={locSource === 'gps' && !location ? 'rf-warn' : 'bm-meta'} role="status">
                     {gpsMsg}
                   </Sentences>
                 )}
               </section>
 
               <section className="rf-sec">
-                <label className="rf-field">
-                  어떤 곳인가요?
-                  <select
-                    id="rf-f-locationKind"
-                    value={locationChoice}
-                    aria-invalid={!!errors.locationKind}
-                    aria-describedby={errors.locationKind ? 'rf-e-locationKind' : undefined}
-                    onChange={(e) => {
-                      setLocationChoice(e.target.value)
-                      if (e.target.value && e.target.value !== OTHER_KIND) setErr('locationKind', '')
-                    }}
-                  >
-                    <option value="">골라 주세요</option>
-                    {REPORT_LOCATION_CHOICES.map((k) => (
-                      <option key={k} value={k}>
-                        {k}
-                      </option>
-                    ))}
-                    <option value={OTHER_KIND}>기타(직접 입력)</option>
-                  </select>
-                </label>
+                <h3 id="rf-kind-h">어떤 곳인가요?</h3>
+                <div
+                  id="rf-f-locationKind"
+                  tabIndex={-1}
+                  className="rf-kinds"
+                  role="group"
+                  aria-labelledby="rf-kind-h"
+                  aria-describedby={errors.locationKind ? 'rf-e-locationKind' : undefined}
+                >
+                  {[...REPORT_LOCATION_CHOICES, OTHER_KIND].map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      className={locationChoice === k ? 'on' : ''}
+                      aria-pressed={locationChoice === k}
+                      onClick={() => {
+                        setLocationChoice(k)
+                        if (k !== OTHER_KIND || locationOther.trim()) setErr('locationKind', '')
+                      }}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
                 {locationChoice === OTHER_KIND && (
                   <input
                     id="rf-f-locationOther"
@@ -537,12 +517,10 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     }}
                   />
                 )}
-                {errors.locationKind ? (
+                {errors.locationKind && (
                   <p id="rf-e-locationKind" className="rf-err" role="alert">
                     <Sentences as="span">{errors.locationKind}</Sentences>
                   </p>
-                ) : (
-                  <span className="bm-meta">어느 기관이 맡는 곳인지 안내하는 데 써요</span>
                 )}
               </section>
 
@@ -587,9 +565,8 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     <input className="rf-file" type="file" accept="image/*" capture="environment" multiple onChange={onFiles} aria-invalid={!!errors.photos} aria-describedby={errors.photos ? 'rf-e-photos' : undefined} />
                   </label>
                 )}
-                {photos.length < PHOTO_MAX_COUNT && (
+                {trial && photos.length < PHOTO_MAX_COUNT && (
                   <div className="rv-sample">
-                    <Sentences as="p">사진이 없으면 샘플 그림으로 해 볼 수 있어요. 제보에 &quot;샘플 사진&quot;이라고 표시돼요.</Sentences>
                     <div className="rv-sample-btns">
                       {SAMPLE_SCENES.map((s) => (
                         <button key={s.id} type="button" disabled={sampleBusy} onClick={() => addSample(s.id)}>
@@ -613,31 +590,17 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
 
               <section className="rf-sec">
                 <label className="rf-field">
-                  <span className="rf-field-h">설명</span>
-                  <textarea
-                    id="rf-f-description"
-                    rows={3}
-                    value={description}
-                    aria-invalid={!!errors.description}
-                    aria-describedby={errors.description ? 'rf-e-description' : undefined}
-                    onChange={(e) => {
-                      setDescription(e.target.value)
-                      if (e.target.value.trim()) setErr('description', '')
-                    }}
-                    placeholder="예: 보도 가운데 전봇대가 있어 휠체어가 지나갈 수 없어요"
-                  />
+                  <span className="rf-field-h">
+                    설명 <span className="bm-meta">선택</span>
+                  </span>
+                  <textarea id="rf-f-description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
                 </label>
-                {errors.description && (
-                  <p id="rf-e-description" className="rf-err" role="alert">
-                    {errors.description}
-                  </p>
-                )}
               </section>
 
-              <section className="rf-sec">
-                <h3>
+              <details className="rf-fold" open={measOpen || !!errors.widthM || !!errors.curbCm} onToggle={(e) => setMeasOpen(e.currentTarget.open)}>
+                <summary>
                   직접 잰 값 <span className="bm-meta">선택</span>
-                </h3>
+                </summary>
                 <RulerSlider spec={WIDTH_RULER} label="폭" value={widthM} onChange={setWidthM} />
                 <RulerSlider spec={CURB_RULER} label="턱 높이" value={curbCm} onChange={setCurbCm} />
                 <div className="rf-two">
@@ -688,7 +651,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                     )}
                   </label>
                 </div>
-              </section>
+              </details>
 
               <div className="rf-actions">
                 <button
@@ -736,7 +699,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 <dl className="rf-sum">
                   <dt>유형</dt>
                   <dd>
-                    {info.type} ({CATEGORY_LABEL[info.category]})
+                    {info.type}
                   </dd>
                   <dt>위치</dt>
                   <dd>
@@ -746,8 +709,12 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   <dd>
                     {photos.length}장{photos.some((p) => p.sample) && ' (샘플 사진)'}
                   </dd>
-                  <dt>설명</dt>
-                  <dd>{description.trim()}</dd>
+                  {description.trim() && (
+                    <>
+                      <dt>설명</dt>
+                      <dd>{description.trim()}</dd>
+                    </>
+                  )}
                   {(num(widthM) !== undefined || num(curbCm) !== undefined) && (
                     <>
                       <dt>직접 잰 값</dt>
@@ -763,8 +730,6 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                       <dd><Sentences as="span">{`등록하고 ${TEMP_VALID_HOURS}시간 동안이에요. 지나면 다시 확인해야 해요.`}</Sentences></dd>
                     </>
                   )}
-                  <dt>작성자</dt>
-                  <dd>{userName(userId)}</dd>
                 </dl>
               </section>
               <div className="rf-actions">

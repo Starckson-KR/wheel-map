@@ -32,7 +32,7 @@ export default function PhotoGallery({ barrierId }: { barrierId: string }) {
           </button>
         ))}
       </div>
-      <span className="bm-meta">{photos.length}장 · 누르면 크게 볼 수 있어요.</span>
+      {photos.length > 1 && <span className="bm-meta">{photos.length}장</span>}
       {current && (
         <div className="bm-lightbox" role="dialog" aria-modal="true" aria-label="사진 확대" onClick={() => setOpenIndex(null)}>
           <figure onClick={(e) => e.stopPropagation()}>

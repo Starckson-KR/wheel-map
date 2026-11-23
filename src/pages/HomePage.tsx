@@ -6,6 +6,7 @@ import { useRiseOnce } from '../lib/useRiseOnce'
 import { FADE, FADE_OUT, SPRING } from '../lib/motionTokens'
 import DemoTools, { MockStrip } from '../components/DemoTools'
 import ViewSettings from '../components/ViewSettings'
+import { DATA_SOURCES } from '../lib/dataSources'
 import DevAdmin from '../components/DevAdmin'
 import CityConsentRow from '../components/CityConsentRow'
 import PrivacyNotice from '../components/PrivacyNotice'
@@ -29,6 +30,7 @@ import XmasSnow, { type SnowHandle } from '../components/XmasSnow'
 import { Wordmark } from '../components/Wordmark'
 import { usePullRefresh } from '../components/usePullRefresh'
 import { WeatherLine } from '../components/WeatherBits'
+import InstallBanner from '../components/onboarding/InstallBanner'
 
 // 전체메뉴: 묶음별로. to가 주소면 그 화면으로, act면 시트·안내를 연다.
 type MenuItem = { id: string; icon: string; label: string; to?: string; act?: 'settings' | 'guide' }
@@ -39,8 +41,8 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
     { id: 'progress', icon: 'check', label: '개선 현황', to: TO.progress },
   ] },
   { title: '제보', items: [
-    { id: 'new', icon: 'report', label: '문제 제보하기', to: TO.newReport },
-    { id: 'mine', icon: 'list', label: '내 제보 현황', to: TO.report },
+    { id: 'new', icon: 'report', label: '제보하기', to: TO.newReport },
+    { id: 'mine', icon: 'list', label: '내 제보', to: TO.report },
     { id: 'agency', icon: 'building', label: '담당 기관 안내', to: TO.agency },
   ] },
   { title: '혜택·참여', items: [
@@ -134,7 +136,7 @@ declare const __BUILD_HASH__: string
 declare const __BUILD_TIME__: string
 
 const BARRIERS = loadBarriers()
-// 설정 시트: 화면 설정과 시연 도구(기존 컴포넌트 재사용), 행정 화면 입구
+// 설정 시트: 화면 설정, 접어 둔 「데이터 출처」와 「발표용」(시연 도구·행정 화면 입구·버전)
 function SettingsSheet({ onClose }: { onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const resetAll = useReports((s) => s.resetAll)
@@ -166,19 +168,32 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
             <span>화면 설정<small>다크·라이트, 앱·PC 보기</small></span>
             <ViewSettings row />
           </li>
-          <li>
-            <span>시연 도구<small>발표용 설정이에요</small></span>
-            <DemoTools row page="map" onReset={onReset} barriers={BARRIERS} />
-          </li>
-          <li>
-            <span>행정 화면<small>담당 공무원용 화면이에요</small></span>
-            <button type="button" className="hm-tool hm-tool-row" aria-label="행정 화면 열기" onClick={() => { onClose(); go(TO.admin) }}><Icon name="chev" size={18} /></button>
-          </li>
           <CityConsentRow />
           <PrivacyNotice />
           <DevAdmin />
         </ul>
-        <p className="ms-build">버전 {__BUILD_HASH__} · {__BUILD_TIME__}</p>
+        <details className="ms-fold">
+          <summary>데이터 출처<span className="hp-nchev"><Icon name="chev" size={16} /></span></summary>
+          <ul className="ms-src">
+            {DATA_SOURCES.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+        </details>
+        <details className="ms-fold">
+          <summary>발표용<span className="hp-nchev"><Icon name="chev" size={16} /></span></summary>
+          <ul className="pg-set">
+            <li>
+              <span>시연 도구</span>
+              <DemoTools row page="map" onReset={onReset} barriers={BARRIERS} />
+            </li>
+            <li>
+              <span>행정 화면<small>담당 공무원용 화면이에요</small></span>
+              <button type="button" className="hm-tool hm-tool-row" aria-label="행정 화면 열기" onClick={() => { onClose(); go(TO.admin) }}><Icon name="chev" size={18} /></button>
+            </li>
+          </ul>
+          <p className="ms-build">버전 {__BUILD_HASH__} · {__BUILD_TIME__}</p>
+        </details>
       </div>
     </>
   )
@@ -305,6 +320,7 @@ export default function HomePage() {
       <div className="pg-scroll hp-scroll" ref={scrollRef}>
         <div className="pg-col hp" ref={bodyRef}>
           <MockStrip />
+          <InstallBanner />
           <header className="pg-top">
             <h1 className="pg-brand">
               <button type="button" aria-label="이의있음 홈" onClick={(e) => { go(TO.home); onLogoTap(e.currentTarget) }}><Wordmark decorative /></button>

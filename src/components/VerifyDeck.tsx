@@ -10,6 +10,7 @@ import { DEMO_USERS, useReports } from '../lib/reportStore'
 import { snack, toast } from '../lib/uiStore'
 import { usePhotoUrls } from '../lib/usePhotoUrls'
 import { prefersCalm } from '../lib/viewPrefs'
+import Icon from './Icon'
 import { REQUIRE_VIEW_BEFORE_VOTE, TILT_MAX_DEG, cardTilt, deckEnabled, deckReports, stampLevel, stampSide } from '../lib/verifyDeck'
 import type { Report } from '../types'
 import '../styles/interact-verify.css'
@@ -25,7 +26,7 @@ function CardBody({ r, shown }: { r: Report; shown: boolean }) {
           <img src={urls[0]} alt={`제보 사진 (${r.type})`} draggable={false} />
         ) : (
           <span className="vd-nophoto" aria-hidden={!shown}>
-            {shown ? (r.photos.length > 0 ? '사진을 불러오고 있어요' : '사진이 없는 제보예요') : '사진·위치 보기를 눌러 주세요'}
+            {shown ? (r.photos.length > 0 ? '사진을 불러오고 있어요' : r.demo || r.demoSet ? '체험용 제보라 사진이 없어요' : '사진이 없는 제보예요') : '사진·위치 보기를 눌러 주세요'}
           </span>
         )}
         {r.photos.length > 1 && shown && <span className="vd-count">사진 {r.photos.length}장</span>}
@@ -33,15 +34,16 @@ function CardBody({ r, shown }: { r: Report; shown: boolean }) {
       <div className="vd-info">
         <strong>{r.type}</strong>
         <span className="vd-place">{place || '위치는 사진·위치 보기 뒤에 보여요'}</span>
-        <span className="vd-desc">{r.description}</span>
+        {r.description && <span className="vd-desc">{r.description}</span>}
         <span className="bm-meta">이웃 제보</span>
       </div>
     </>
   )
 }
 
-/** 이웃의 제보를 카드로 넘겨 확인한다. 오른쪽 = 현장이 맞아요, 왼쪽 = 넘기기. 같은 일을 하는 버튼이 아래에 항상 있다. */
-export default function VerifyDeck() {
+/** 이웃의 제보를 카드로 넘겨 확인한다. 오른쪽 = 현장이 맞아요, 왼쪽 = 넘기기. 같은 일을 하는 버튼이 아래에 항상 있다.
+ * onToggle을 주면 제목 한 줄(건수)만 보이고, 누르면(open) 카드가 펼쳐진다. */
+export default function VerifyDeck({ open = true, onToggle }: { open?: boolean; onToggle?: () => void } = {}) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const vote = useReports((s) => s.vote)
@@ -168,13 +170,19 @@ export default function VerifyDeck() {
   const hadSkipped = skipped.size > 0
 
   return (
-    <section className="pg-card vd" id="pg-verify" aria-label="이웃 제보 확인하기">
-      <h2>이웃 제보 확인하기</h2>
-      {top ? (
+    <section className={'pg-card vd' + (onToggle ? ' pg-flat' : '')} id="pg-verify" aria-label="이웃 제보 확인">
+      {onToggle ? (
+        <button type="button" className="pg-line" aria-expanded={open} onClick={onToggle}>
+          <span className="pg-line-t">
+            <strong>이웃 제보 확인{list.length > 0 ? ` ${list.length}건` : ''}</strong>
+          </span>
+          <span className={'hp-nchev' + (open ? ' on' : '')}><Icon name="chev" size={16} /></span>
+        </button>
+      ) : (
+        <h2>이웃 제보 확인{list.length > 0 ? ` ${list.length}건` : ''}</h2>
+      )}
+      {!open ? null : top ? (
         <>
-          <p className="bm-meta">
-            확인할 제보 {list.length}건 · 오른쪽으로 넘기면 맞아요, 왼쪽은 넘기기
-          </p>
           <div className="vd-stack">
             {next && (
               <div className="vd-card vd-under" aria-hidden="true">

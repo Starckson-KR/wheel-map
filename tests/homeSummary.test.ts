@@ -28,13 +28,13 @@ test('내 제보 요약: 상태별 집계와 다른 사용자 제보 제외', ()
   ]
   const s = summarizeMine(list, 'u1')
   assert.deepEqual(s, { total: 8, active: 4, waiting: 2, fixed: 2 })
-  assert.deepEqual(mineLines(s), { big: '4건 처리 중', sub: '검증 대기 2 · 고쳐짐 2' })
+  assert.deepEqual(mineLines(s), { big: '4건 처리 중', sub: '확인 대기 2 · 고쳐짐 2' })
   assert.deepEqual(summarizeMine(list, 'u3'), { total: 0, active: 0, waiting: 0, fixed: 0 })
 })
 
 test('내 제보 요약: 처리 중이 없어도 제보가 있으면 숫자를 보인다', () => {
   const s = summarizeMine([R('u1', 'rechecked')], 'u1')
-  assert.deepEqual(mineLines(s), { big: '0건 처리 중', sub: '검증 대기 0 · 고쳐짐 1' })
+  assert.deepEqual(mineLines(s), { big: '0건 처리 중', sub: '확인 대기 0 · 고쳐짐 1' })
 })
 
 test('자주 쓰는 서비스: 고정 5칸, 6번째 후보는 중복 없이 고정 칸과 겹치지 않는다', () => {

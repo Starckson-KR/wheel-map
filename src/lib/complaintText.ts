@@ -51,7 +51,7 @@ export function buildComplaintText(args: { r: Report; address: string | null; ag
   lines.push(`${num()} 위치: ${address ?? '주소를 확인하지 못했습니다'} (위도 ${r.lat.toFixed(5)}, 경도 ${r.lng.toFixed(5)})`)
   lines.push(`   위치 성격: ${kind}`)
   lines.push(`${num()} 유형: ${r.type} (${r.category === 'fixed' ? '고정형' : '일시형'})`)
-  lines.push(`${num()} 현황: ${r.description}`)
+  if (r.description.trim()) lines.push(`${num()} 현황: ${r.description}`) // 설명은 선택 입력이라 비어 있으면 줄을 뺀다
   if (r.measurements && (r.measurements.widthM !== undefined || r.measurements.curbCm !== undefined)) {
     const m = [r.measurements.widthM !== undefined ? `폭 ${r.measurements.widthM}m` : '', r.measurements.curbCm !== undefined ? `턱 높이 ${r.measurements.curbCm}cm` : ''].filter(Boolean).join(', ')
     lines.push(`${num()} 실측값: ${m} (시민 입력값으로 오차가 있을 수 있습니다)`)
@@ -66,7 +66,7 @@ export function buildComplaintText(args: { r: Report; address: string | null; ag
   if (related.nearTeamPoints > 0) {
     lines.push(`   같은 경로(후문 원룸촌~정류장~전남대치과병원 시범 경로) 인근 반경 200m 안의 팀 현장조사 지점 ${related.nearTeamPoints}곳(통과 불가 X ${related.nearTeamX}곳)`)
   }
-  lines.push(`${num()} 검증 상태: 시민 확인 ${r.verification.votes}명${ratingLabel ? `, 검증자 판정 ${ratingLabel}` : ''}`)
+  lines.push(`${num()} 확인 상태: 시민 확인 ${r.verification.votes}명${ratingLabel ? `, 검증자 판정 ${ratingLabel}` : ''}`)
   if (agencyNames.length > 0) lines.push(`${num()} 소관 기관 후보: ${agencyNames.join(', ')} (소관이 다르면 이송해 주시기 바랍니다)`)
   lines.push('')
   lines.push('요청 사항: 현장을 확인해 주시고, 휠체어가 통행할 수 있도록 개선 또는 정비해 주시기 바랍니다. 조치 후 처리 결과를 회신해 주시면 감사하겠습니다.')

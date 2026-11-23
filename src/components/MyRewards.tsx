@@ -7,7 +7,7 @@ import { SegBg } from './motionKit'
 import { DEMO_USERS, useReports, userName } from '../lib/reportStore'
 import { REWARD_DAILY_CAP } from '../lib/config'
 import { GRADE_EMBLEMS, SPECIAL_EMBLEM, TYPE_EMBLEMS, changedRoads, computeRewards, type PointEvent } from '../lib/rewards'
-import type { Barrier, Report } from '../types'
+import type { Barrier } from '../types'
 import { Sentences } from './Sentences'
 import { fmtDay } from '../lib/format'
 
@@ -22,27 +22,16 @@ const TABS: { id: Tab; label: string }[] = [
 const fmtDate = (iso: string) => fmtDay(iso)
 const pct = (v: number | null) => (v === null ? '자료 없음' : `${Math.round(v * 100)}%`)
 
-// 명세서 4-2(3)의 내 제보 구분: 검증 대기 / 민원 접수 / 조치 완료
-function groupCounts(mine: Report[]) {
-  const g = { wait: 0, filed: 0, done: 0, other: 0 }
-  for (const r of mine) {
-    if (r.status === 'submitted' || r.status === 'pending') g.wait++
-    else if (r.status === 'verified' || r.status === 'filed' || r.status === 'assigned' || r.status === 'in_progress') g.filed++
-    else if (r.status === 'resolved' || r.status === 'rechecked') g.done++
-    else g.other++
-  }
-  return g
-}
+const EMBLEMS = [...GRADE_EMBLEMS, SPECIAL_EMBLEM, ...TYPE_EMBLEMS]
 
-export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClose, embedded = false }: Props) {
+export default function MyRewards({ barriers, onOpenReport, onClose, embedded = false }: Props) {
   const reports = useReports((s) => s.reports)
   const userId = useReports((s) => s.userId)
   const [tab, setTab] = useState<Tab>('title')
+  const [showEmb, setShowEmb] = useState(false)
 
   const rw = useMemo(() => computeRewards(reports, [userId])[userId], [reports, userId])
   const roads = useMemo(() => changedRoads(userId, reports, barriers), [reports, userId, barriers])
-  const mine = reports.filter((r) => r.userId === userId)
-  const g = groupCounts(mine)
   const role = DEMO_USERS.find((u) => u.id === userId)?.role
   const titleEmb = rw.grade > 0 ? GRADE_EMBLEMS[rw.grade - 1] : null
   const events: PointEvent[] = rw.events.slice().reverse()
@@ -69,7 +58,7 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
         </div>
       </section>
       {role === 'officer' && <Sentences as="p" className="bm-meta">담당 공무원은 점수를 쌓지 않아요.</Sentences>}
-      {rw.grade === 0 && role !== 'officer' && <Sentences as="p" className="rw-lead">검증된 제보가 생기면 첫 칭호를 받아요</Sentences>}
+      {rw.grade === 0 && role !== 'officer' && <Sentences as="p" className="rw-lead">확인된 제보가 생기면 첫 칭호를 받아요</Sentences>}
 
       <div className="rf-seg" role="tablist" aria-label="내 기여 보기">
         {TABS.map((t) => (
@@ -103,40 +92,24 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
             </section>
           )}
           <section>
-            <h4>엠블럼 진열장</h4>
-            <ul className="rw-grid">
-              {[...GRADE_EMBLEMS, SPECIAL_EMBLEM, ...TYPE_EMBLEMS].map((e) => {
-                const has = rw.earned.includes(e.id)
-                return (
-                  <li key={e.id} className={has ? 'is-on' : ''}>
-                    <RewardEmblem def={e} earned={has} />
-                    <strong>{e.name}</strong>
-                    <span>{has ? '받았어요' : e.how}</span>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-          <section>
-            <h4>내 제보</h4>
-            <div className="rw-stats">
-              <div>
-                <b>{g.wait}</b>
-                <span>검증 대기</span>
-              </div>
-              <div>
-                <b>{g.filed}</b>
-                <span>민원 접수·진행</span>
-              </div>
-              <div>
-                <b>{g.done}</b>
-                <span>조치 완료</span>
-              </div>
-            </div>
-            {g.other > 0 && <p className="bm-meta">합쳐지거나 반려된 제보 {g.other}건은 위 숫자에 넣지 않았어요.</p>}
-            <button type="button" className="hm-cta-sub rw-link" onClick={onOpenReports}>
-              내 제보 현황
+            <button type="button" className="rw-fold" aria-expanded={showEmb} onClick={() => setShowEmb((v) => !v)}>
+              <span>엠블럼 {EMBLEMS.filter((e) => rw.earned.includes(e.id)).length}/{EMBLEMS.length}</span>
+              <span className={'hp-nchev' + (showEmb ? ' on' : '')}><Icon name="chev" size={16} /></span>
             </button>
+            {showEmb && (
+              <ul className="rw-grid">
+                {EMBLEMS.map((e) => {
+                  const has = rw.earned.includes(e.id)
+                  return (
+                    <li key={e.id} className={has ? 'is-on' : ''}>
+                      <RewardEmblem def={e} earned={has} />
+                      <strong>{e.name}</strong>
+                      <span>{has ? '받았어요' : e.how}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </section>
         </>
       )}
@@ -145,9 +118,9 @@ export default function MyRewards({ barriers, onOpenReports, onOpenReport, onClo
         <section>
           {events.length === 0 ? (
             <div className="rp-empty">
-              <p>아직 쌓인 점수가 없어요.<br />제보가 검증되거나 다른 분의 제보를 확인하면 점수가 쌓여요.</p>
+              <p>아직 쌓인 점수가 없어요.<br />제보가 확인되거나 다른 분의 제보를 확인하면 점수가 쌓여요.</p>
               <div className="empty-act">
-                <button type="button" className="rf-primary" onClick={() => go(TO.newReport)}>문제 제보하러 가기</button>
+                <button type="button" className="rf-primary" onClick={() => go(TO.newReport)}>제보하기</button>
               </div>
             </div>
           ) : (

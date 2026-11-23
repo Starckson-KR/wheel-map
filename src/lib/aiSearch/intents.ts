@@ -31,9 +31,9 @@ export const SLOT_KEYS: Record<AiIntent, readonly SlotKey[]> = {
 
 // 화면에 보이는 고정 문구(해요체). 모델이 만든 문장은 화면에 쓰지 않는다.
 export const INTENT_LABEL: Record<MovableIntent, string> = {
-  report_new: '문제 제보하기',
-  receipt_lookup: '접수번호로 제보 찾기',
-  my_reports: '내 제보 진행 상황',
+  report_new: '제보하기',
+  receipt_lookup: '접수번호 찾기',
+  my_reports: '내 제보',
   route: '휠체어 길찾기',
   bus: '저상버스 도착',
   progress: '개선 현황',
@@ -105,8 +105,8 @@ export function noteFor(intent: MovableIntent, slots: Slots = {}): string | unde
   return undefined
 }
 
-// 점수 중에서도 순위·등수를 묻는 말은 랭킹이 있는 혜택알림 탭으로 보낸다.
+// 점수 중에서도 순위·등수를 묻는 말은 내 정보 「내 기여」의 랭킹으로 보낸다.
 export function targetFor(intent: MovableIntent, question = '', slots: Slots = {}): Target {
-  if (intent === 'my_score' && RANK_RE.test(question)) return { intent, label: '참여 랭킹', hash: '#/alerts?tab=ranking' }
+  if (intent === 'my_score' && RANK_RE.test(question)) return { intent, label: '참여 랭킹', hash: TO.meSection('ranking') }
   return { intent, label: INTENT_LABEL[intent], hash: buildHash(intent, slots), note: noteFor(intent, slots) }
 }

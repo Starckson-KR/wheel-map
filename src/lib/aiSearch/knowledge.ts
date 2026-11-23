@@ -140,8 +140,8 @@ const GO: Record<Topic, Go[]> = {
   facility: [{ label: '편의시설 지도 보기', hash: '#/map?layer=facility' }],
   voucher: [{ label: '가맹점 지도 보기', hash: '#/map?layer=voucher' }],
   bus: [{ label: '저상버스 도착 보기', hash: TO.bus }],
-  agency: [{ label: '담당 기관 안내 보기', hash: TO.agency }],
-  howto: [{ label: '제보하기 열기', hash: TO.newReport }],
+  agency: [{ label: '담당 기관 안내', hash: TO.agency }],
+  howto: [{ label: '제보하기', hash: TO.newReport }],
 }
 const inKorea = (p: LatLng) => Number.isFinite(p.lat) && Number.isFinite(p.lng) && p.lat > 33 && p.lat < 39 && p.lng > 124 && p.lng < 132
 // 지도 레이어로 가는 버튼은 지도를 볼 만큼 확대한 채(앱이 level을 정한다) 중심을 같이 보낸다: 「근처」이고 위치를 알면 내 위치, 아니면 첫 결과.
@@ -417,9 +417,9 @@ function howDocs(d: KnowledgeData, now: number): HowDoc[] {
     .filter((l, i, a) => a.indexOf(l) === i)
   const slide = (icon: string) => GUIDE_SLIDES.find((s) => s.icon === icon)?.text ?? ''
   const docs: HowDoc[] = [
-    { id: 'how-report', title: '사진으로 제보하기', answer: slide('report'), kw: '신고 제보 민원 사진 올리기 접수 장애물 불편', go: { label: '제보하기 열기', hash: TO.newReport } },
-    { id: 'how-channel', title: '접수하는 곳', answer: channels.join(' · '), kw: '신고 접수 창구 채널 어디 기관 민원 국민신문고 안전신문고 120', go: { label: '담당 기관 안내 보기', hash: TO.agency } },
-    { id: 'how-status', title: '제보 처리 상황 보기', answer: slide('bell'), kw: '처리 상황 진행 알림 결과 신고한 접수번호', go: { label: '내 제보 진행 상황', hash: '#/report?section=mine' } },
+    { id: 'how-report', title: '사진으로 제보하기', answer: slide('report'), kw: '신고 제보 민원 사진 올리기 접수 장애물 불편', go: { label: '제보하기', hash: TO.newReport } },
+    { id: 'how-channel', title: '접수하는 곳', answer: channels.join(' · '), kw: '신고 접수 창구 채널 어디 기관 민원 국민신문고 안전신문고 120', go: { label: '담당 기관 안내', hash: TO.agency } },
+    { id: 'how-status', title: '제보 처리 상황 보기', answer: slide('bell'), kw: '처리 상황 진행 알림 결과 신고한 접수번호', go: { label: '내 제보', hash: '#/report?section=mine' } },
     { id: 'how-route', title: '휠체어 길찾기', answer: slide('route'), kw: '길찾기 길 경로 가는 방법 휠체어', go: { label: '휠체어 길찾기 열기', hash: TO.route } },
     { id: 'how-map', title: '지도로 보기', answer: slide('map'), kw: '지도 불편한 곳 확인', go: { label: '지도 열기', hash: TO.map } },
   ]

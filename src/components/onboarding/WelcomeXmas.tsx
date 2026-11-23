@@ -330,7 +330,7 @@ export default function WelcomeXmas({ onStart }: { onStart: () => void }) {
         </h1>
         {/* 이름 아래 소개: 전구 줄(길)에 겹치지 않게 조금 내려 둔다 */}
         <div className="ob-x-about" ref={aboutWrap}>
-          <Sentences as="p" className="ob-welcome-about">휠체어·유모차로 다니기 불편한 곳을 제보하면 이웃이 확인해요. 계단 없는 길도 찾아 드려요.</Sentences>
+          <Sentences as="p" className="ob-welcome-about">휠체어·유모차 길 찾기와 불편 제보</Sentences>
         </div>
       </div>
       <div className="ob-foot ob-welcome-foot ob-x-foot" ref={footRef}>

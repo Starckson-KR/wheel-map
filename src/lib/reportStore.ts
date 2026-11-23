@@ -91,9 +91,9 @@ export const rankingUserIds = () => [...new Set([...DEMO_USERS.filter((u) => u.r
 
 export const STATUS_LABEL: Record<ReportStatus, string> = {
   submitted: '제보됨',
-  pending: '검증 대기',
+  pending: '확인 대기',
   merged: '합쳐짐',
-  verified: '검증 완료',
+  verified: '확인 완료',
   rejected: '반려됨',
   assigned: '기관 배정',
   filed: '민원 접수',
@@ -101,6 +101,8 @@ export const STATUS_LABEL: Record<ReportStatus, string> = {
   resolved: '조치 완료',
   rechecked: '재확인 완료',
 }
+/** 행정 화면용: 시민 화면은 「확인」, 행정 화면은 옛 낱말 「검증」을 그대로 쓴다 */
+export const ADMIN_STATUS_LABEL: Record<ReportStatus, string> = { ...STATUS_LABEL, pending: '검증 대기', verified: '검증 완료' }
 const DONE: ReportStatus[] = ['merged', 'rejected', 'rechecked']
 export const isDone = (s: ReportStatus) => DONE.includes(s)
 
@@ -238,7 +240,7 @@ export const useReports = create<State>((set, get) => {
       }
       const r: Report = mergeInto
         ? { ...base, barrierId: mergeInto, status: 'merged', history: [...base.history, { status: 'merged', at, by, memo: `기존 건 ${mergeInto}에 합침` }] }
-        : { ...base, status: 'pending', history: [...base.history, { status: 'pending', at, by, memo: '검증 대기' }] }
+        : { ...base, status: 'pending', history: [...base.history, { status: 'pending', at, by, memo: '확인 대기' }] }
       set((s) => ({ reports: [...s.reports, r] }))
       return r
     },
@@ -250,7 +252,7 @@ export const useReports = create<State>((set, get) => {
       if (!canVote()) return { ok: false, message: '현재 설정에서는 시민 투표를 쓰지 않습니다.' }
       if (u.role !== 'citizen') return { ok: false, message: '시민 사용자만 확인 투표를 할 수 있습니다.' }
       if (r.userId === u.id) return { ok: false, message: '본인 제보에는 투표할 수 없습니다.' }
-      if (r.status !== 'pending') return { ok: false, message: '검증 대기 중인 제보만 투표할 수 있습니다.' }
+      if (r.status !== 'pending') return { ok: false, message: '확인 대기 중인 제보만 투표할 수 있습니다.' }
       if (r.verification.voterIds.includes(u.id)) return { ok: false, message: '이미 확인하셨습니다.' }
       update(id, (x) => {
         const voterIds = [...x.verification.voterIds, u.id]
@@ -288,7 +290,7 @@ export const useReports = create<State>((set, get) => {
       const r = find(id)
       if (!r) return { ok: false, message: '제보를 찾을 수 없습니다.' }
       if (u.role !== 'verifier') return { ok: false, message: '검증자만 반려할 수 있습니다.' }
-      if (r.status !== 'pending') return { ok: false, message: '검증 대기 중인 제보만 반려할 수 있습니다.' }
+      if (r.status !== 'pending') return { ok: false, message: '확인 대기 중인 제보만 반려할 수 있습니다.' }
       update(id, (x) => log({ ...x, verification: { ...x.verification, verifierId: u.id, result: 'rejected', reason } }, 'rejected', reason))
       return { ok: true }
     },
@@ -328,7 +330,7 @@ export const useReports = create<State>((set, get) => {
         locationKind,
         status: 'verified',
         verification: { votes: 0, voterIds: [], verifierId: 'team-survey', result: 'confirmed', ...(rating ? { rating } : {}) },
-        history: [{ status: 'verified', at, by, memo: '팀 현장조사 지점에서 시작(검증 완료로 간주, 데모)' }],
+        history: [{ status: 'verified', at, by, memo: '팀 현장조사 지점에서 시작(확인 완료로 간주, 데모)' }],
       }
       set((s) => ({ reports: [...s.reports, r] }))
       return r
@@ -338,7 +340,7 @@ export const useReports = create<State>((set, get) => {
       const r = find(id)
       if (!r) return { ok: false, message: '제보를 찾을 수 없습니다.' }
       if (me().role === 'officer') return { ok: false, message: '공무원 사용자는 접수 신청을 할 수 없습니다.' }
-      if (r.status !== 'verified') return { ok: false, message: '검증 완료된 건만 접수할 수 있습니다.' }
+      if (r.status !== 'verified') return { ok: false, message: '확인 완료된 건만 접수할 수 있습니다.' }
       update(id, (x) => {
         const filed = log({ ...x, complaint: { ...c } }, 'filed', `${c.channel} 접수번호 ${c.receiptNo}${c.mode === 'mock' ? ' (시연용 모의 접수)' : ''}`, by)
         if (c.assignedAgencyId && c.mode === 'mock') return log(filed, 'assigned', '모의 접수 응답: 담당 기관 배정', 'mock-api')

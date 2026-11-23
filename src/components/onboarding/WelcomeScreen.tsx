@@ -20,8 +20,8 @@ export default function WelcomeScreen({ onStart }: { onStart: () => void }) {
         <h1 className="ob-welcome-name" aria-label="이의있음!">
           <Wordmark decorative />
         </h1>
-        {/* 처음 쓰는 사람에게 서비스가 무엇인지: 이름 아래에 겹쳐 두어(absolute) 지도 길 끝 위치 계산을 바꾸지 않는다 */}
-        <Sentences as="p" className="ob-welcome-about">휠체어·유모차로 다니기 불편한 곳을 제보하면 이웃이 확인해요. 계단 없는 길도 찾아 드려요.</Sentences>
+        {/* 처음 쓰는 사람에게 서비스가 무엇인지 한 줄만. absolute라 길 끝 위치 계산은 안 바뀌고, 파란 길(이름 아래 가로 구간)보다 아래에 둔다 */}
+        <Sentences as="p" className="ob-welcome-about">휠체어·유모차 길 찾기와 불편 제보</Sentences>
       </div>
       <div className="ob-foot ob-welcome-foot">
         <PressButton type="button" className="ob-btn ob-btn-primary" onClick={onStart}>

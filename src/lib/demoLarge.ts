@@ -541,12 +541,12 @@ export function buildLargeDemo(input: LargeInput): LargeResult {
     }
     if (p.kind === 'rejected') {
       const reason = pickOne([...REJECT_REASONS])
-      hist.push({ status: 'pending', at: at0, by: p.reporter, memo: '검증 대기' })
+      hist.push({ status: 'pending', at: at0, by: p.reporter, memo: '확인 대기' })
       hist.push({ status: 'rejected', at: iso(p.rejectedAt), by: 'verifier', memo: `(시연) ${reason}` })
       reports.push({ ...base, status: 'rejected', verification: { votes: 0, voterIds: [], verifierId: 'verifier', result: 'rejected', reason }, history: hist })
       continue
     }
-    hist.push({ status: 'pending', at: at0, by: p.reporter, memo: '검증 대기' })
+    hist.push({ status: 'pending', at: at0, by: p.reporter, memo: '확인 대기' })
     if (p.status === 'pending') {
       reports.push({ ...base, status: 'pending', verification: { votes: p.voters.length, voterIds: p.voters }, history: hist })
       continue

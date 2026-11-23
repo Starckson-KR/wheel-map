@@ -708,15 +708,17 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 .bn-fold { display: block; min-height: 44px; margin: 0; padding: 0; background: none; border: 0; color: var(--blue-700); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .bn-fold-body[hidden] { display: none; }
 
-/* 혜택 카드: 이름과 얻는 혜택만 보이고, 대상·기간·문의는 "자세히 보기" 안에 */
+/* 혜택 카드: 이름과 얻는 혜택만 보이고, 카드를 누르면 대상·기간·문의가 펼쳐진다 */
 .bn-card { border: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: var(--s-4) 0; }
 .bn-list > .bn-card:last-child { border-bottom: 0; }
-.bm button.bn-more { position: relative; align-self: flex-start; min-height: 32px; padding: 0 var(--s-3); border-radius: var(--r-full); background: var(--primary-weak); color: var(--primary); font-size: var(--fs-small); font-weight: 500; }
-.bm button.bn-more:hover:not(:disabled) { background: var(--primary-weak); }
-/* 보이는 높이는 32px, 누르는 영역은 위아래로 넓혀 44px */
-.bm button.bn-more::after { content: ''; position: absolute; inset: -6px 0; }
-/* 보이는 높이는 32px, 누르는 영역은 위아래로 넓혀 44px */
-.bm button.bn-more::after { content: ''; position: absolute; inset: -6px 0; }
+.bn-top { position: relative; display: flex; flex-direction: column; gap: var(--s-2); padding-right: var(--s-6); cursor: pointer; }
+.bn-top h3 { margin: 0; }
+/* position: static: 버튼의 ::after(inset 0)가 .bn-top 기준으로 펼쳐져 카드 머리 전체가 눌린다 */
+.bm button.bn-tog { position: static; display: block; width: 100%; min-height: 0; padding: 0; border-radius: var(--r-sm); background: none; color: inherit; font-size: inherit; font-weight: inherit; text-align: left; word-break: keep-all; }
+.bm button.bn-tog:hover:not(:disabled) { background: none; }
+.bm button.bn-tog:active:not(:disabled) { transform: none; }
+.bm button.bn-tog::after { content: ''; position: absolute; inset: calc(var(--s-4) * -1) 0 calc(var(--s-2) * -1); }
+.bn-chev { position: absolute; right: 0; top: 2px; color: var(--text-sub); pointer-events: none; }
 .bn-detail { display: flex; flex-direction: column; gap: var(--s-3); padding-top: var(--s-1); }
 .bn-detail[hidden] { display: none; }
 .bn-sum { word-break: keep-all; }
@@ -879,18 +881,24 @@ html .al-chips:has(> :nth-child(3):last-child) > .al-chip { padding: 0 var(--s-2
 .hs-item[aria-current] > svg:last-child { color: var(--primary); }
 .bm button.hs-clear { color: var(--text-sub); }
 
-/* 내 정보 > 데이터 출처(접힌 목록) */
-.pg-src { border-top: 1px solid var(--line); }
-.pg-src > summary {
-  min-height: 44px;
+/* 설정 시트 맨 아래 한 줄 접기(데이터 출처 · 발표용) */
+.ms-fold { border-top: 1px solid var(--line); }
+.ms-fold > summary {
+  min-height: var(--touch);
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  justify-content: space-between;
+  gap: var(--s-3);
+  list-style: none;
   cursor: pointer;
   color: var(--text-strong);
-  font-weight: 500;
+  font-weight: 600;
 }
-.pg-src > ul { margin: 0; padding: 0 16px 12px 32px; color: var(--text-sub, #4e5968); font-size: 0.875rem; line-height: 1.6; }
+.ms-fold > summary::-webkit-details-marker { display: none; }
+.ms-fold > summary .hp-nchev { width: 32px; justify-content: center; color: var(--text-sub); }
+.ms-fold[open] > summary .hp-nchev { transform: rotate(90deg); }
+.ms-src { margin: 0; padding: 0 0 var(--s-3) var(--s-5); color: var(--text-sub); font-size: var(--fs-small); line-height: 1.6; }
+.ms-fold .ms-build { margin: 0 0 var(--s-2); }
 
 /* ───── 차분한 굵기·카드(홈 + 제보·내 정보·혜택알림 탭, .bm.pg 안에서만) ─────
    (.bm.pg.pg: 다른 화면 CSS의 굵기 규칙보다 앞서게 클래스를 겹쳐 쓴다)
@@ -970,3 +978,6 @@ body:has(.ms-settings) .tabbar > * { visibility: hidden; }
 .pv-item dt { font-size: var(--fs-small); font-weight: 600; color: var(--text-strong); }
 .pv-item dd { margin: 0; font-size: var(--fs-small); line-height: 1.5; color: var(--text); word-break: keep-all; }
 .pv-item dd.pv-sub { color: var(--text-sub); }
+
+/* 제보 탭(11/23): 「내 제보」 아래 한 줄 접기(접수번호 찾기) */
+.pg-fold { display: grid; gap: var(--s-3); border-top: 1px solid var(--line); }

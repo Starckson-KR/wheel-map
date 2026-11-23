@@ -23,7 +23,7 @@ export function summarizeMine(reports: readonly { userId: string; status: Report
 /** 「내 제보」 카드 문구 */
 export function mineLines(s: MineSummary): { big: string; sub: string } {
   if (s.total === 0) return { big: '아직 제보가 없어요', sub: '' }
-  return { big: `${s.active}건 처리 중`, sub: `검증 대기 ${s.waiting} · 고쳐짐 ${s.fixed}` }
+  return { big: `${s.active}건 처리 중`, sub: `확인 대기 ${s.waiting} · 고쳐짐 ${s.fixed}` }
 }
 
 // ───── 자주 쓰는 서비스 ─────

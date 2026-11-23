@@ -164,33 +164,6 @@
 }
 .ob-root :focus-visible:not([tabindex='-1']) { outline: none; box-shadow: var(--focus-ring); }
 
-/* 첫 화면: 인사 */
-.ob-hero { display: flex; flex-direction: column; padding-top: 6vh; }
-.ob-greet {
-  position: relative;
-  display: block;
-  height: 4.2rem;
-  margin: 0 0 var(--s-2);
-  font-size: 2.75rem;
-  line-height: 4.2rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  color: var(--text-strong);
-  outline: none;
-}
-.ob-greet-w {
-  position: absolute;
-  left: 0;
-  top: 0;
-  white-space: nowrap;
-  opacity: 0;
-  animation: ob-greet 15s var(--ease-out) infinite both;
-}
-@keyframes ob-greet {
-  0% { opacity: 0; transform: translateY(10px); }
-  4%, 18% { opacity: 1; transform: translateY(0); }
-  22%, 100% { opacity: 0; transform: translateY(-10px); }
-}
 .ob-note {
   margin: var(--s-4) 0 0;
   padding: var(--s-3) var(--s-4);
@@ -398,37 +371,6 @@
 /* 선택된 칸의 배경은 <SegBg>(layoutId)가 그려서 칸 사이를 미끄러진다 */
 .ob-seg button.is-on { color: var(--text-strong); }
 
-/* 완료 */
-.ob-done { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 8vh; }
-.ob-ok {
-  display: grid;
-  place-items: center;
-  width: 84px;
-  height: 84px;
-  margin-bottom: var(--s-5);
-  border-radius: var(--r-full);
-  background: var(--primary-weak);
-  color: var(--primary);
-  animation: ob-pop 520ms var(--ease-drawer) both;
-}
-.ob-ok-path { stroke-dasharray: 26; stroke-dashoffset: 26; animation: ob-draw 420ms 200ms var(--ease-out) forwards; }
-@keyframes ob-pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
-@keyframes ob-draw { to { stroke-dashoffset: 0; } }
-.ob-done .ob-title { margin-bottom: var(--s-6); }
-.ob-feats { width: 100%; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s-3); text-align: left; }
-.ob-feat {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-lg);
-  background: var(--bg-sub);
-  animation: ob-rise 420ms var(--ease-out) both;
-}
-.ob-feat-ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--primary-weak); color: var(--primary); }
-.ob-feat strong { display: block; font-size: var(--fs-body); color: var(--text-strong); }
-.ob-feat small { display: block; font-size: var(--fs-small); color: var(--text-sub); line-height: 1.45; }
-
 /* 내 정보 탭 계정 카드 */
 .ob-card { margin: var(--s-4) var(--gutter); padding: var(--s-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg); color: var(--text); font-family: var(--font); }
 .ob-card-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); }
@@ -438,16 +380,11 @@
 .ob-card-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
 .ob-card-actions .ob-btn { flex: 1 1 auto; width: auto; min-width: max-content; white-space: nowrap; }
 
-/* 움직임 줄이기: 밀기·흔들림·교차 인사를 끄고, 인사는 첫 문구만 고정 */
+/* 움직임 줄이기: 밀기·흔들림을 끈다 */
 @media all {
   html.motion-reduce .ob-root { animation-duration: 1ms; }
-  html.motion-reduce .ob-greet-w { animation: none; opacity: 0; }
-  html.motion-reduce .ob-greet-w:first-child { opacity: 1; }
   html.motion-reduce .ob-pindots.is-shake,
-  html.motion-reduce .ob-ok,
-  html.motion-reduce .ob-feat,
   html.motion-reduce .ob-note { animation: ob-fade-in 160ms var(--ease-out) both; }
-  html.motion-reduce .ob-ok-path { animation: none; stroke-dashoffset: 0; }
   html.motion-reduce .ob-root.is-leaving { transform: none; transition-duration: 160ms; }
   html.motion-reduce .ob-btn:active:not(:disabled),
   html.motion-reduce .ob-key:active:not(:disabled),
@@ -506,7 +443,7 @@
 .ob-welcome, .ob-welcome-foot { position: relative; z-index: 1; }
 .ob-welcome-icon { animation: ob-w-icon 560ms linear 1000ms both, ob-w-fade 140ms ease 1000ms both; }
 .ob-welcome-name { animation: ob-w-up 380ms var(--ease-out) 1150ms both; }
-.ob-welcome-about { margin: 0; position: absolute; left: var(--gutter); right: var(--gutter); top: calc(50% + 134px + var(--s-5)); font-size: var(--fs-body); line-height: 1.5; color: var(--text-sub, var(--text)); animation: ob-w-up 380ms var(--ease-out) 1450ms both; }
+.ob-welcome-about { margin: 0; position: absolute; left: var(--gutter); right: var(--gutter); top: calc(50% + 134px + var(--s-5) + 20px); font-size: var(--fs-body); line-height: 1.5; color: var(--text-sub, var(--text)); animation: ob-w-up 380ms var(--ease-out) 1450ms both; }
 .ob-welcome-foot { animation: ob-w-up 300ms var(--ease-out) 600ms both; }
 .ob-welcome-name .wordmark-bang circle { transform-box: fill-box; transform-origin: center; animation: ob-w-drop 460ms var(--ease-out) 1300ms both; }
 @keyframes ob-w-icon { from { transform: scale(0.35); } to { transform: scale(1); } }
@@ -534,3 +471,10 @@ html[data-page-hidden] .ob-welcome-bg *, html[data-page-hidden] .ob-welcome, htm
 .ob-step-ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--bg); color: var(--primary); }
 .ob-install { margin-top: var(--s-4); }
 .ob-sub + .ob-setrow, .ob-note + .ob-setrow { margin-top: var(--s-4); }
+
+/* 홈 맨 위 「홈 화면에 추가하기」 띠: 한 줄, 닫을 수 있음 */
+.ob-strip { display: flex; align-items: center; min-height: 44px; margin: var(--s-2) var(--gutter) 0; border-radius: var(--r-md); background: var(--primary-weak); color: var(--text-strong); font-family: var(--font); }
+.ob-strip button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; min-height: 44px; }
+.ob-strip-go { flex: 1; display: flex; align-items: center; gap: var(--s-1); padding: 0 var(--s-4); font-weight: 600; font-size: var(--fs-small); text-align: left; }
+.ob-strip-x { flex: none; display: grid; place-items: center; width: 44px; color: var(--text-sub); }
+.ob-strip button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-md); }

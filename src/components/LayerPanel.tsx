@@ -29,7 +29,9 @@ function tileOf(k: LayerKey) {
   return l ? { label: TILE_LABEL[k] ?? l.label, color: l.color, icon: l.icon } : null
 }
 
-/** 직접 고르기: 레이어를 다섯 묶음, 두 줄 타일로 켜고 끈다. 켜진 타일은 파란 테두리와 체크로 보인다. */
+const ALL_KEYS: LayerKey[] = LAYER_GROUPS.flatMap((g) => g.keys)
+
+/** 직접 고르기: 레이어를 낱개로 켜고 끈다(칩 표시는 묶음과 같을 때만 남는다). 켜진 타일은 파란 테두리로 보인다. */
 export default function LayerPanel({ layers, loading, onChange, onClose, filter, onFilter, extra }: Props) {
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -39,6 +41,7 @@ export default function LayerPanel({ layers, loading, onChange, onClose, filter,
   const sheetRef = useRef<HTMLDivElement>(null)
   useSheetFocus(true, sheetRef)
   const [term, setTerm] = useState<LayerKey | null>(null) // 뜻을 펼친 타일
+  const [filterOpen, setFilterOpen] = useState(false) // 시민 제보 핀 보기(접어 둔다)
   const failed = PUB_LAYERS.filter((l) => layers[l.id] && loading[l.id] === 'error')
   return (
     <>
@@ -54,42 +57,37 @@ export default function LayerPanel({ layers, loading, onChange, onClose, filter,
           </button>
         </div>
 
-        {LAYER_GROUPS.map((g) => (
-          <section key={g.id} className="lp-group" aria-label={g.label}>
-            <h3>{g.label}</h3>
-            <div className="lp-grid">
-              {g.keys.map((k) => {
-                const t = tileOf(k)
-                if (!t) return null
-                const on = layers[k]
-                const mean = k === 'team' ? undefined : PUB_MEANING[k]
-                return (
-                  <div key={k} className={'lp-box' + (mean ? ' has-mean' : '')}>
-                    <button type="button" className={'lp-tile' + (on ? ' on' : '')} aria-pressed={on} onClick={() => onChange({ [k]: !on } as Partial<LayerState>)}>
-                      <span className="lp-tile-ic" aria-hidden="true" style={{ background: t.color }}>
-                        <Icon name={t.icon} size={16} />
-                      </span>
-                      <span className="lp-tile-name">{t.label}</span>
-                      <span className="lp-tile-ck" aria-hidden="true">
-                        <Icon name="check" size={18} />
-                      </span>
-                    </button>
-                    {mean && (
-                      <button type="button" className="lp-info" aria-expanded={term === k} aria-label={`${t.label} 뜻 보기`} onClick={() => setTerm((v) => (v === k ? null : k))}>
-                        <span aria-hidden="true">?</span>
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            {g.keys.some((k) => k === term) && term && term !== 'team' && PUB_MEANING[term] && (
-              <p className="lp-mean" role="status">
-                <b>{tileOf(term)?.label}</b> {PUB_MEANING[term]}
-              </p>
-            )}
-          </section>
-        ))}
+        <div className="lp-grid">
+          {ALL_KEYS.map((k) => {
+            const t = tileOf(k)
+            if (!t) return null
+            const on = layers[k]
+            const mean = k === 'team' ? undefined : PUB_MEANING[k]
+            return (
+              <div key={k} className={'lp-box' + (mean ? ' has-mean' : '')}>
+                <button type="button" className={'lp-tile' + (on ? ' on' : '')} aria-pressed={on} onClick={() => onChange({ [k]: !on } as Partial<LayerState>)}>
+                  <span className="lp-tile-ic" aria-hidden="true" style={{ background: t.color }}>
+                    <Icon name={t.icon} size={16} />
+                  </span>
+                  <span className="lp-tile-name">{t.label}</span>
+                  <span className="lp-tile-ck" aria-hidden="true">
+                    <Icon name="check" size={18} />
+                  </span>
+                </button>
+                {mean && (
+                  <button type="button" className="lp-info" aria-expanded={term === k} aria-label={`${t.label} 뜻 보기`} onClick={() => setTerm((v) => (v === k ? null : k))}>
+                    <span aria-hidden="true">?</span>
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        {term && term !== 'team' && PUB_MEANING[term] && (
+          <p className="lp-mean" role="status">
+            <b>{tileOf(term)?.label}</b> {PUB_MEANING[term]}
+          </p>
+        )}
 
         {failed.map((l) => (
           <p key={l.id} className="hm-note" role="status">
@@ -115,8 +113,13 @@ export default function LayerPanel({ layers, loading, onChange, onClose, filter,
         </button>
 
         {layers.team && (
+          <button type="button" className="lp-fold" aria-expanded={filterOpen} onClick={() => setFilterOpen((v) => !v)}>
+            시민 제보 핀 보기
+            <span className="lr-chev" aria-hidden="true" />
+          </button>
+        )}
+        {layers.team && filterOpen && (
           <div className="lp-filter">
-            <h3>시민 제보 핀 보기</h3>
             <div className="lp-chips" role="group" aria-label="시민 제보 상태">
               {STATUS_CHIPS.map((c) => (
                 <button

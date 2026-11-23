@@ -84,7 +84,7 @@ export function buildDemoReports(seeds: Barrier[], now: number, newId: () => str
     const iso = (daysAgo: number) => new Date(now - daysAgo * DAY).toISOString()
     const submittedAt = iso(sp.submittedDaysAgo)
     const history: Report['history'] = [
-      { status: 'verified', at: submittedAt, by: sp.owner, memo: '(시연) 팀 현장조사 지점에서 시작(검증 완료로 간주)' },
+      { status: 'verified', at: submittedAt, by: sp.owner, memo: '(시연) 팀 현장조사 지점에서 시작(확인 완료로 간주)' },
       { status: 'filed', at: submittedAt, by: sp.owner, memo: `(시연) 안전신문고 접수번호 DEMO-SIM-${sp.seedId}${sp.tag ? '-' + sp.tag : ''}` },
     ]
     let status: ReportStatus = 'filed'
@@ -104,7 +104,7 @@ export function buildDemoReports(seeds: Barrier[], now: number, newId: () => str
       type: sp.type,
       category: ['쓰레기', '킥보드·자전거', '입간판·노점', '공사 자재', '불법 주정차'].includes(sp.type) ? 'temporary' : 'fixed',
       photos: [],
-      description: sp.note ?? `(시연) 팀 현장조사 지점 ${b.id} · ${b.name}`,
+      description: sp.note ?? b.name,
       locationKind: sp.kind,
       status,
       verification: { votes: 0, voterIds: [], verifierId: 'team-survey', result: 'confirmed', ...(sp.recheckPass ? { rating: 'O' as Rating } : rating ? { rating } : {}) },

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CHIPS, LAYER_GROUPS, LAYER_KEYS, applyChip, applyChips, chipOf, chipOrder, chipSummary, chipsOf, countNear, nearestM, parseChips, toggleChip, type ChipId, type LayerKey } from '../src/lib/layerPresets.ts'
+import { CHIPS, LAYER_GROUPS, LAYER_KEYS, applyChip, chipOf, chipOrder, chipSummary, countNear, nearestM, pressChip, type ChipId, type LayerKey } from '../src/lib/layerPresets.ts'
 import type { LayerState, PubItem } from '../src/lib/publicLayers.ts'
 
 // publicLayers.ts는 JSON을 동적으로 불러와 시험에서 직접 쓰지 않는다. 기본값(길 가기)은 여기에 같은 모양으로 적는다.
@@ -11,7 +11,7 @@ test('칩을 고르면 문서 표의 레이어 묶음만 켜진다', () => {
   const expected: Record<ChipId, LayerKey[]> = {
     walk: ['team', 'overpass', 'toilet'],
     bus: ['bus', 'team'],
-    toilet: ['toilet', 'facility'],
+    toilet: ['toilet'],
     rain: ['flood', 'bus', 'team'],
     child: ['schoolZone', 'yellow', 'overpass', 'parkingZone'],
     hot: ['shade', 'airSignal', 'toilet'],
@@ -96,36 +96,17 @@ test('요약 문구에 「비 피할」 표현을 쓰지 않는다(정류장 지
   }
 })
 
-test('칩 여러 개: 고른 칩들의 레이어를 합쳐서 켜고, 하나를 빼면 그 칩 몫만 꺼진다', () => {
-  const both = applyChips(['rain', 'toilet'], OFF)
-  assert.deepEqual(onKeys(both), ['bus', 'facility', 'flood', 'team', 'toilet'])
-  assert.equal(both.toiletAccessibleOnly, true)
-  assert.deepEqual(onKeys(applyChips(toggleChip(['rain', 'toilet'], 'toilet'), both)), [...CHIPS.rain.on].sort())
-  assert.deepEqual(onKeys(applyChips([], both)), [])
-})
-
-test('칩 여러 개: 고른 순서가 켜진 레이어와 맞을 때만 쓰고, 아니면 칩 하나 또는 없음', () => {
-  const both = applyChips(['rain', 'toilet'], OFF)
-  assert.deepEqual(chipsOf(both, ['rain', 'toilet']), ['rain', 'toilet'])
-  assert.deepEqual(chipsOf(both, ['walk']), []) // 저장값이 낡았다
-  assert.deepEqual(chipsOf({ ...both, shade: true }, ['rain', 'toilet']), []) // 직접 바꾸면 풀린다
-  // 옛 한 개짜리 저장(레이어만 있음)도 칩 하나로 읽힌다
-  assert.deepEqual(chipsOf(applyChip('bus', OFF)), ['bus'])
-  assert.deepEqual(chipsOf(OFF), [])
-})
-
-test('칩 누르기: 없으면 더하고, 있으면 그 칩만 빼고, 마지막 하나를 빼면 길 가기로 돌아간다', () => {
-  assert.deepEqual(toggleChip(['rain'], 'toilet'), ['rain', 'toilet'])
-  assert.deepEqual(toggleChip(['rain', 'toilet'], 'rain'), ['toilet'])
-  assert.deepEqual(toggleChip(['bus'], 'bus'), ['walk'])
-  assert.deepEqual(toggleChip(['walk'], 'walk'), ['walk'])
-})
-
-test('저장한 칩 목록 읽기: 배열·옛 한 개 값을 읽고 깨진 값은 비운다', () => {
-  assert.deepEqual(parseChips('["rain","toilet"]'), ['rain', 'toilet'])
-  assert.deepEqual(parseChips('bus'), ['bus'])
-  assert.deepEqual(parseChips('"bus"'), ['bus'])
-  assert.deepEqual(parseChips('["rain","nope","rain",3]'), ['rain'])
-  assert.deepEqual(parseChips('{"a":1}'), [])
-  assert.deepEqual(parseChips(null), [])
+test('칩은 한 번에 하나: 다른 칩을 누르면 바뀌고, 켜진 칩을 다시 누르면 장애요소만 남는다', () => {
+  const rain = pressChip('rain', OFF)
+  assert.equal(chipOf(rain), 'rain')
+  const toilet = pressChip('toilet', rain)
+  assert.equal(chipOf(toilet), 'toilet')
+  assert.deepEqual(onKeys(toilet), ['toilet']) // 앞 칩(비 오는 날) 몫은 남지 않는다
+  const off = pressChip('toilet', toilet)
+  assert.equal(chipOf(off), null)
+  assert.deepEqual(onKeys(off), ['team'])
+  // 직접 고른 상태(어느 칩도 아님)에서 누르면 그 칩만 켜진다
+  assert.deepEqual(onKeys(pressChip('bus', { ...rain, shade: true })), [...CHIPS.bus.on].sort())
+  // 어느 칩이든 한 번 누르면 그 칩 하나만 골라진다
+  for (const a of Object.keys(CHIPS) as ChipId[]) for (const b of Object.keys(CHIPS) as ChipId[]) if (a !== b) assert.equal(chipOf(pressChip(b, pressChip(a, OFF))), b)
 })

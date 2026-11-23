@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { guessAndroidBrowser, guessDevice, isInAppBrowser, isStandalone } from '../src/components/onboarding/installEnv.ts'
-import { SCREENS, afterDevice, afterWelcome, dotIndex } from '../src/components/onboarding/flow.ts'
+import { SCREENS, afterWelcome, dotIndex, installStart } from '../src/components/onboarding/flow.ts'
 
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
 const GALAXY_CHROME = 'Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36'
@@ -35,12 +35,11 @@ test('홈 화면 앱 판정: display-mode 또는 iOS navigator.standalone', () =
   assert.equal(isStandalone({ matchMedia: () => { throw new Error('x') } }), false)
 })
 
-test('시작 화면 다음 흐름: 이미 홈 화면 앱이면 기기·설치 안내를 건너뜀', () => {
-  assert.equal(afterWelcome(false), 'device')
-  assert.equal(afterWelcome(true), 'lang')
-  assert.equal(afterDevice('ios'), 'install')
-  assert.equal(afterDevice('android'), 'install')
-  assert.equal(afterDevice(null), 'lang')
+test('첫 흐름에는 기기·설치 안내가 없고, 안내를 따로 열 때는 기기를 알면 바로 설치 안내', () => {
+  assert.equal(afterWelcome(), 'name')
+  assert.equal(installStart('ios'), 'install')
+  assert.equal(installStart('android'), 'install')
+  assert.equal(installStart(null), 'device')
   assert.ok(SCREENS.includes('device') && SCREENS.includes('install'))
   assert.equal(dotIndex('device'), -1)
   assert.equal(dotIndex('install'), -1)

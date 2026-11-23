@@ -31,16 +31,16 @@ export type EmblemDef = { id: string; name: string; icon: string; tone: EmblemTo
 
 // 등급 1~4 + 특별은 칭호이자 엠블럼이다(이름 같음). 이름은 명세서의 "안"이며 팀 회의에서 확정한다.
 export const GRADE_EMBLEMS: EmblemDef[] = [
-  { id: 'g1', grade: 1, name: '길 살핌이', icon: 'sprout', tone: 'green', how: '검증된 제보 1건' },
-  { id: 'g2', grade: 2, name: '길 지킴이', icon: 'shield', tone: 'green', how: '검증된 제보 5건 또는 확인 투표 20회' },
-  { id: 'g3', grade: 3, name: '길 잇는 사람', icon: 'link', tone: 'blue', how: '검증된 제보 15건, 조치 완료 제보 3건' },
+  { id: 'g1', grade: 1, name: '길 살핌이', icon: 'sprout', tone: 'green', how: '확인된 제보 1건' },
+  { id: 'g2', grade: 2, name: '길 지킴이', icon: 'shield', tone: 'green', how: '확인된 제보 5건 또는 확인 투표 20회' },
+  { id: 'g3', grade: 3, name: '길 잇는 사람', icon: 'link', tone: 'blue', how: '확인된 제보 15건, 조치 완료 제보 3건' },
   { id: 'g4', grade: 4, name: '동네 무장애 파수꾼', icon: 'medal', tone: 'amber', how: '동행 점검 3회 참여' },
 ]
-export const SPECIAL_EMBLEM: EmblemDef = { id: 'special', name: '경로 개척자', icon: 'compass', tone: 'purple', how: '한 경로의 장애요소 모두 조치 완료' }
+export const SPECIAL_EMBLEM: EmblemDef = { id: 'special', name: '경로 개척자', icon: 'compass', tone: 'purple', how: '한 경로의 불편한 곳 모두 조치 완료' }
 export const TYPE_EMBLEMS: EmblemDef[] = [
-  { id: 'stop', name: '정류장 탐험가', icon: 'bus', tone: 'blue', how: `정류장 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
-  { id: 'cross', name: '횡단보도 감시자', icon: 'zebra', tone: 'amber', how: `횡단보도 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
-  { id: 'temp', name: '일시 장애물 해결사', icon: 'cone', tone: 'green', how: `일시적인 장애물 제보 ${REWARD_TYPE_EMBLEM_MIN}건 검증` },
+  { id: 'stop', name: '정류장 탐험가', icon: 'bus', tone: 'blue', how: `정류장 제보 ${REWARD_TYPE_EMBLEM_MIN}건 확인` },
+  { id: 'cross', name: '횡단보도 감시자', icon: 'zebra', tone: 'amber', how: `횡단보도 제보 ${REWARD_TYPE_EMBLEM_MIN}건 확인` },
+  { id: 'temp', name: '일시 장애물 해결사', icon: 'cone', tone: 'green', how: `일시적인 장애물 제보 ${REWARD_TYPE_EMBLEM_MIN}건 확인` },
 ]
 export const ALL_EMBLEMS: EmblemDef[] = [...GRADE_EMBLEMS, SPECIAL_EMBLEM, ...TYPE_EMBLEMS]
 export const EMBLEM_BY_ID = new Map(ALL_EMBLEMS.map((e) => [e.id, e]))
@@ -70,11 +70,11 @@ function rawEvents(reports: Report[]): Omit<PointEvent, 'points'>[] {
     // 제보 작성은 0점(검증 전에는 점수 없음). 반려도 0점이다(허위·악의 판정이 따로 없어 감점 −20은 적용하지 않는다).
     if (isVerifiedReport(r)) {
       const vAt = verifiedAt(r) as string
-      add(r.userId, vAt, 'verified', REWARD_POINTS.verified, r, `${typeLabel(r)} 제보가 검증됐어요`)
+      add(r.userId, vAt, 'verified', REWARD_POINTS.verified, r, `${typeLabel(r)} 제보가 확인됐어요`)
       if (hasEvidence(r)) add(r.userId, vAt, 'evidence', REWARD_POINTS.evidence, r, `${typeLabel(r)} 제보에 실측값과 사진을 잘 남겼어요`)
       // 확인 투표: 결과가 검증과 일치(=검증 완료)한 투표만 점수가 된다.
       for (const v of r.verification.voterIds) {
-        if (v !== r.userId) add(v, vAt, 'voteMatch', REWARD_POINTS.voteMatch, r, `${typeLabel(r)} 제보 확인 투표가 검증과 일치했어요`)
+        if (v !== r.userId) add(v, vAt, 'voteMatch', REWARD_POINTS.voteMatch, r, `${typeLabel(r)} 제보 확인 투표가 결과와 일치했어요`)
       }
       const pAt = passedRecheckAt(r)
       if (pAt) add(r.userId, pAt, 'ledToAction', REWARD_POINTS.ledToAction, r, `${typeLabel(r)} 제보가 조치 완료로 이어졌어요`)
@@ -168,15 +168,15 @@ export function computeRewards(reports: Report[], userIds: string[]): Record<str
     if (nextDef) {
       const progress: Progress[] =
         grade === 0
-          ? [{ label: '검증된 제보', now: counts.verified, need: 1 }]
+          ? [{ label: '확인된 제보', now: counts.verified, need: 1 }]
           : grade === 1
             ? [
-                { label: '검증된 제보', now: counts.verified, need: g2.verified },
+                { label: '확인된 제보', now: counts.verified, need: g2.verified },
                 { label: '일치한 확인 투표', now: counts.votes, need: g2.votes },
               ]
             : grade === 2
               ? [
-                  { label: '검증된 제보', now: counts.verified, need: g3.verified },
+                  { label: '확인된 제보', now: counts.verified, need: g3.verified },
                   { label: '조치 완료로 이어진 제보', now: counts.ledToAction, need: g3.ledToAction },
                 ]
               : [{ label: '동행 점검 참여', now: counts.companion, need: REWARD_GRADE_RULES.g4.companion }]

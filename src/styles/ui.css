@@ -92,7 +92,6 @@
   html.motion-reduce .sk-bar { animation: none; }
   html.motion-reduce .rf-spin { animation-duration: 2.4s; }
 }
-.rf-preset { margin: 0 0 var(--s-3); color: var(--blue-700); font-weight: 600; }
 
 /* ───── motion 누름(PressButton): 크기는 motion이 inline으로 바꾸므로 CSS의 transform 전환과 :active 크기는 끈다 ───── */
 .mt, .mt:active:not(:disabled), .bm button.mt:active:not(:disabled) { transform: none; }

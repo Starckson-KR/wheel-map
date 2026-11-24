@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Skeleton from './Skeleton'
 import type { BoardingWarn } from '../lib/bus/boarding.ts'
+import { summarizeNear } from '../lib/routing/guideNotes.ts'
 import { getArrivals, getLineLow, LIVE_AVAILABLE, hasSnapshot } from '../lib/bus/provider.ts'
 import { nextLow, arrivalText, sameLine, type Arrival, type ArrivalResult, type LineLowResult } from '../lib/bus/types.ts'
 
@@ -72,7 +73,7 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
           <p className={'bus-warn ' + (warnX ? 'bus-warn-x' : 'bus-warn-t')} role="alert">
             <b>{warnX ? '이 정류장은 휠체어 탑승이 어려워요' : '이 정류장은 타고 내릴 때 주의해야 해요'}</b>
             <br />
-            {warns.map((w) => `${w.rating === 'X' ? 'X' : '△'} ${w.name}`).join(' · ')}
+            {summarizeNear(warns.map((w) => w.name))}
           </p>
         )}
         <div className="bus-one-row">
@@ -94,7 +95,7 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
         <p className={'bus-warn ' + (warnX ? 'bus-warn-x' : 'bus-warn-t')} role="alert">
           <b>{warnX ? '이 정류장은 휠체어 탑승이 어려워요' : '이 정류장은 타고 내릴 때 주의해야 해요'}</b>
           <br />
-          {warns.map((w) => `${w.rating === 'X' ? 'X' : '△'} ${w.name}`).join(' · ')}
+          {summarizeNear(warns.map((w) => w.name))}
         </p>
       )}
 

@@ -11,7 +11,7 @@ import type { Barrier } from '../types'
 import { Sentences } from './Sentences'
 import { fmtDay } from '../lib/format'
 
-type Props = { barriers: Barrier[]; onOpenReports: () => void; onOpenReport: (id: string) => void; onClose?: () => void; embedded?: boolean }
+type Props = { barriers: Barrier[]; onOpenReport: (id: string) => void; onClose?: () => void; embedded?: boolean }
 type Tab = 'title' | 'points' | 'roads'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'title', label: '칭호·엠블럼' },

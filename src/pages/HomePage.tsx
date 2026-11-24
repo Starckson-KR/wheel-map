@@ -47,8 +47,8 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   ] },
   { title: '혜택·참여', items: [
     { id: 'alerts', icon: 'bell', label: '혜택알림', to: TO.alerts },
-    { id: 'ranking', icon: 'star', label: '랭킹', to: '#/alerts?tab=ranking' },
-    { id: 'challenge', icon: 'medal', label: '챌린지', to: '#/alerts?tab=challenge' },
+    { id: 'ranking', icon: 'star', label: '랭킹', to: '#/me?section=ranking' },
+    { id: 'challenge', icon: 'medal', label: '챌린지', to: '#/me?section=challenge' },
   ] },
   { title: '내 정보·설정', items: [
     { id: 'me', icon: 'user', label: '내 정보', to: TO.me },

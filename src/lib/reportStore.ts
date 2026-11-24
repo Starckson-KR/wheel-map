@@ -103,6 +103,8 @@ export const STATUS_LABEL: Record<ReportStatus, string> = {
 }
 /** 행정 화면용: 시민 화면은 「확인」, 행정 화면은 옛 낱말 「검증」을 그대로 쓴다 */
 export const ADMIN_STATUS_LABEL: Record<ReportStatus, string> = { ...STATUS_LABEL, pending: '검증 대기', verified: '검증 완료' }
+/** 시민 화면에 보일 때만 옛 메모의 「검증 대기·검증 완료」를 「확인」으로 바꾼다(저장값은 그대로) */
+export const citizenMemo = (memo: string) => memo.replace(/검증 대기/g, '확인 대기').replace(/검증 완료/g, '확인 완료')
 const DONE: ReportStatus[] = ['merged', 'rejected', 'rechecked']
 export const isDone = (s: ReportStatus) => DONE.includes(s)
 

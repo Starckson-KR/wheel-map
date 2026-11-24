@@ -648,13 +648,11 @@ html[data-text='large'] {
   inset: 0;
 }
 .bm button.bm-back,
-.bm button.hm-focus-btn,
-.bm .rt-head-btns button:not(.bm-close) {
+.bm button.hm-focus-btn {
   position: relative;
 }
 .bm button.bm-back::after,
-.bm button.hm-focus-btn::after,
-.bm .rt-head-btns button:not(.bm-close)::after {
+.bm button.hm-focus-btn::after {
   content: '';
   position: absolute;
   inset: -4px;
@@ -701,7 +699,7 @@ html .hm-counts > .hm-count { height: auto; min-height: 32px; padding: 4px 12px 
 .sent { display: block; }
 .sent + .sent { margin-top: 0.2em; }
 /* 짧은 라벨·안내: 두 줄이 되면 줄 길이를 고르게(끝줄에 한 글자만 남지 않게) */
-.bn-sum, .bn-dl dd, .ob-sub, .ob-feat small { text-wrap: balance; }
+.bn-sum, .bn-dl dd, .ob-sub { text-wrap: balance; }
 /* 오류 문구 앞 "!" 표시는 첫 문장 줄 안에 둔다(문장이 블록이라 따로 한 줄이 되지 않게) */
 .rf-err:has(> .sent)::before { content: none; }
 .rf-err > .sent:first-child::before { content: '! '; font-weight: 600; }

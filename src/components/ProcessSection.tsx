@@ -5,7 +5,7 @@ import BeforeAfter from './BeforeAfter'
 import { MockBadge } from './ComplaintGuide'
 import ExternalStatus from './ExternalStatus'
 import { resizeImage, savePhoto } from '../lib/photoStore'
-import { STATUS_LABEL, useReports, userName } from '../lib/reportStore'
+import { STATUS_LABEL, citizenMemo, useReports, userName } from '../lib/reportStore'
 import { findAgencyName } from '../lib/agencyName'
 import { agencyOf, pendingTransfer } from '../lib/caseMetrics'
 import { listAgencies } from '../lib/agencyGuide'
@@ -280,7 +280,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false, na
                 </div>
                 {c.receiptNo && (
                   <div>
-                    <dt>기관 접수번호</dt>
+                    <dt>접수번호</dt>
                     <dd>{c.receiptNo}</dd>
                   </div>
                 )}
@@ -311,7 +311,7 @@ export default function ProcessSection({ report: r, readOnlyExternal = false, na
                 <li key={i} className={h.status}>
                   <span className={'rp-badge rp-' + h.status}>{STATUS_LABEL[h.status]}</span>
                   <span className="bm-meta"> {fmt(h.at)} <span className="ps-by">· {nameOf(h.by)}</span></span>
-                  {h.memo && h.memo !== STATUS_LABEL[h.status] && <div>{h.memo}</div>}
+                  {h.memo && h.memo !== STATUS_LABEL[h.status] && <div>{readOnlyExternal ? h.memo : citizenMemo(h.memo)}</div>}
                 </li>
               ))}
             </ol>

@@ -29,22 +29,3 @@ export function initialCard(hasDetour: boolean, wantBus: boolean, bus: BusCardSt
   if (wantBus && bus !== 'none') return 'bus'
   return cardOrder(hasDetour)[0]
 }
-
-export interface CardSpot {
-  id: CardId
-  /** 카드 가운데의 가로 위치(레일과 같은 좌표계) */
-  center: number
-  disabled?: boolean
-}
-
-/**
- * 넘기기가 멈춘 자리에서 레일 가운데에 가장 가까운 카드(스냅 정렬이 center).
- * 가장 가까운 카드가 쓸 수 없는 카드(disabled)거나 카드가 없으면 null(선택을 바꾸지 않는다)
- */
-export function settledCard(railCenter: number, spots: readonly CardSpot[]): CardId | null {
-  let best: CardSpot | null = null
-  for (const s of spots) {
-    if (!best || Math.abs(s.center - railCenter) < Math.abs(best.center - railCenter)) best = s
-  }
-  return best && !best.disabled ? best.id : null
-}

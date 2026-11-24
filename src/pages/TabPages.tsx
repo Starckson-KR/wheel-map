@@ -12,7 +12,7 @@ import ParticipationChallenge from '../components/ParticipationChallenge'
 import ReceiptLookup from '../components/ReceiptLookup'
 import VerifyDeck from '../components/VerifyDeck'
 import MyBenefits from '../components/MyBenefits'
-import { listAgencies } from '../lib/agencyGuide'
+import { listAgencies, phoneParts, telHref } from '../lib/agencyGuide'
 import { TO, go } from '../lib/nav'
 import { computeRewards } from '../lib/rewards'
 import { nowMs, useReports } from '../lib/reportStore'
@@ -116,6 +116,9 @@ function FoldLine({ label, open, onToggle }: { label: string; open: boolean; onT
   )
 }
 
+// 이미 확인된 번호(agencyGuide의 PHONES)만 걸 수 있게 한다. 없으면 undefined.
+const callableTel = (phone?: string) => (phone ? phoneParts(phone).find((p) => p.tel)?.tel : undefined)
+
 export function ReportTab({ query }: { query: string }) {
   const agencies = useMemo(() => listAgencies().filter((a) => a.verified), [])
   const [allAg, setAllAg] = useState(false)
@@ -163,6 +166,11 @@ export function ReportTab({ query }: { query: string }) {
                 <li key={a.id}>
                   <strong>{a.name}</strong>
                   {a.types.length > 0 && <span className="bm-meta">{a.types.join(' · ')}</span>}
+                  {callableTel(a.phone) && (
+                    <a className="cg-tel" href={telHref(callableTel(a.phone)!)} aria-label={`${a.name}에 전화 걸기 ${callableTel(a.phone)}`}>
+                      ☎ {callableTel(a.phone)}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -204,7 +212,7 @@ export function MeTab({ query = '' }: { query?: string }) {
       <AccountCard />
       <section className="pg-card">
         <h2>내 기여</h2>
-        <MyRewards embedded barriers={BARRIERS} onOpenReports={() => go(TO.report)} onOpenReport={(id) => go(TO.openReport(id))} />
+        <MyRewards embedded barriers={BARRIERS} onOpenReport={(id) => go(TO.openReport(id))} />
         <div id="pg-ranking" className="pg-fold">
           <FoldLine label="랭킹" open={!!fold.open.ranking} onToggle={() => toggle('ranking')} />
           {fold.open.ranking && <ParticipationRanking bare />}

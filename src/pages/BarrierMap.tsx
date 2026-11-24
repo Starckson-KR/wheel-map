@@ -2194,10 +2194,6 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         {rewardsOpen && (
           <MyRewards
             barriers={BARRIERS}
-            onOpenReports={() => {
-              setRewardsOpen(false)
-              setPanelOpen(true)
-            }}
             onOpenReport={openReport}
             onClose={() => setRewardsOpen(false)}
           />

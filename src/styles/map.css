@@ -2510,12 +2510,6 @@ html[data-text='large'] .ms .rf-actions button {
 }
 
 /* ───── 직접 고르기: 다섯 묶음, 두 줄 타일 ───── */
-.lp-group h3 {
-  margin: var(--s-2) 0;
-  color: var(--text-sub);
-  font-size: var(--fs-caption);
-  font-weight: 600;
-}
 .lp-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

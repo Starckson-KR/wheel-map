@@ -18,6 +18,5 @@ export const REPORT_TYPES: ReportTypeInfo[] = [
   { type: '불법 주정차', category: 'temporary', icon: '🚗', desc: '차량이 보도나 횡단보도를 막음' },
 ]
 
-export const CATEGORY_LABEL: Record<ReportCategory, string> = { fixed: '고정형', temporary: '일시형' }
 
 export const REJECT_REASONS = ['위치 불명확', '사진 불일치', '이미 조치됨', '범위 밖(시각장애 관련 등)'] as const

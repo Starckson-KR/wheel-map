@@ -4,6 +4,7 @@ import { boardingNear, worstOf, type BoardingWarn } from '../lib/bus/boarding.ts
 import { loadBisStops, PILOT_STOPS } from '../lib/bus/data.ts'
 import { matchBisStop, stopsNear, type BisStop } from '../lib/bus/stops.ts'
 import { analyze, searchRoute, verdictOf, type Hit, type Obstacle, type Pt, type RouteData, type Verdict } from '../lib/routing/engine.ts'
+import { summarizeNear } from '../lib/routing/guideNotes.ts'
 import type { RouteOverlay } from '../lib/routing/overlay.ts'
 import { makeFetcher, newStats, type Place } from '../lib/routing/provider.ts'
 import type { TItinerary, TLeg } from '../lib/transit/parse.ts'
@@ -351,7 +352,7 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
                           <p className={'bus-warn ' + (worstOf(l.alight.warns) === 'X' ? 'bus-warn-x' : 'bus-warn-t')} role="alert">
                             <b>{`내리는 정류장(${l.alight.name})${worstOf(l.alight.warns) === 'X' ? '은 휠체어로 내리기 어려워요' : '은 내릴 때 주의가 필요해요'}`}</b>
                             <br />
-                            {l.alight.warns.map((w) => `${w.rating === 'X' ? 'X' : '△'} ${w.name}`).join(' · ')}
+                            {summarizeNear(l.alight.warns.map((w) => w.name))}
                           </p>
                           {worstOf(l.alight.warns) === 'X' && <AltBox stop={l.alight} alts={nearbyAlt(l.alight)} better={items.filter((x, j) => j !== sel && !x.hasXStop)} onPick={choose} items={items} />}
                         </>

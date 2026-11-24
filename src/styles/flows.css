@@ -41,8 +41,7 @@
   text-align: center;
 }
 
-.rf-head > .bm-close,
-.rf-head > .rt-head-btns {
+.rf-head > .bm-close {
   grid-column: 3;
 }
 
@@ -72,8 +71,7 @@
   font-weight: 600;
 }
 
-.rp .rf-head > .bm-close,
-.rp .rf-head > .rt-head-btns {
+.rp .rf-head > .bm-close {
   grid-column: 2;
 }
 

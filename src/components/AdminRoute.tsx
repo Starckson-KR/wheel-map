@@ -60,7 +60,7 @@ export default function AdminRoute({ barriers, onOpen }: { barriers: Barrier[]; 
             <h4>경로 조정 담당</h4>
             <p>
               현재 지정: <strong>{coordinator ? findAgencyName(coordinator) : '미지정'}</strong>
-              {st.agencies.size >= 2 && !coordinator && <span className="ps-flag"> 여러 기관이 걸려 있어서 조정 담당을 정해야 해요.</span>}
+              {st.agencies.size >= 2 && !coordinator && <span className="ps-flag adm-coord-flag"> 여러 기관이 걸려 있어서 조정 담당을 정해야 해요.</span>}
             </p>
             <div className="adm-coord">
               <label className="rf-field">

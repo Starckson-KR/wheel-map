@@ -954,3 +954,6 @@ body:has(.ms-settings) .tabbar > * { visibility: hidden; }
 
 /* 제보 탭(11/23): 「내 제보」 아래 한 줄 접기(접수번호 찾기) */
 .pg-fold { display: grid; gap: var(--s-3); border-top: 1px solid var(--line); }
+
+/* UX 총괄 점검(11/26): 설정 시트 접는 줄에 화살표가 둘(공통 summary 화살표 + 줄 안 화살표) 보이던 것을 하나로 */
+.bm .ms-fold > summary::after { display: none; }

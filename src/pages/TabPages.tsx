@@ -177,7 +177,7 @@ export function ReportTab({ query }: { query: string }) {
             </ul>
             {agencies.length > 5 && (
               <button type="button" className="pg-wide" aria-expanded={allAg} onClick={() => setAllAg((v) => !v)}>
-                {allAg ? '접기' : `더보기 (${agencies.length - 5}곳)`}
+                {allAg ? '접기' : `더 보기 (${agencies.length - 5}곳)`}
               </button>
             )}
           </>

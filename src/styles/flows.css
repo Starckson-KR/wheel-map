@@ -830,3 +830,16 @@ html.motion-reduce .pg-top-btn { transition: none; }
 .rf-fold { padding-bottom: var(--s-5); }
 .rf-fold > summary { padding: var(--s-3) 0; color: var(--text-strong); font-size: var(--fs-sub); font-weight: 600; cursor: pointer; }
 .rf-fold > * + * { margin-top: var(--s-3); }
+
+/* ───── UX 총괄 점검(11/26) ───── */
+/* 사진 없는 제보의 작은 그림 자리: 바탕과 같은 색이라 빈칸으로 보이던 것을 사진 그림으로 채운다 */
+.rp-thumb-empty {
+  background: var(--grey-200) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238b95a1' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='14' rx='2.5'/%3E%3Ccircle cx='9' cy='10' r='1.6'/%3E%3Cpath d='M4.5 17l4.5-4 3.5 3 2.5-2 4.5 4'/%3E%3C/svg%3E") center / 24px no-repeat;
+}
+/* 전화·문자 링크: 브라우저 기본 파란색 대신 앱 색 */
+.cg-tel { color: var(--blue-700); }
+/* 「직접 잰 값」과 「선택」 사이 띄우기(summary가 flex라 공백이 사라짐) */
+.rf-fold > summary .bm-meta { margin-left: 6px; }
+/* 처리 흐름 5단계가 390px 폭에서 한 줄에 다 보이게(넘치면 지금처럼 옆으로 민다) */
+.ps-steps { gap: 4px; }
+.ps-steps li { padding: 0 9px; }

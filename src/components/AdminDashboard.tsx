@@ -153,7 +153,7 @@ export function AdminDashboard({ barriers }: { barriers: Barrier[] }) {
             </span>
           </div>
         ))}
-        <Sentences as="span" className="bm-meta">○ 괜찮음 · △ 주의 · X 어려움 · ? 평가 없음.</Sentences>
+        <span className="bm-meta">○ 괜찮음 · △ 주의 · X 어려움 · ? 평가 없음.</span>
       </section>
 
       <section className="rf-card">

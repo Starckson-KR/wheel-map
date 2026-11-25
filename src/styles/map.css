@@ -2658,3 +2658,13 @@ html.motion-reduce :is(.sc-sum-wrap, .lp-tile-ck, .bm button.lp-tile, .bm button
 .bm button.lp-fold[aria-expanded='true'] .lr-chev {
   transform: rotate(90deg);
 }
+
+/* UX 총괄 점검(11/26): 목록 시트를 끝까지 올리면 내 위치 버튼이 범례 버튼과 20px 겹치던 것 → 큰 화면처럼 시트 머리줄 오른쪽으로 들어온다(폰 보기) */
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .bm .hm-top--chips ~ .hm-sheet[data-snap='2'] button.hm-locate { top: var(--s-3); }
+}
+:root[data-view='mobile'] .bm .hm-top--chips ~ .hm-sheet[data-snap='2'] button.hm-locate { top: var(--s-3); }
+/* 지도 위 버스 번호 딱지: 긴 노선 이름이 화면 밖으로 나가지 않게 */
+.rt-busno { max-width: 132px; overflow: hidden; text-overflow: ellipsis; }
+/* 검색 결과 목록 위에 범례 버튼(ⓘ)이 떠 있던 것: 숨김 규칙이 버튼 기본 규칙에 져서 안 먹었다 */
+.bm .hm-top--search button.hm-legend-toggle { display: none; }

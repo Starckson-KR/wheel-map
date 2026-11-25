@@ -326,7 +326,7 @@ export default function HomePage() {
               <button type="button" aria-label="이의있음 홈" onClick={(e) => { go(TO.home); onLogoTap(e.currentTarget) }}><Wordmark decorative /></button>
             </h1>
             <div className="pg-icons">
-              <button type="button" className="pg-ic" aria-label="전체메뉴 열기" aria-haspopup="dialog" onClick={() => { setSettings(false); setMenu(true) }}><Icon name="menu" size={24} /></button>
+              <button type="button" className="pg-ic" aria-label="전체 메뉴 열기" aria-haspopup="dialog" onClick={() => { setSettings(false); setMenu(true) }}><Icon name="menu" size={24} /></button>
             </div>
           </header>
           <WeatherLine />
@@ -411,7 +411,7 @@ export default function HomePage() {
         {menu && (
           <ListSheet
             key="menu"
-            title="전체메뉴"
+            title="전체 메뉴"
             groups={MENU_GROUPS}
             onPick={(id) => {
               const it = MENU_ITEMS.find((x) => x.id === id)

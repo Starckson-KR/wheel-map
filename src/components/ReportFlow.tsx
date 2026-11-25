@@ -459,7 +459,7 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                   tabIndex={-1}
                   className={'rf-pos' + (location ? ' ok' : '')}
                   role="status"
-                  aria-invalid={!!errors.location}
+                  aria-invalid={!!errors.location && !location}
                   aria-describedby={errors.location && !location ? (gpsMsg && locSource === 'gps' ? 'rf-gps-msg' : 'rf-e-location') : undefined}
                 >
                   {location ? `위치를 정했어요 · ${placeText}` : '아직 위치를 정하지 않았어요'}

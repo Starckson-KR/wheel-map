@@ -14,7 +14,6 @@
   /* 혜택알림 */
   .bn-detail:not([hidden]),
   .bn-panel,
-  .bn-list,
   .al-empty,
   .pg-lines,
   /* 제보 현황·내 기여·랭킹 */
@@ -86,7 +85,7 @@
 
 /* ───── 움직임 줄이기 ───── */
 html.motion-reduce :is(
-  .bn-detail, .bn-panel, .bn-list, .al-empty, .pg-lines, .rp-list, .rp-empty, .rp-tabs--chips, .rw section, .rk-panel,
+  .bn-detail, .bn-panel, .al-empty, .pg-lines, .rp-list, .rp-empty, .rp-tabs--chips, .rw section, .rk-panel,
   [id='map-search-results'], [id='map-search-results'] > *, .lp-filter, .lp-check, .bus-none, .bus-mode, .bus-list,
   .hp-ai-card, .hp-ai-hint, .hp-mine-s, .bn-fold-body, .hp-trial-msg, .rf-err, .rf-warn, .rf-check, .rf-photo,
   .hm-focus, .hm-note, .hm-eyebrow, .hm-search-x, .hm-legend, .rf > .rf-body > *, .pg-agencies > li

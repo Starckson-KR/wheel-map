@@ -110,6 +110,33 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 14 14' fill='none' stroke='%231b64da' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7.5l2.8 2.8L11 4.8'/%3E%3C/svg%3E");
 }
 
+/* 입력 상태(결과 없음): 「길찾기」 버튼이 처음부터 다 보이도록 안쪽 간격을 줄이고, 시트를 화면의 54%로 조금 키운다(지도는 46% 남는다) */
+.rp.rt.rt-input {
+  gap: var(--s-2);
+}
+.rt-input .rf-card {
+  gap: 6px;
+  padding: var(--s-3);
+}
+.rt-input .tr-tabs {
+  padding: 2px;
+}
+.rt-input .rt-place {
+  gap: 6px;
+  padding: 10px var(--s-4) var(--s-3);
+}
+.rt-input .rt-place legend {
+  margin-bottom: 2px;
+}
+@media (max-width: 767px) {
+  :root:not([data-view='desktop']) .rp.rt.rt-input {
+    height: 54%;
+  }
+}
+:root[data-view='mobile'] .rp.rt.rt-input {
+  height: 54%;
+}
+
 /* 입력칸에 커서가 있는 동안 휴대폰에서는 시트를 위쪽까지 키워, 도착 입력칸과 결과가 키보드에 가려지지 않게 한다 */
 @media (max-width: 767px) {
   :root:not([data-view='desktop']) .rp.rt.rt-typing {
@@ -752,6 +779,10 @@ details.rt-more > summary {
   right: var(--s-4);
   bottom: calc(52% + var(--s-3));
   z-index: 39;
+}
+
+.bm button.hm-locate.rt-locate.rt-locate-in {
+  bottom: calc(54% + var(--s-3));
 }
 
 .bm button.hm-locate.rt-locate[hidden] {

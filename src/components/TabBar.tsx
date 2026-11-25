@@ -8,6 +8,7 @@ import { haptic } from '../lib/haptic'
 import { goCircle } from '../lib/circleReveal'
 import { FADE, FADE_OUT, SPRING } from '../lib/motionTokens'
 import { go, type PageId } from '../lib/nav'
+import { preloadMap } from '../lib/mapChunk'
 import { FAN_ITEMS, fanTarget, TAB_ITEMS } from '../lib/tabs'
 import { prefersCalm } from '../lib/viewPrefs'
 
@@ -209,7 +210,7 @@ export default function TabBar({ page }: { page: PageId }) {
             </span>
           </button>
         ) : (
-          <button key={t.page} type="button" className="tabbar-btn" aria-current={page === t.page ? 'page' : undefined} aria-label={t.label} onClick={() => go(t.to)} onPointerDown={() => haptic('tick')}>
+          <button key={t.page} type="button" className="tabbar-btn" aria-current={page === t.page ? 'page' : undefined} aria-label={t.label} onClick={() => go(t.to)} onPointerDown={() => { haptic('tick'); if (t.page === 'map') preloadMap() }} onFocus={t.page === 'map' ? preloadMap : undefined}>
             {page === t.page && <m.span layoutId="tabbar-ind" className="tabbar-ind" transition={SPRING.quick} aria-hidden="true" />}
             {/* 누르면 아이콘이 작아졌다가 손을 뗄 때 살짝 튕겨 돌아온다(B3) */}
             <m.span className="tb-ic" whileTap={{ scale: 0.82 }} transition={SPRING.pop} aria-hidden="true">

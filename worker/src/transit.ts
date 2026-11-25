@@ -145,7 +145,7 @@ export async function handleTransit(request: Request, env: Env, origin: string, 
       await prune(db, now)
     }
     if ('noRoute' in v) return bad(422, v.noRoute)
-    return reply({ ok: true, itineraries: v.itineraries, cached }, 200, origin)
+    return reply({ ok: true, itineraries: (v as { itineraries: TItinerary[] }).itineraries, cached }, 200, origin)
   } catch (e) {
     if (e instanceof Fail) return bad(e.status, e.message)
     console.log('wheelmap-ai error: transit_internal') // 오류 종류만 남긴다

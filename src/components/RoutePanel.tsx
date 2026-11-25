@@ -854,7 +854,7 @@ export default function RoutePanel(props: Props) {
   const locBtn = props.onLocate && (
     <button
       type="button"
-      className={'hm-locate rt-locate' + (low ? ' rt-locate-low' : '') + (props.locMode === 'follow' ? ' on' : props.locMode === 'free' ? ' free' : '')}
+      className={'hm-locate rt-locate' + (low ? ' rt-locate-low' : '') + (hasResult ? '' : ' rt-locate-in') + (props.locMode === 'follow' ? ' on' : props.locMode === 'free' ? ' free' : '')}
       style={low && lowH > 0 ? { bottom: lowH + 12 } : undefined}
       onClick={props.onLocate}
       aria-pressed={props.locMode !== undefined && props.locMode !== 'off'}
@@ -953,7 +953,7 @@ export default function RoutePanel(props: Props) {
     {guidePanel}
     <div
       ref={sheetRef}
-      className={'rp rt' + (picking ? ' rt-hidden' : '') + (typing ? ' rt-typing' : '') + (low ? ' rt-low' : '')}
+      className={'rp rt' + (picking ? ' rt-hidden' : '') + (typing ? ' rt-typing' : '') + (low ? ' rt-low' : '') + (hasResult ? '' : ' rt-input')}
       data-sheet
       role="dialog"
       aria-label="길찾기"

@@ -1,6 +1,6 @@
 // wrangler 타입을 설치하지 않으려고 필요한 만큼만 직접 선언한다.
 export interface AiBinding {
-  run(model: string, input: { messages: { role: 'system' | 'user' | 'assistant'; content: string }[]; max_tokens?: number; temperature?: number }): Promise<unknown>
+  run(model: string, input: { messages: { role: 'system' | 'user' | 'assistant'; content: string }[]; max_tokens?: number; temperature?: number; chat_template_kwargs?: { enable_thinking?: boolean } }): Promise<unknown>
 }
 
 // D1(SQLite) 최소 선언. 시험에서는 node:sqlite로 같은 모양의 가짜를 만든다.

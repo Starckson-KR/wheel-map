@@ -24,6 +24,7 @@ import { openGuide } from '../lib/usageGuide'
 import { Wordmark } from '../components/Wordmark'
 import { getMotionReduce } from '../lib/viewPrefs'
 import { isMockReport } from '../lib/realFirst'
+import { sortAlerts } from '../lib/alertOrder'
 
 const BARRIERS = loadBarriers()
 
@@ -300,7 +301,7 @@ export function AlertsTab({ query = '' }: { query?: string }) {
       if (e.points <= 0) continue
       out.push({ key: `p-${e.id}`, at: e.at, kind: 'points', icon: 'star', text: e.label, points: e.points, to: TO.me, ...(mockOf.get(e.reportId) ? { mock: true } : {}) })
     }
-    return out.sort((a, b) => Number(!!a.mock) - Number(!!b.mock) || b.at.localeCompare(a.at)) // 실제 제보 알림이 체험 제보 알림보다 먼저
+    return sortAlerts(out) // 실제 제보 알림이 체험 제보 알림보다 먼저, 묶음 안에서는 최신이 위
   }, [reports, userId, rw])
   const shown = items.filter((x) => filter === 'all' || x.kind === filter).slice(0, 40)
   // 한 화면에 한 구역: 혜택(기본) · 알림. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
@@ -331,9 +332,31 @@ export function AlertsTab({ query = '' }: { query?: string }) {
       <AnimatePresence mode="popLayout" initial={false}>
       <AlPanel key={tab} tab={tab}>
       {tab === 'benefits' && <MyBenefits />}
+      {tab === 'alerts' && rw.next && (
+      <section className="pg-card al-next" aria-labelledby="al-next-h">
+        <p className="al-next-cap">다음 칭호</p>
+        <h3 id="al-next-h">{rw.next.name}</h3>
+        {rw.next.progress.slice(0, 1).map((p) => (
+          <div key={p.label} className="al-next-main">
+            <span className="al-next-bar" role="progressbar" aria-valuemin={0} aria-valuemax={p.need} aria-valuenow={Math.min(p.now, p.need)} aria-label={p.label}>
+              <i style={{ width: `${Math.min(1, p.now / p.need) * 100}%` }} />
+            </span>
+            <p className="al-next-frac"><span>{p.label}</span><b>{Math.min(p.now, p.need)}/{p.need}</b></p>
+          </div>
+        ))}
+        {rw.next.progress.slice(1).map((p) => (
+          <div key={p.label} className="rw-bar al-next-sub">
+            <span>{rw.next?.anyOf ? '또는 ' : ''}{p.label}</span>
+            <span className="rw-bar-t" role="progressbar" aria-valuemin={0} aria-valuemax={p.need} aria-valuenow={Math.min(p.now, p.need)} aria-label={p.label}>
+              <i style={{ transform: `scaleX(${Math.min(1, p.now / p.need)})` }} />
+            </span>
+            <b>{Math.min(p.now, p.need)}/{p.need}</b>
+          </div>
+        ))}
+      </section>
+      )}
       {tab === 'alerts' && (
-      <section className="pg-card" aria-labelledby="al-h">
-        <h2 id="al-h">알림</h2>
+      <section className="pg-card" aria-label="알림">
         <div className="al-chips" role="group" aria-label="알림 종류">
           {FILTERS.map((f) => (
             <button key={f.id} type="button" className="al-chip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
@@ -355,19 +378,23 @@ export function AlertsTab({ query = '' }: { query?: string }) {
             </div>
           </div>
         ) : (
-          <ul key={filter} className="pg-lines">
-            {shown.map((c, i) => (
-              <RiseLi key={c.key} first={riseAlerts} i={i}>
-                <button type="button" className="pg-line al-item" onClick={() => go(c.to)}>
-                  <span className={'al-ic al-ic-' + c.kind} aria-hidden="true"><Icon name={c.icon} size={18} /></span>
-                  <span className="pg-line-t">
-                    <strong>{c.text}</strong>
-                    <span>{ago(c.at)}{c.points ? ` · +${c.points}점` : ''}</span>
-                  </span>
-                  <Icon name="chev" size={16} />
-                </button>
-              </RiseLi>
-            ))}
+          <ul key={filter} className="al-rail">
+            {shown.map((c, i) => {
+              const when = ago(c.at)
+              // 바로 윗줄과 같은 때면 때를 되풀이하지 않는다(화면 읽기에는 줄마다 읽어 준다)
+              const same = i > 0 && ago(shown[i - 1].at) === when
+              return (
+                <RiseLi key={c.key} first={riseAlerts} i={i} className={i === 0 ? 'on' : undefined}>
+                  <button type="button" className="al-row" aria-label={`${when}, ${c.text}${c.points ? `, +${c.points}점` : ''}`} onClick={() => go(c.to)}>
+                    <span className={'al-when' + (i === 0 ? '' : ' soft')}>{same ? '' : when}</span>
+                    <span className="al-what">
+                      <span className="pg-line-t"><strong>{c.text}</strong></span>
+                      {c.points ? <b className="al-plus">+{c.points}점</b> : null}
+                    </span>
+                  </button>
+                </RiseLi>
+              )
+            })}
           </ul>
         )}
       </section>

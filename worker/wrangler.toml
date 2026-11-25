@@ -22,6 +22,7 @@ BIS_PER_MINUTE = "30"
 # 버스 길찾기(ODsay) 중계: 하루 상류 호출 상한(포털에 일 한도 표기 없음 — 확인 후 조정), IP별 분당 요청 수. 키(KOREACONNECT_KEY)는 secret으로만 넣는다.
 TRANSIT_DAILY_CAP = "300"
 TRANSIT_PER_MINUTE = "10"
+TRANSIT_RELAY_URL = "https://211-233-209-65.sslip.io" # 국내 중계(relay/). 비밀값은 secret TRANSIT_RELAY_SECRET
 # 날씨 중계: IP별 분당 요청 수
 WEATHER_PER_MINUTE = "30"
 

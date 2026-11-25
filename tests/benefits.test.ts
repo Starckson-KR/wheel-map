@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  buildView, homeCount, isExpired, matchScore, parsePrefs, periodText, validateBenefits, visibleBenefits, groupByCategory,
+  buildView, endText, endingSoonText, iGa, homeCount, isExpired, matchScore, parsePrefs, periodText, shortTitle, soonestEnding, validateBenefits, visibleBenefits, groupByCategory,
   type Benefit, type BenefitPrefs,
 } from '../src/lib/benefits.ts'
 
@@ -110,4 +110,46 @@ test('데이터: 확인 필요 칸은 unknowns에 적혀 있다', () => {
   for (const b of data.items) {
     if (b.status === '확인 필요') assert.ok(b.unknowns.length > 0, b.id)
   }
+})
+
+test('맨 위 한 문장: 오늘 이후에 끝나는 것 중 가장 이른 혜택을 고른다', () => {
+  const list = [
+    base({ id: 'always' }),
+    base({ id: 'past', period: { type: 'range', end: '2026-11-11' } }),
+    base({ id: 'late', period: { type: 'range', start: '2026-10-27', end: '2026-12-12' } }),
+    base({ id: 'soon', period: { type: 'range', start: '2026-11-09', end: '2026-11-27' } }),
+    base({ id: 'open', period: { type: 'range', start: '2026-12-01' } }),
+  ]
+  assert.equal(soonestEnding(list, NOW)?.id, 'soon')
+  // 종료일 당일까지는 그 혜택, 다음 날부터는 그다음으로 끝나는 혜택
+  assert.equal(soonestEnding(list, new Date(2026, 10, 27, 23).getTime())?.id, 'soon')
+  assert.equal(soonestEnding(list, new Date(2026, 10, 28, 1).getTime())?.id, 'late')
+})
+
+test('맨 위 한 문장: 종료일이 같으면 먼저 시작한 것, 끝나는 혜택이 없으면 null', () => {
+  const tie = [
+    base({ id: 'day', period: { type: 'range', start: '2026-12-12', end: '2026-12-12' } }),
+    base({ id: 'course', period: { type: 'range', start: '2026-10-27', end: '2026-12-12' } }),
+  ]
+  assert.equal(soonestEnding(tie, NOW)?.id, 'course')
+  const none = [base({ id: 'a' }), base({ id: 'u', period: { type: 'unknown' } }), base({ id: 'p', period: { type: 'range', end: '2026-01-01' } })]
+  assert.equal(soonestEnding(none, NOW), null)
+  assert.equal(soonestEnding([], NOW), null)
+})
+
+test('맨 위 한 문장: 짧은 이름과 끝나는 날 글', () => {
+  assert.equal(shortTitle('장애인 스포츠강좌이용권(2027년도 신청)'), '장애인 스포츠강좌이용권')
+  assert.equal(shortTitle('장애인연금'), '장애인연금')
+  assert.equal(endText(base({ period: { type: 'range', start: '2026-11-09', end: '2026-11-27' } })), '11월 27일까지')
+  assert.equal(endText(base({ period: { type: 'always' } })), '')
+})
+
+test('맨 위 한 문장: 받침에 맞춰 이/가를 고르고 「신청」은 넣지 않는다', () => {
+  assert.equal(iGa('이용권'), '이')
+  assert.equal(iGa('문화누리카드'), '가')
+  assert.equal(iGa('전통음식강좌'), '가')
+  assert.equal(iGa('장애인연금'), '이')
+  assert.equal(iGa('A'), '이(가)')
+  assert.equal(endingSoonText(base({ title: '장애인 스포츠강좌이용권(2027년도 신청)' })), '장애인 스포츠강좌이용권이 곧 끝나요')
+  assert.equal(endingSoonText(base({ title: '문화누리카드(통합문화이용권)' })), '문화누리카드가 곧 끝나요')
 })

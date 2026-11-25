@@ -334,3 +334,46 @@
 .bm button.ch-go { background: var(--primary-weak); color: var(--primary); font-weight: 500; }
 .bm button.ch-go:hover:not(:disabled) { background: var(--primary-weak); }
 .ch-row { border: 0; }
+
+/* ───── 혜택알림 · 혜택: 파란 면 위 한 문장과 버튼 하나, 나머지는 분류 줄로 접는다 ───── */
+.bn-hero { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-6) var(--s-5) var(--s-5); border-radius: var(--r-lg); background: var(--primary); color: var(--on-primary); }
+/* 다크에서는 밝은 파랑 위 흰 글자가 흐려서 더 짙은 파랑 면을 쓴다 */
+:root[data-theme='dark'] .bn-hero { background: var(--primary-hover); }
+.bn-hero p { margin: 0; color: inherit; }
+.bn-hero .bn-hero-k { font-size: var(--fs-small); font-weight: 600; opacity: 0.86; }
+.bn-hero h3 { margin: 0; color: inherit; font-size: 1.75rem; font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; text-wrap: balance; word-break: keep-all; }
+.bn-hero-go { display: grid; place-items: center; min-height: 56px; margin-top: var(--s-4); padding: 0 var(--s-4); border-radius: var(--r-md); background: var(--on-primary); color: #1b64da; font-weight: 600; text-align: center; text-decoration: none; }
+.bn-hero-go:focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: none; }
+
+.bn-cats { margin: 0; padding: 0; list-style: none; }
+.bn-cats > li + li { border-top: 1px solid var(--line); }
+.bm button.bn-cat { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); width: 100%; min-height: 56px; padding: 0 var(--s-1); border-radius: var(--r-md); background: none; color: var(--text-strong); font-weight: 600; text-align: left; }
+.bn-cat b { margin-left: var(--s-2); color: var(--text-sub); font-variant-numeric: tabular-nums; }
+.bn-cat .hp-nchev, .bn-line-chev { flex: none; color: var(--text-sub); }
+.bn-cat-items { border-top: 1px solid var(--line); }
+.bn-line-detail { padding: 0 var(--s-1) var(--s-4); }
+
+/* ───── 혜택알림 · 알림: 다음 칭호까지 진행 막대 하나, 아래는 때·내용 두 칸 목록 ───── */
+.al-next { gap: var(--s-2); }
+.al-next p { margin: 0; }
+.al-next-cap { color: var(--text-sub); font-size: var(--fs-caption); font-weight: 600; }
+.al-next h3 { margin: 0; color: var(--text-strong); font-size: var(--fs-head); font-weight: 600; line-height: 1.35; }
+.al-next-main { display: flex; flex-direction: column; gap: var(--s-2); }
+.al-next-bar { position: relative; display: block; height: 20px; margin-top: var(--s-2); overflow: hidden; border-radius: var(--r-full); background: var(--grey-100); }
+.al-next-bar i { position: absolute; inset: 0 auto 0 0; border-radius: var(--r-full); background: var(--primary); transition: width var(--t-sheet) var(--ease-out); }
+.al-next-frac { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); color: var(--text); font-size: var(--fs-small); }
+.al-next-frac b { color: var(--text-strong); font-size: var(--fs-head); font-variant-numeric: tabular-nums; }
+.al-next-sub { margin-top: var(--s-2); padding-top: var(--s-3); border-top: 1px solid var(--line); }
+
+.al-rail { margin: 0; padding: 0; list-style: none; }
+.bm button.al-row { display: grid; grid-template-columns: calc(var(--fs-small) * 5.5) minmax(0, 1fr); align-items: stretch; width: 100%; min-height: var(--touch); padding: 0; border-radius: var(--r-md); background: none; color: inherit; font-weight: inherit; text-align: left; }
+.al-when { padding: var(--s-3) var(--s-3) var(--s-3) 0; color: var(--text-strong); font-size: var(--fs-small); font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.al-when.soft { color: var(--text-sub); font-weight: 500; }
+.al-what { position: relative; display: flex; align-items: center; gap: var(--s-2); padding: var(--s-3) 0 var(--s-3) var(--s-4); border-left: 2px solid var(--line); }
+.al-what::before { content: ''; position: absolute; left: -6px; top: 18px; width: 10px; height: 10px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 2px var(--grey-300); }
+.al-rail .on .al-what::before { background: var(--primary); box-shadow: none; }
+.al-plus { flex: none; color: var(--primary); font-size: var(--fs-sub); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+@media all {
+  html.motion-reduce .al-next-bar i { transition: none; }
+}

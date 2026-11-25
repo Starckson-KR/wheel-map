@@ -161,3 +161,46 @@ export const periodText = (b: Benefit): string => {
   if (p.start && p.end) return p.start === p.end ? f(p.end) : `${f(p.start)}부터 ${f(p.end)}까지`
   return p.end ? `${f(p.end)}까지` : `${f(p.start)}부터`
 }
+
+// ───── 혜택 화면 맨 위 한 문장(가장 먼저 끝나는 혜택) ─────
+// 오늘(당일 포함) 이후에 끝나는 것 중 종료일이 가장 이른 것. 종료일이 같으면 먼저 시작한 것, 그것도 같으면 데이터 순서.
+// 종료일이 있는 혜택이 남아 있지 않으면 null(주인공 면을 그리지 않는다).
+export function soonestEnding(all: Benefit[], nowMs: number): Benefit | null {
+  const today = dayOf(nowMs)
+  let best: Benefit | null = null
+  let bestEnd = ''
+  let bestStart = ''
+  for (const b of all) {
+    const p = b.period
+    if (p.type !== 'range' || !p.end || p.end < today) continue
+    const start = p.start ?? ''
+    if (!best || p.end < bestEnd || (p.end === bestEnd && start < bestStart)) {
+      best = b
+      bestEnd = p.end
+      bestStart = start
+    }
+  }
+  return best
+}
+
+// 이름 끝의 괄호 설명을 뗀 짧은 이름: "문화누리카드(통합문화이용권)" → "문화누리카드"
+export const shortTitle = (title: string): string => title.replace(/\s*\([^()]*\)\s*$/, '').trim() || title
+
+// 받침이 있으면 「이」, 없으면 「가」. 한글로 끝나지 않으면 둘 다 적는다.
+export function iGa(word: string): string {
+  const c = word.charCodeAt(word.length - 1)
+  if (!(c >= 0xac00 && c <= 0xd7a3)) return '이(가)'
+  return (c - 0xac00) % 28 === 0 ? '가' : '이'
+}
+
+// 파란 면 한 문장. 기간이 신청 기간인지 확인되지 않아 「신청」이라고 하지 않는다.
+export const endingSoonText = (b: Benefit): string => {
+  const name = shortTitle(b.title)
+  return `${name}${iGa(name)} 곧 끝나요`
+}
+
+// "11월 27일까지" (종료일이 없으면 빈 글)
+export const endText = (b: Benefit): string => {
+  const p = b.period
+  return p.type === 'range' && p.end ? `${Number(p.end.slice(5, 7))}월 ${Number(p.end.slice(8, 10))}일까지` : ''
+}

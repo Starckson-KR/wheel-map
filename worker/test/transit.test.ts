@@ -117,3 +117,48 @@ test('버스 길찾기: 상류 실패는 3분 기억 — 그동안 상류도 하
   assert.equal((await fail.call()).status, 502)
   assert.equal(fail.calls.length, 3) // 기억이 끝나 다시 부름
 })
+
+test('국내 중계: 주소·비밀이 둘 다 있으면 ODsay 대신 중계만 부르고(비밀은 헤더, ODsay 키는 안 보냄) 응답·캐시·하루 상한은 그대로', async () => {
+  clock = Date.parse('2026-11-25T10:00:00+09:00')
+  const RS = 'RELAY-SECRET-XYZ-789'
+  const { call, calls } = setup({ TRANSIT_RELAY_URL: 'https://relay.example:8443/', TRANSIT_RELAY_SECRET: RS, KOREACONNECT_KEY: '', TRANSIT_DAILY_CAP: '1' })
+  const r = await call() // 키가 없어도 중계가 있으면 동작
+  assert.equal(r.status, 200)
+  assert.equal(r.body.itineraries[0].legs[1].lineName, '419')
+  assert.ok(!r.text.includes(RS))
+  assert.equal(calls.length, 1)
+  assert.ok(calls[0].url.startsWith('https://relay.example:8443/odsay/path?SX=126.909700&SY=35.182000&EX=126.900500&EY=35.172200'))
+  assert.equal(calls[0].headers['x-relay-secret'], RS)
+  assert.equal(calls[0].headers.api_user_key_id, undefined)
+  assert.ok(!calls[0].url.includes(RS))
+  assert.equal((await call()).body.cached, true) // 캐시
+  assert.equal(calls.length, 1)
+  assert.equal((await call('?from=35.19,126.91&to=35.17,126.90')).status, 429) // 하루 상한
+  assert.equal(calls.length, 1)
+})
+
+test('국내 중계: 중계가 막히거나 비밀이 틀려 JSON이 아니면 502(비밀 노출 없음), 한쪽 값만 있으면 예전 방식', async () => {
+  clock = Date.parse('2026-11-25T11:00:00+09:00')
+  const RS = 'RELAY-SECRET-XYZ-789'
+  const bad = setup({ TRANSIT_RELAY_URL: 'https://relay.example', TRANSIT_RELAY_SECRET: RS }, () => new Response('forbidden ' + RS, { status: 403 }))
+  const b = await bad.call()
+  assert.equal(b.status, 502)
+  assert.ok(!b.text.includes(RS))
+  // 주소만 있고 비밀이 없으면 중계를 쓰지 않고 ODsay 직접(키 헤더)
+  const half = setup({ TRANSIT_RELAY_URL: 'https://relay.example' })
+  assert.equal((await half.call()).status, 200)
+  assert.ok(half.calls[0].url.startsWith('https://api.koreaconnect.kr/'))
+  assert.equal(half.calls[0].headers.api_user_key_id, KEY)
+  // 중계도 키도 없으면 503
+  assert.equal((await setup({ KOREACONNECT_KEY: '' }).call()).status, 503)
+})
+
+test('국내 중계: 환경변수가 없으면 예전과 똑같이 ODsay 주소·키 헤더로 직접 부른다', async () => {
+  clock = Date.parse('2026-11-25T12:00:00+09:00')
+  const { call, calls } = setup()
+  assert.equal((await call()).status, 200)
+  assert.ok(calls[0].url.startsWith('https://api.koreaconnect.kr/01/1/'))
+  assert.ok(calls[0].url.includes('SearchPathType=2'))
+  assert.equal(calls[0].headers.api_user_key_id, KEY)
+  assert.equal(calls[0].headers['x-relay-secret'], undefined)
+})

@@ -41,6 +41,9 @@ export interface Env {
   KOREACONNECT_KEY?: string
   TRANSIT_DAILY_CAP?: string
   TRANSIT_PER_MINUTE?: string
+  // 국내 중계(relay/): 둘 다 있을 때만 /transit이 ODsay 대신 중계를 부른다. 비밀은 secret으로만(wrangler secret put TRANSIT_RELAY_SECRET)
+  TRANSIT_RELAY_URL?: string
+  TRANSIT_RELAY_SECRET?: string
   // 날씨 중계: IP별 분당 요청 수(없으면 30)
   WEATHER_PER_MINUTE?: string
 }

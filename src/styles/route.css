@@ -52,14 +52,14 @@
     min-height: 44px;
   }
 
-/* 모바일 시트: 맨 아래까지 스크롤하면 하단 탭과 가운데 [제보] 원에 가리지 않고 다 보인다 */
+/* 모바일 시트: 시트는 탭 바 위(.bm-main)에서 끝나므로 탭 바 높이는 더하지 않고, 솟은 [제보] 원(16px)만 피한다 */
 @media (max-width: 767px) {
   :root:not([data-view='desktop']) .rp.rt {
-    padding-bottom: calc(var(--tabbar-h) + var(--s-8, 32px));
+    padding-bottom: 20px;
   }
 }
 :root[data-view='mobile'] .rp.rt {
-  padding-bottom: calc(var(--tabbar-h) + var(--s-8, 32px));
+  padding-bottom: 20px;
 }
 
 .rt-sec {

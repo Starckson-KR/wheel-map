@@ -5,6 +5,7 @@ import type { TItinerary } from '../../src/lib/transit/parse.ts'
 import type { D1Db, Env } from './types'
 
 // 대중교통(버스) 길찾기 중계: GET /transit?from=위도,경도&to=위도,경도 → { ok:true, itineraries, cached } 또는 { ok:false, error }.
+// TRANSIT_RELAY_URL·TRANSIT_RELAY_SECRET이 둘 다 있으면 ODsay를 직접 부르지 않고 국내 중계(relay/)를 거친다(키는 중계 서버가 가짐). 없으면 예전과 같다.
 // ODsay(디지털융합플랫폼) 키 KOREACONNECT_KEY는 secret으로만 읽고 응답·로그·오류에 내보내지 않는다(오류는 종류만).
 // 캐시는 BIS와 같은 D1 표(bis_cache)를 쓴다: 좌표를 소수 4자리(약 10m)로 맞춰 같은 구간은 6시간 동안 상류를 부르지 않고,
 // 길을 못 찾은 결과도 1시간 기억한다. 하루 상류 호출 상한은 bis_calls 표에 'transit:날짜' 키로 센다(포털에 일 한도 표기가 없어 기본 300).
@@ -64,11 +65,25 @@ class Fail extends Error {
   }
 }
 
-async function upstream(from: Pt, to: Pt, key: string, f: typeof fetch): Promise<Cached> {
+// 국내 중계(relay/)를 쓰는 설정이면 [주소, 비밀]을 돌려준다. 둘 중 하나라도 비면 null(= 예전처럼 ODsay 직접 호출).
+function relayOf(env: Env): { base: string; secret: string } | null {
+  const base = (env.TRANSIT_RELAY_URL ?? '').trim()
+  const secret = (env.TRANSIT_RELAY_SECRET ?? '').trim()
+  if (!base || !secret) return null
+  return { base, secret }
+}
+export const RELAY_SECRET_HEADER = 'x-relay-secret'
+// 중계 주소: 기준 주소 + /odsay/path + 출발·도착(SX,SY,EX,EY만). 나머지 ODsay 인자는 중계가 고정한다.
+export function relayUrl(base: string, from: Pt, to: Pt): string {
+  const f = (n: number) => n.toFixed(6)
+  return `${base.replace(/\/+$/, '')}/odsay/path?SX=${f(from[1])}&SY=${f(from[0])}&EX=${f(to[1])}&EY=${f(to[0])}`
+}
+
+async function upstream(from: Pt, to: Pt, key: string, f: typeof fetch, relay: { base: string; secret: string } | null = null): Promise<Cached> {
   const ctl = new AbortController()
   const timer = setTimeout(() => ctl.abort(), UPSTREAM_TIMEOUT_MS)
   try {
-    const r = await f(odsayUrl(from, to), { headers: { [ODSAY_KEY_HEADER]: key, accept: 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; wheelmap-ai/1.0)', 'accept-language': 'ko-KR,ko;q=0.9' }, signal: ctl.signal })
+    const r = await f(relay ? relayUrl(relay.base, from, to) : odsayUrl(from, to), { headers: { ...(relay ? { [RELAY_SECRET_HEADER]: relay.secret } : { [ODSAY_KEY_HEADER]: key }), accept: 'application/json', 'user-agent': 'Mozilla/5.0 (compatible; wheelmap-ai/1.0)', 'accept-language': 'ko-KR,ko;q=0.9' }, signal: ctl.signal })
     const text = await r.text()
     let json: unknown = null
     try {
@@ -113,11 +128,12 @@ export async function handleTransit(request: Request, env: Env, origin: string, 
     if (v && 'fail' in v) return bad(v.status, v.message) // 최근에 상류가 실패한 구간: 상류도 하루 상한도 건드리지 않는다
     const cached = !!v
     if (!v) {
+      const relay = relayOf(env)
       const key = (env.KOREACONNECT_KEY ?? '').trim()
-      if (!key) return bad(503, '버스 경로 중계가 아직 준비되지 않았어요.')
+      if (!key && !relay) return bad(503, '버스 경로 중계가 아직 준비되지 않았어요.')
       if (!(await takeCall(db, now, posInt(env.TRANSIT_DAILY_CAP, DEFAULT_TRANSIT_DAILY_CAP)))) return bad(429, '오늘 버스 경로 조회 한도에 닿았어요.')
       try {
-        v = await upstream(a, b, key, deps.fetch ?? fetch)
+        v = await upstream(a, b, key, deps.fetch ?? fetch, relay)
       } catch (e) {
         if (e instanceof Fail) {
           await writeCache(db, cacheKey, { fail: true, status: e.status, message: e.message }, now)

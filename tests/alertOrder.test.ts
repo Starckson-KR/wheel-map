@@ -1,7 +1,7 @@
 // 실행: node --import ./scripts/registerTs.mjs --test tests/alertOrder.test.ts
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mergePairedAlerts, sortAlerts } from '../src/lib/alertOrder.ts'
+import { mergePairedAlerts, pairKeyOf, sortAlerts } from '../src/lib/alertOrder.ts'
 
 test('알림 순서: 최신이 위로 온다(시간대 표기가 섞여도 실제 시각으로)', () => {
   const list = [
@@ -44,4 +44,18 @@ test('알림 합치기: 짝이 다르거나 한쪽뿐이면 그대로 둔다', (
   ]
   assert.deepEqual(mergePairedAlerts(list).map((x) => x.key), ['s-1', 'p-1', 'p-3'])
   assert.deepEqual(mergePairedAlerts([]), [])
+})
+
+test('알림 합치기: 조치 완료도 같은 제보·같은 때면 한 줄, 확인됨과는 섞이지 않는다', () => {
+  const T = '2026-11-25T01:00:00.000Z'
+  const list = [
+    { key: 's-done', kind: 'report' as const, pair: pairKeyOf('r1', 'ledToAction', T) },
+    { key: 'p-done', kind: 'points' as const, points: 20, pair: pairKeyOf('r1', 'ledToAction', T) },
+    { key: 's-ok', kind: 'report' as const, pair: pairKeyOf('r1', 'verified', T) },
+    { key: 'p-other', kind: 'points' as const, points: 20, pair: pairKeyOf('r2', 'ledToAction', T) },
+  ]
+  const out = mergePairedAlerts(list)
+  assert.deepEqual(out.map((x) => x.key), ['s-done', 's-ok', 'p-other'])
+  assert.equal(out[0].points, 20)
+  assert.equal(out[1].points, undefined)
 })

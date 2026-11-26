@@ -603,54 +603,6 @@ export default function ReportFlow({ location, onLocation, onPickStart, hidden, 
                 </summary>
                 <RulerSlider spec={WIDTH_RULER} label="폭" value={widthM} onChange={setWidthM} />
                 <RulerSlider spec={CURB_RULER} label="턱 높이" value={curbCm} onChange={setCurbCm} />
-                <div className="rf-two">
-                  <label className="rf-field">
-                    폭 (m)
-                    <input
-                      id="rf-f-widthM"
-                      type="number"
-                      inputMode="decimal"
-                      step="0.01"
-                      min="0"
-                      value={widthM}
-                      aria-invalid={!!errors.widthM}
-                      aria-describedby={errors.widthM ? 'rf-e-widthM' : undefined}
-                      onChange={(e) => {
-                        setWidthM(e.target.value)
-                        if (!fieldErr.widthM(e.target.value)) setErr('widthM', '')
-                      }}
-                      onBlur={() => setErr('widthM', fieldErr.widthM(widthM))}
-                    />
-                    {errors.widthM && (
-                      <span id="rf-e-widthM" className="rf-err" role="alert">
-                        {errors.widthM}
-                      </span>
-                    )}
-                  </label>
-                  <label className="rf-field">
-                    턱 높이 (cm)
-                    <input
-                      id="rf-f-curbCm"
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      min="0"
-                      value={curbCm}
-                      aria-invalid={!!errors.curbCm}
-                      aria-describedby={errors.curbCm ? 'rf-e-curbCm' : undefined}
-                      onChange={(e) => {
-                        setCurbCm(e.target.value)
-                        if (!fieldErr.curbCm(e.target.value)) setErr('curbCm', '')
-                      }}
-                      onBlur={() => setErr('curbCm', fieldErr.curbCm(curbCm))}
-                    />
-                    {errors.curbCm && (
-                      <span id="rf-e-curbCm" className="rf-err" role="alert">
-                        {errors.curbCm}
-                      </span>
-                    )}
-                  </label>
-                </div>
               </details>
 
               <div className="rf-actions">

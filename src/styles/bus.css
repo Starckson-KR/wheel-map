@@ -223,7 +223,7 @@
 .bm button.tr-more {
   display: block;
   min-height: 44px;
-  margin: 0 var(--s-2) 0 auto;
+  margin: -14px var(--s-2) 0 auto;
   padding: 0 var(--s-2);
   background: transparent;
   color: var(--text-sub);

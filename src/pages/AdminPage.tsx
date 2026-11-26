@@ -135,7 +135,7 @@ export default function AdminPage() {
           <span className="adm-row-main">
             <CaseTitle r={r} caseName={caseName} />
             <span className="bm-meta">
-              {r.type} · 접수 {c ? fmtDate(new Date(c.submittedAt).getTime()) : '—'} · 처리기한{' '}
+              {r.seedId ? `${r.type} · ` : ''}접수 {c ? fmtDate(new Date(c.submittedAt).getTime()) : '—'} · 처리기한{' '}
               {c ? fmtDate(new Date(c.submittedAt).getTime() + c.deadlineDays * 86400000) : '—'} · {findAgencyName(agencyOf(r) ?? '')}
               {c ? ` · 접수번호 ${c.receiptNo}` : ''}
             </span>

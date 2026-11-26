@@ -15,6 +15,9 @@ const ms = (iso: string): number => {
  */
 export type Pairable = { kind: 'report' | 'points'; points?: number; pair?: string }
 
+/** 짝 표지: 제보 번호 + 일('verified' 확인됨 · 'ledToAction' 조치 완료) + 그 일이 일어난 때. 상태 기록과 점수 기록이 같은 값을 쓴다. */
+export const pairKeyOf = (reportId: string, what: 'verified' | 'ledToAction', at: string): string => `${reportId}:${what}:${at}`
+
 export function mergePairedAlerts<T extends Pairable>(list: readonly T[]): T[] {
   const scoreOf = new Map<string, number>()
   for (const x of list) if (x.kind === 'points' && x.pair && x.points) scoreOf.set(x.pair, x.points)

@@ -1165,7 +1165,8 @@ html.motion-reduce .bm-detail {
   max-height: 60%;
   overflow-y: auto;
   box-sizing: border-box;
-  padding: var(--s-4) var(--s-5);
+  /* 아래 여백: 가운데 [제보] 원(탭 바 위로 18px 솟음)에 마지막 줄이 닿지 않게 */
+  padding: var(--s-4) var(--s-5) calc(var(--s-4) + 20px);
   border-radius: var(--r-xl);
   background: var(--bg);
   box-shadow: var(--shadow-2);
@@ -1477,6 +1478,7 @@ html.motion-reduce .bm-detail {
     left: var(--s-4);
     right: auto;
     width: 392px;
+    padding-bottom: var(--s-4);
   }
 
   :root:not([data-view='mobile']) .rf-pick {
@@ -1567,6 +1569,7 @@ html.motion-reduce .bm-detail {
     left: var(--s-4);
     right: auto;
     width: 392px;
+    padding-bottom: var(--s-4);
   }
 :root[data-view='desktop'] .rf-pick {
     left: var(--s-4);

@@ -14,7 +14,7 @@ import VerifyDeck from '../components/VerifyDeck'
 import MyBenefits from '../components/MyBenefits'
 import { listAgencies, phoneParts, telHref } from '../lib/agencyGuide'
 import { TO, go } from '../lib/nav'
-import { computeRewards } from '../lib/rewards'
+import { computeRewards, passedRecheckAt } from '../lib/rewards'
 import { nowMs, useReports } from '../lib/reportStore'
 import type { ReportStatus } from '../types'
 import { loadBarriers } from '../lib/seed'
@@ -24,7 +24,7 @@ import { openGuide } from '../lib/usageGuide'
 import { Wordmark } from '../components/Wordmark'
 import { getMotionReduce } from '../lib/viewPrefs'
 import { isMockReport } from '../lib/realFirst'
-import { mergePairedAlerts, sortAlerts } from '../lib/alertOrder'
+import { mergePairedAlerts, pairKeyOf, sortAlerts } from '../lib/alertOrder'
 
 const BARRIERS = loadBarriers()
 
@@ -293,13 +293,13 @@ export function AlertsTab({ query = '' }: { query?: string }) {
         const def = STATUS_TEXT[h.status]
         // 처음 제보한 기록과, 상태가 그대로인 메모(이관 등)는 알림으로 보여 주지 않는다
         if (!def || h.status === 'submitted' || (i > 0 && r.history[i - 1].status === h.status)) return
-        out.push({ key: `s-${r.id}-${i}`, at: h.at, kind: 'report', icon: def.icon, text: def.text(r.type), to: TO.openReport(r.id), ...(h.status === 'verified' ? { pair: `${r.id}:verified:${h.at}` } : {}), ...(isMockReport(r) ? { mock: true } : {}) })
+        out.push({ key: `s-${r.id}-${i}`, at: h.at, kind: 'report', icon: def.icon, text: def.text(r.type), to: TO.openReport(r.id), ...((() => { const k = h.status === 'verified' ? 'verified' : h.status === 'rechecked' && h.at === passedRecheckAt(r) ? 'ledToAction' : null; return k ? { pair: pairKeyOf(r.id, k, h.at) } : {} })()), ...(isMockReport(r) ? { mock: true } : {}) })
       })
     }
     const mockOf = new Map(reports.map((r) => [r.id, isMockReport(r)]))
     for (const e of rw.events) {
       if (e.points <= 0) continue
-      out.push({ key: `p-${e.id}`, at: e.at, kind: 'points', icon: 'star', text: e.label, points: e.points, to: TO.me, ...(e.kind === 'verified' ? { pair: `${e.reportId}:verified:${e.at}` } : {}), ...(mockOf.get(e.reportId) ? { mock: true } : {}) })
+      out.push({ key: `p-${e.id}`, at: e.at, kind: 'points', icon: 'star', text: e.label, points: e.points, to: TO.me, ...(e.kind === 'verified' || e.kind === 'ledToAction' ? { pair: pairKeyOf(e.reportId, e.kind, e.at) } : {}), ...(mockOf.get(e.reportId) ? { mock: true } : {}) })
     }
     return sortAlerts(mergePairedAlerts(out)) // 실제 제보 알림이 체험 제보 알림보다 먼저, 묶음 안에서는 최신이 위
   }, [reports, userId, rw])

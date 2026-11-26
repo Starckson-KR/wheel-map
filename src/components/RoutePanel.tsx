@@ -1174,7 +1174,7 @@ export default function RoutePanel(props: Props) {
                       const near = st.notes.filter((n) => n.kind === 'hit')
                       const on = notesOpen === i
                       return (
-                        <TlStep key={i} color={st.kind === 'crossing' || st.kind === 'stairs' ? 'var(--text-sub)' : WALK_COLOR} title={<><span className="rt-s-glyph" aria-hidden="true">{stepGlyph(st)}</span> {tx.title}</>} sub={tx.sub} last={i === steps.length - 1} end={st.kind === 'arrive'}>
+                        <TlStep key={i} color={st.kind === 'crossing' || st.kind === 'stairs' ? 'var(--text-sub)' : WALK_COLOR} title={st.kind === 'arrive' ? tx.title : <><span className="rt-s-glyph" aria-hidden="true">{stepGlyph(st)}</span> {tx.title}</>} sub={tx.sub} last={i === steps.length - 1} end={st.kind === 'arrive'}>
                           {near.length === 1 && noteBtn(near[0], 0)}
                           {near.length > 1 && (
                             <>

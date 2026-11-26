@@ -101,7 +101,7 @@ export default function AdminDept({ deptId, barriers, officer, selected, caseNam
           <span className="adm-row-main">
             <CaseTitle r={r} caseName={caseName} />
             <span className="bm-meta">
-              {r.type} · {r.seedId ? '팀 조사 지점' : '시민 제보'} · 접수 {r.complaint ? fmtDate(new Date(r.complaint.submittedAt).getTime()) : '—'}
+              {r.seedId ? `${r.type} · 팀 조사 지점` : '시민 제보'} · 접수 {r.complaint ? fmtDate(new Date(r.complaint.submittedAt).getTime()) : '—'}
               {r.complaint ? ` · 접수번호 ${r.complaint.receiptNo}` : ''}
             </span>
             {t && (

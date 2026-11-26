@@ -128,6 +128,13 @@
 .rt-input .rt-place legend {
   margin-bottom: 2px;
 }
+/* 위치가 안 잡혀 입력칸이 늘어나도 「길찾기」 버튼은 시트 아래(가운데 [제보] 원 위 24px)에 붙박이로 남는다. 아래로 비치는 내용은 시트 바탕색으로 가린다 */
+.rt-input .rt-search > .rf-primary {
+  position: sticky;
+  bottom: 24px;
+  z-index: 3;
+  box-shadow: 0 24px 0 0 var(--bg);
+}
 @media (max-width: 767px) {
   :root:not([data-view='desktop']) .rp.rt.rt-input {
     height: 54%;

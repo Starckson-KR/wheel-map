@@ -97,9 +97,11 @@ export function dismissXmasGift() {
   if (c.gift) putCast({ ...c, gift: false })
 }
 
+// 12월 자동 켜짐. 발표 전에 장식이 먼저 보이지 않게 꺼 둔다(11/26 사용자 결정). 발표 뒤 true로 되돌리면 예전처럼 12월에 켜진다.
+export const AUTO_DECEMBER: boolean = false
 /** 켜짐 기간인지: 12월이거나 시연 도구에서 켰거나 크리스마스 모드일 때. 끄기 스위치는 이 기간에만 보인다. */
 export function isXmasSeason(now: Date = new Date(), demo: boolean = getXmasDemo() || getXmasCast().on): boolean {
-  return demo || now.getMonth() === 11
+  return demo || (AUTO_DECEMBER && now.getMonth() === 11)
 }
 /** 장식을 실제로 보일지: 켜짐 기간이고 끄기 설정이 아닐 때. */
 export function isXmasOn(now: Date = new Date(), opts: { off?: boolean; demo?: boolean } = {}): boolean {

@@ -12,15 +12,15 @@ g.localStorage = {
 }
 g.window = { dispatchEvent: (e: Event) => (events.push(e.type), true), addEventListener: () => {}, removeEventListener: () => {} }
 
-const { isXmasOn, isXmasSeason, isMerryQuery, tapStep, getXmasOff, setXmasOff, getXmasDemo, setXmasDemo, xmasSnapshot, XMAS_KEY, XMAS_DEMO_KEY, XMAS_EVENT } = await import('../src/lib/xmas.ts')
+const { AUTO_DECEMBER, isXmasOn, isXmasSeason, isMerryQuery, tapStep, getXmasOff, setXmasOff, getXmasDemo, setXmasDemo, xmasSnapshot, XMAS_KEY, XMAS_DEMO_KEY, XMAS_EVENT } = await import('../src/lib/xmas.ts')
 
 const DEC = new Date(2026, 11, 10)
 const NOV = new Date(2026, 10, 30)
 
-test('12월이면 켜지고 11월이면 꺼진다', () => {
-  assert.equal(isXmasOn(DEC, { off: false, demo: false }), true)
-  assert.equal(isXmasOn(new Date(2026, 11, 1, 0, 0), { off: false, demo: false }), true)
-  assert.equal(isXmasOn(new Date(2026, 11, 31, 23, 59), { off: false, demo: false }), true)
+test('12월 자동 켜짐은 꺼 둔 동안 12월에도 꺼져 있다', () => {
+  assert.equal(AUTO_DECEMBER, false)
+  assert.equal(isXmasOn(DEC, { off: false, demo: false }), false)
+  assert.equal(isXmasOn(new Date(2026, 11, 31, 23, 59), { off: false, demo: false }), false)
   assert.equal(isXmasOn(NOV, { off: false, demo: false }), false)
   assert.equal(isXmasOn(new Date(2027, 0, 1), { off: false, demo: false }), false)
 })
@@ -34,7 +34,7 @@ test('시연 켬이면 12월이 아니어도 켜지고, 끄기 스위치를 보�
   assert.equal(isXmasOn(NOV, { off: false, demo: true }), true)
   assert.equal(isXmasSeason(NOV, true), true)
   assert.equal(isXmasSeason(NOV, false), false)
-  assert.equal(isXmasSeason(DEC, false), true)
+  assert.equal(isXmasSeason(DEC, false), false)
 })
 
 test('설정은 이 기기 저장소에 남고, 바뀌면 이벤트를 보낸다', () => {

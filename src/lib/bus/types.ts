@@ -30,6 +30,9 @@ export type StopRef = { stationId: string; name: string; ars?: string; next?: st
 /** 길찾기의 노선 번호(ODsay는 "07")와 BIS 노선 이름("진월07")이 같은 노선인가. 이름 앞의 지역 글자만 달라도 같은 노선으로 본다 */
 export function sameLine(bisName: string, want: string): boolean {
   if (!want) return false
+  // 「160(나주역…)」처럼 괄호 설명이 붙어 와도 번호만으로 맞춘다
+  bisName = lineLabel(bisName)
+  want = lineLabel(want)
   return bisName === want || (bisName.endsWith(want) && /^[^\d]+$/.test(bisName.slice(0, bisName.length - want.length)))
 }
 

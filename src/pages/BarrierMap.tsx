@@ -422,8 +422,9 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
         if (cancelled || !container.current) return
         if (!center) throw new Error('지도 중심 주소를 찾지 못함')
         const map = new k.maps.Map(container.current, { center, level: Math.min(4, PUB_MAX_LEVEL) })
-        // 레이어를 켜 달라고 온 경우(layer=…)는 점이 보이는 확대(PUB_MAX_LEVEL 이하)로 열어야 해서 전체 보기로 넓히지 않는다.
-        if (located.length > 0 && !start.report && !start.layer) {
+        // 레이어를 켜 달라고 온 경우(layer=…)와, 저장돼 있던 상황 칩이 복원된 경우는 점이 보이는 확대(PUB_MAX_LEVEL 이하)로 열어야 해서 전체 보기로 넓히지 않는다.
+        const chipRestored = chipOf(loadLayers()) !== null
+        if (located.length > 0 && !start.report && !start.layer && !chipRestored) {
           const bounds = new k.maps.LatLngBounds()
           for (const b of located) {
             const g = b.geometry as Geometry

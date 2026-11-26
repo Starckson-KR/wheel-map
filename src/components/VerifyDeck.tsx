@@ -21,7 +21,7 @@ function CardBody({ r, shown }: { r: Report; shown: boolean }) {
   const place = !shown ? '' : a.full ? `${a.full} 부근` : a.status === 'loading' ? '주소를 찾고 있어요…' : coordText(r.lat, r.lng)
   return (
     <>
-      <div className="vd-photo">
+      <div className={r.photos.length === 0 ? 'vd-photo vd-photo-none' : 'vd-photo'}>
         {urls[0] ? (
           <img src={urls[0]} alt={`제보 사진 (${r.type})`} draggable={false} />
         ) : (

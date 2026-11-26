@@ -457,8 +457,8 @@ export default function OnboardingGate({ children, skipPages = ['admin', 'verify
               <small>북구청에 전달했어요 · 오늘</small>
             </div>
             {seg<TextSize>('글자 크기', text, [{ id: 'normal', label: '보통' }, { id: 'large', label: '크게' }], (v) => { setText(v); setTextSize(v) })}
-            {seg<ThemeMode>('화면', theme, [{ id: 'system', label: '시스템' }, { id: 'light', label: '라이트' }, { id: 'dark', label: '다크' }], (v) => { setThemeState(v); setTheme(v) })}
-            {seg<'off' | 'on'>('움직임 줄이기', motion ? 'on' : 'off', [{ id: 'off', label: '끄기' }, { id: 'on', label: '켜기' }], (v) => { setMotion(v === 'on'); setMotionReduce(v === 'on') })}
+            {seg<ThemeMode>('화면 색', theme, [{ id: 'system', label: '시스템' }, { id: 'light', label: '라이트' }, { id: 'dark', label: '다크' }], (v) => { setThemeState(v); setTheme(v) })}
+            {seg<'off' | 'on'>('움직임 줄이기', motion ? 'on' : 'off', [{ id: 'off', label: '꺼짐' }, { id: 'on', label: '켜짐' }], (v) => { setMotion(v === 'on'); setMotionReduce(v === 'on') })}
           </div>
           {foot(next('완료', finish))}
         </>

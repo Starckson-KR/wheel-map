@@ -1046,14 +1046,24 @@ html.motion-reduce .bm-detail {
   transition: none !important;
 }
 
-/* 「펼치기·접기」 글자 버튼: 키보드·스크린리더용 대안(닫기 버튼과 겹치지 않게 손잡이 높이만큼만) */
+/* 「펼치기·접기」 글자 버튼: 키보드·스크린리더용 대안(닫기 버튼과 겹치지 않게 손잡이 높이만큼만). 눈에는 숨기고 키보드 포커스 때만 보인다 */
 .bm .bm-detail .sheet-handle-btn {
   min-height: 28px;
   height: 28px;
   padding: 0 var(--s-2);
-  background: transparent;
+  background: var(--bg);
   color: var(--text-sub);
   font-size: var(--fs-caption);
+}
+.bm .bm-detail .sheet-handle-btn:not(:focus-visible) {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .bm-detail h2.bm-verdict {

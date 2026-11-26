@@ -24,7 +24,7 @@ import { openGuide } from '../lib/usageGuide'
 import { Wordmark } from '../components/Wordmark'
 import { getMotionReduce } from '../lib/viewPrefs'
 import { isMockReport } from '../lib/realFirst'
-import { sortAlerts } from '../lib/alertOrder'
+import { mergePairedAlerts, sortAlerts } from '../lib/alertOrder'
 
 const BARRIERS = loadBarriers()
 
@@ -246,7 +246,7 @@ const ALERT_TABS: { id: AlertsTabId; label: string }[] = [
   { id: 'alerts', label: '알림' },
 ]
 
-type Alert = { key: string; at: string; kind: 'report' | 'points'; icon: string; text: string; points?: number; to: string; mock?: boolean }
+type Alert = { key: string; at: string; kind: 'report' | 'points'; icon: string; text: string; points?: number; to: string; mock?: boolean; pair?: string }
 type AlertFilter = 'all' | 'report' | 'points'
 const FILTERS: { id: AlertFilter; label: string }[] = [
   { id: 'all', label: '전체' },
@@ -293,17 +293,17 @@ export function AlertsTab({ query = '' }: { query?: string }) {
         const def = STATUS_TEXT[h.status]
         // 처음 제보한 기록과, 상태가 그대로인 메모(이관 등)는 알림으로 보여 주지 않는다
         if (!def || h.status === 'submitted' || (i > 0 && r.history[i - 1].status === h.status)) return
-        out.push({ key: `s-${r.id}-${i}`, at: h.at, kind: 'report', icon: def.icon, text: def.text(r.type), to: TO.openReport(r.id), ...(isMockReport(r) ? { mock: true } : {}) })
+        out.push({ key: `s-${r.id}-${i}`, at: h.at, kind: 'report', icon: def.icon, text: def.text(r.type), to: TO.openReport(r.id), ...(h.status === 'verified' ? { pair: `${r.id}:verified:${h.at}` } : {}), ...(isMockReport(r) ? { mock: true } : {}) })
       })
     }
     const mockOf = new Map(reports.map((r) => [r.id, isMockReport(r)]))
     for (const e of rw.events) {
       if (e.points <= 0) continue
-      out.push({ key: `p-${e.id}`, at: e.at, kind: 'points', icon: 'star', text: e.label, points: e.points, to: TO.me, ...(mockOf.get(e.reportId) ? { mock: true } : {}) })
+      out.push({ key: `p-${e.id}`, at: e.at, kind: 'points', icon: 'star', text: e.label, points: e.points, to: TO.me, ...(e.kind === 'verified' ? { pair: `${e.reportId}:verified:${e.at}` } : {}), ...(mockOf.get(e.reportId) ? { mock: true } : {}) })
     }
-    return sortAlerts(out) // 실제 제보 알림이 체험 제보 알림보다 먼저, 묶음 안에서는 최신이 위
+    return sortAlerts(mergePairedAlerts(out)) // 실제 제보 알림이 체험 제보 알림보다 먼저, 묶음 안에서는 최신이 위
   }, [reports, userId, rw])
-  const shown = items.filter((x) => filter === 'all' || x.kind === filter).slice(0, 40)
+  const shown = items.filter((x) => filter === 'all' || (filter === 'points' ? x.points != null : x.kind === filter)).slice(0, 40)
   // 한 화면에 한 구역: 혜택(기본) · 알림. 선택은 주소(#/alerts?tab=)에 둔다. 예전 진입(?section=benefits)은 혜택 탭으로 연다.
   const qs = new URLSearchParams(query)
   // 랭킹·챌린지는 내 정보 「내 기여」로 옮겼다. 예전 주소(#/alerts?tab=ranking|challenge)는 그쪽으로 넘긴다.

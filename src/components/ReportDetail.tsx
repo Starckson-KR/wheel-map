@@ -156,7 +156,7 @@ export default function ReportDetail({ reportId, seeds, seedName, onClose, onOpe
           <ReportPhotos keys={r.photos} />
         </div>
       )}
-      {r.description && <p className="rd-desc">{r.description}</p>}
+      {r.description && !(r.seedId && (r.description === seedName(r.seedId) || r.description === seeds.find((b) => b.id === r.seedId)?.name)) && <p className="rd-desc">{r.description}</p>}
       <p className="bm-meta rd-place">
         <ReportPlace lat={r.lat} lng={r.lng} kind={r.locationKind} />
       </p>

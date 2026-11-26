@@ -211,7 +211,7 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
                   켜짐
                 </button>
               </div>
-              <p className="bm-meta">켜면 화면 움직임을 줄여요. 내 정보 설정과 같은 값이에요.</p>
+              <p className="bm-meta">켜면 화면 움직임을 줄여요.</p>
             </div>
 
             <div className="ms-sec">

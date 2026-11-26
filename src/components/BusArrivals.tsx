@@ -165,7 +165,7 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
             </div>
           )}
 
-          {!lineName &&
+          {!lineName && res.arrivals.length > 0 &&
             (() => {
               const n = nextLow(res.arrivals)
               return (

@@ -131,10 +131,12 @@
 @media (max-width: 767px) {
   :root:not([data-view='desktop']) .rp.rt.rt-input {
     height: 54%;
+    padding-bottom: 24px; /* 「길찾기」 버튼이 가운데 [제보] 원과 닿지 않게(20px + 4px) */
   }
 }
 :root[data-view='mobile'] .rp.rt.rt-input {
   height: 54%;
+  padding-bottom: 24px;
 }
 
 /* 입력칸에 커서가 있는 동안 휴대폰에서는 시트를 위쪽까지 키워, 도착 입력칸과 결과가 키보드에 가려지지 않게 한다 */
@@ -1224,9 +1226,20 @@ details.rt-more > summary {
   min-height: 28px;
   height: 28px;
   padding: 0 var(--s-2);
-  background: transparent;
+  background: var(--bg);
   color: var(--text-sub);
   font-size: var(--fs-caption);
+}
+/* 눈에는 숨기고 키보드 포커스 때만 보인다 */
+.bm .rt .sheet-handle-btn:not(:focus-visible) {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .rt-head {

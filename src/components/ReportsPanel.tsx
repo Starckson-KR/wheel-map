@@ -25,7 +25,7 @@ const TABS: { id: Tab; label: string }[] = [
 const DEMO_HEAD = '(시연) 팀 현장조사 지점 '
 const rowDesc = (d: string) => (d.startsWith(DEMO_HEAD) && d.includes(' · ') ? d.slice(d.indexOf(' · ') + 3) : d)
 
-// 목록 한 줄: 유형 · 주소(보이는 항목만 조회) · 접수일 · 상태가 모두 달라서 서로 구분된다.
+// 목록 한 줄: 장소(주소, 보이는 항목만 조회) · 유형(장소를 모르면 유형만) · 접수일 · 상태가 모두 달라서 서로 구분된다.
 function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boolean; onOpen: (id: string) => void }) {
   const [ref, addr] = useVisibleAddress<HTMLLIElement>(r.lat, r.lng)
   const me = useReports((s) => s.userId)
@@ -35,8 +35,8 @@ function ReportRow({ r, i, first, onOpen }: { r: Report; i: number; first: boole
       <button type="button" className="rp-row" onClick={() => onOpen(r.id)}>
         <ReportThumb photoKey={r.photos[0]} alt={`${r.type} 제보 사진`} />
         <span className="rp-row-text">
-          <strong>{r.type}</strong>
-          <span className="rv-addr">{place}</span>
+          <strong>{place || r.type}</strong>
+          {place && <span className="rv-addr">{r.type}</span>}
           {r.description && <span className="rp-desc">{rowDesc(r.description)}</span>}
           <span className="bm-meta">
             {r.userId === me ? userName(r.userId) : '이웃 제보'} · {fmtDateTime(r.createdAt)} 접수{isSampleReport(r) ? ' · 샘플 사진' : ''}

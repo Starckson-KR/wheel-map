@@ -33,6 +33,13 @@ export function sameLine(bisName: string, want: string): boolean {
   return bisName === want || (bisName.endsWith(want) && /^[^\d]+$/.test(bisName.slice(0, bisName.length - want.length)))
 }
 
+/** 화면에 보이는 노선 번호: 「160(나주역.나주…)」처럼 괄호 설명이 붙으면 괄호 앞까지만(「160」) */
+export function lineLabel(name: string): string {
+  const i = name.search(/[(（]/)
+  const h = i > 0 ? name.slice(0, i).trim() : name
+  return h || name
+}
+
 /** 가장 빨리 오는 저상버스(없으면 null) */
 export function nextLow(arrivals: Arrival[], lineName?: string): Arrival | null {
   const list = arrivals.filter((a) => a.low && a.remainMin != null && (!lineName || sameLine(a.lineName, lineName)))
@@ -43,5 +50,5 @@ export function nextLow(arrivals: Arrival[], lineName?: string): Arrival | null 
 export function arrivalText(a: Arrival): string {
   const t = a.remainMin == null ? '도착 정보 없음' : a.remainMin <= 1 ? '곧 도착' : `${a.remainMin}분 후`
   const s = a.remainStop != null && a.remainStop > 0 ? `(${a.remainStop}정거장 전)` : ''
-  return `${a.lineName}번 ${t}${s}`
+  return `${lineLabel(a.lineName)}번 ${t}${s}`
 }

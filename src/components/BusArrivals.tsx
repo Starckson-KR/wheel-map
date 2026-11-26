@@ -3,7 +3,7 @@ import Skeleton from './Skeleton'
 import type { BoardingWarn } from '../lib/bus/boarding.ts'
 import { summarizeNear } from '../lib/routing/guideNotes.ts'
 import { getArrivals, getLineLow, LIVE_AVAILABLE, hasSnapshot } from '../lib/bus/provider.ts'
-import { nextLow, arrivalText, sameLine, type Arrival, type ArrivalResult, type LineLowResult } from '../lib/bus/types.ts'
+import { nextLow, arrivalText, sameLine, lineLabel, type Arrival, type ArrivalResult, type LineLowResult } from '../lib/bus/types.ts'
 
 export type StopChoice = { stationId: string; name: string; next?: string }
 
@@ -21,8 +21,8 @@ function Row({ a, mark }: { a: Arrival; mark?: boolean }) {
   return (
     <li className={'bus-row' + (mark ? ' bus-row-mark' : '')}>
       <span className={'bus-tag ' + (a.low ? 'bus-low' : 'bus-norm')}>{a.low ? '저상' : '일반'}</span>
-      <span className="bus-line">{a.lineName}번</span>
-      <span className="bus-eta">{arrivalText(a).replace(`${a.lineName}번 `, '')}</span>
+      <span className="bus-line">{lineLabel(a.lineName)}번</span>
+      <span className="bus-eta">{arrivalText(a).replace(`${lineLabel(a.lineName)}번 `, '')}</span>
     </li>
   )
 }
@@ -63,8 +63,8 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
       text = res.reason === 'no-snapshot' || res.reason === 'unavailable' ? (LIVE_AVAILABLE ? res.message : '이 정류장의 버스 정보가 아직 없어요') : res.message
     } else if (res && res.ok) {
       const low = nextLow(res.arrivals, lineName)
-      if (low) text = `다음 저상버스 ${arrivalText(low).replace(`${low.lineName}번 `, '')}`
-      else if (lineName && res.arrivals.some((a) => sameLine(a.lineName, lineName))) text = `${lineName}번이 오지만 저상버스가 아니에요`
+      if (low) text = `다음 저상버스 ${arrivalText(low).replace(`${lineLabel(low.lineName)}번 `, '')}`
+      else if (lineName && res.arrivals.some((a) => sameLine(a.lineName, lineName))) text = `${lineLabel(lineName)}번이 오지만 저상버스가 아니에요`
       else text = '곧 오는 저상버스 정보 없음'
     }
     return (
@@ -143,18 +143,18 @@ export default function BusArrivals({ choices, lineName, warns = [], autoLoad = 
                         </>
                       ) : mine.length > 0 ? (
                         <>
-                          {lineName}번이 오지만 <b>저상버스가 아니에요</b>
+                          {lineLabel(lineName)}번이 오지만 <b>저상버스가 아니에요</b>
                         </>
                       ) : (
                         <>
-                          {lineName}번이 곧 오는 정보가 없어요
+                          {lineLabel(lineName)}번이 곧 오는 정보가 없어요
                         </>
                       )}
                     </p>
                     {mine.length > 0 && <ul className="bus-list">{mine.slice(0, 3).map((a, i) => <Row key={i} a={a} mark />)}</ul>}
                     {lineLow?.ok && (
                       <p className="bm-meta">
-                        {lineName}번 {lineLow.mode === 'live' ? '지금' : '(예시)'} 운행 중{' '}
+                        {lineLabel(lineName)}번 {lineLow.mode === 'live' ? '지금' : '(예시)'} 운행 중{' '}
                         {lineLow.data.total}대 중 저상버스 <b>{lineLow.data.low}대</b>
                         {lineLow.data.low === 0 && lineLow.data.total > 0 ? ' — 이 노선은 지금 휠체어로 타기 어려울 수 있어요' : ''}
                       </p>

@@ -16,6 +16,7 @@ import type { RouteLeg, RouteMarker } from '../lib/routing/overlay.ts'
 import { ROLE_STYLE } from '../lib/routing/roleStyle.ts'
 import { prefersCalm } from '../lib/viewPrefs'
 import { iconSvg } from './Icon'
+import { lineLabel } from '../lib/bus/types'
 
 type Mode = 'head' | 'north' | 'free' // 진행 방향 위(회전·기울임) / 북쪽 위(평평) / 직접 움직이는 중
 type Guide = { coords: Pt[]; next: Pt[]; at: Pt; turn: string; n: number }
@@ -172,7 +173,7 @@ export default function GuideGlMap(props: Props) {
             const el = document.createElement('div')
             el.className = 'rt-busno'
             el.style.background = busColor(l.route)
-            el.textContent = l.lineName
+            el.textContent = lineLabel(l.lineName)
             put(el, { lat: l.coords[0][0], lng: l.coords[0][1] }, 12, 22)
           }
         }

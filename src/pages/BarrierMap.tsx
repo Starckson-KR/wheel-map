@@ -8,6 +8,7 @@ import { loadBarriers } from '../lib/seed'
 import { NAV_STEP_NEAR_M, NAV_Z } from '../lib/config'
 import { confirmSheet, toast } from '../lib/uiStore'
 import type { Barrier, Geometry, LatLng, Rating } from '../types'
+import { lineLabel } from '../lib/bus/types'
 import { RATING_STYLE } from '../lib/rating'
 import { CATEGORY_INFO, CATEGORY_ORDER, IMPACT_INFO, categoryOf, styleOf, impactLine, impactOf, obstacleName, shortName, type Category, type ImpactKey } from '../lib/display'
 import { impactOfReport } from '../lib/routing/impact.ts'
@@ -1108,7 +1109,7 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
     mk(overlay.start, '출발', 'rt-flag rt-flag-s', 13)
     if (mapLevel <= 7) {
       for (const l of overlay.legs ?? []) {
-        if (l.kind === 'bus' && l.lineName && l.coords.length > 0) mk({ lat: l.coords[0][0], lng: l.coords[0][1] }, l.lineName, 'rt-busno', 12, busColor(l.route))
+        if (l.kind === 'bus' && l.lineName && l.coords.length > 0) mk({ lat: l.coords[0][0], lng: l.coords[0][1] }, lineLabel(l.lineName), 'rt-busno', 12, busColor(l.route))
       }
     }
     // 고리(경로 위 장애요소)와 타는·내리는 표시 자리를 먼저 차지한 것으로 보고, 글자 표시는 그 위로 비켜 놓는다
@@ -1522,6 +1523,9 @@ export default function BarrierMap({ intent = '', active = true }: { intent?: st
   const chips = useMemo(() => chipOrder(weather), [weather])
   const pickChip = (id: ChipId) => {
     setPubSel(null)
+    // 칩을 켤 때 점이 안 보일 만큼 넓게 보고 있으면, 지금 중심은 두고 점이 보이는 확대로만 당긴다
+    const map = mapRef.current
+    if (map && chipOf(layers) !== id && map.getLevel() > PUB_MAX_LEVEL) map.setLevel(PUB_MAX_LEVEL)
     setLayers((prev) => {
       const n = pressChip(id, prev)
       saveLayers(n)

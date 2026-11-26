@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { ROUTE_CFG } from '../lib/config'
+import { lineLabel } from '../lib/bus/types.ts'
 import { boardingNear, worstOf, type BoardingWarn } from '../lib/bus/boarding.ts'
 import { loadBisStops, PILOT_STOPS } from '../lib/bus/data.ts'
 import { matchBisStop, stopsNear, type BisStop } from '../lib/bus/stops.ts'
@@ -287,7 +288,7 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
                   sub={`걷기 ${fmtDist(it.raw.walkDistance)}${it.raw.fare != null ? ` · ${it.raw.fare.toLocaleString()}원` : ''}`}
                   chips={it.legs.map((l, j) => (
                     <span key={j} className={'tr-chip' + (l.kind === 'bus' ? ' tr-chip-line' : '')} style={l.kind === 'bus' ? { background: busColor(l.leg.route) } : undefined}>
-                      {l.kind === 'bus' ? `${l.leg.lineName ?? '버스'}번` : `걷기 ${fmtMin(l.time)}`}
+                      {l.kind === 'bus' ? `${l.leg.lineName ? lineLabel(l.leg.lineName) : '버스'}번` : `걷기 ${fmtMin(l.time)}`}
                     </span>
                   ))}
                   foot={
@@ -331,7 +332,7 @@ export default function TransitView({ from, to, pairId, obstacles, onOverlay, on
                     <TlStep
                       key={i}
                       color={color}
-                      title={`${l.leg.lineName ?? '버스'}번 타기 · ${Math.max(0, (l.leg.stations?.length ?? 1) - 1)}정거장 · 약 ${fmtMin(l.time)}`}
+                      title={`${l.leg.lineName ? lineLabel(l.leg.lineName) : '버스'}번 타기 · ${Math.max(0, (l.leg.stations?.length ?? 1) - 1)}정거장 · 약 ${fmtMin(l.time)}`}
                       sub={`${l.board?.name} → ${l.alight?.name}`}
                     >
                       {l.board &&

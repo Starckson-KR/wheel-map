@@ -3,6 +3,9 @@
 // 움직임 줄이기에서는 쌓인 눈과 멈춘 눈송이만 그린다. 화면이 숨겨지면 멈춘다.
 import { useEffect, useImperativeHandle, useRef, type Ref, type RefObject } from 'react'
 import { prefersCalm } from '../lib/viewPrefs'
+import { haptic } from '../lib/haptic'
+import { ding } from '../lib/xmasAudio'
+import { onTilt } from './xmasFx'
 import '../styles/xmas.css'
 
 export type SnowHandle = { hint: (clientX: number, clientY: number) => void }
@@ -14,7 +17,11 @@ const CW = 3 // 쌓인 눈 한 칸 너비(px)
 const TARGETS = '.hp-trial, .hp-ask, .hp-mine-go, .hp-tile'
 const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
-export default function XmasSnow({ on, host, ref }: { on: boolean; host: RefObject<HTMLElement | null>; ref?: Ref<SnowHandle> }) {
+export default function XmasSnow({ on, host, ref, chime = false }: { on: boolean; host: RefObject<HTMLElement | null>; ref?: Ref<SnowHandle>; chime?: boolean }) {
+  const chimeRef = useRef(chime)
+  useEffect(() => {
+    chimeRef.current = chime
+  })
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const api = useRef<{ start: () => void; stop: () => void; hint: (x: number, y: number) => void } | null>(null)
 
@@ -34,6 +41,7 @@ export default function XmasSnow({ on, host, ref }: { on: boolean; host: RefObje
     let raf = 0
     let last = 0
     let frame = 0
+    let wind = 0 // 기기를 기울이면 눈이 쏠린다(-1~1)
     const dark = () => document.documentElement.dataset.theme === 'dark'
 
     const size = () => {
@@ -112,7 +120,7 @@ export default function XmasSnow({ on, host, ref }: { on: boolean; host: RefObje
           f.a = Math.min(1, f.a + dt * 1.8)
           f.ex *= Math.exp(-dt * 2.6)
           f.ey *= Math.exp(-dt * 2.6)
-          f.x += (Math.cos(time * 0.0012 + f.ph) * f.sw * 0.9 + f.ex) * dt
+          f.x += (Math.cos(time * 0.0012 + f.ph) * f.sw * 0.9 + f.ex + wind * 110 * (0.4 + f.z * 0.6)) * dt
           f.y += (f.vy + f.ey) * dt
         }
         let landed = false
@@ -304,6 +312,32 @@ export default function XmasSnow({ on, host, ref }: { on: boolean; host: RefObje
       }
       pp = { x: p.x, y: p.y, t: now }
     }
+    // 눈이 내리는 동안 화면을 누르면 근처 눈송이가 톡 흩어진다(누르는 것은 막지 않는다: 이 층은 pointer-events가 없고 듣기만 한다)
+    const onDown = (e: PointerEvent) => {
+      if (!snowing || frozen) return
+      const c0 = canvas.getBoundingClientRect()
+      const x = e.clientX - c0.left
+      const y = e.clientY - c0.top
+      for (const f of flakes) {
+        const dx = f.x - x
+        const dy = f.y - y
+        const d = Math.hypot(dx, dy)
+        if (d > 96) continue
+        const g = (1 - d / 96) * 520
+        f.ex += (dx / (d || 1)) * g
+        f.ey += (dy / (d || 1)) * g - 90
+      }
+      if (flakes.length < 400) for (let j = 0; j < 6; j++) flakes.push({ x: x + rand(-6, 6), y: y + rand(-6, 6), z: 0.6, r: rand(1.4, 2.8), vy: 40, sw: 8, ph: rand(0, 6.28), ex: rand(-220, 220), ey: -rand(120, 300), a: 1, loop: false })
+      // 빈 곳을 눌렀을 때만 종소리(버튼·입력 칸을 누를 때는 조용히)
+      if (chimeRef.current && !(e.target as Element | null)?.closest?.('button, a, input, textarea, select, [role="button"], [role="dialog"]')) {
+        ding(0.16)
+        haptic('tick')
+      }
+      run()
+    }
+    const offTilt = onTilt((v) => {
+      wind = v
+    })
     const onLayout = () => {
       size()
       measure()
@@ -320,6 +354,7 @@ export default function XmasSnow({ on, host, ref }: { on: boolean; host: RefObje
     const ro = new ResizeObserver(onLayout)
     ro.observe(canvas)
     root.addEventListener('pointermove', onMove, { passive: true })
+    root.addEventListener('pointerdown', onDown, { passive: true })
     root.addEventListener('scroll', onScroll, { passive: true, capture: true })
     document.addEventListener('visibilitychange', onVis)
     return () => {
@@ -327,6 +362,8 @@ export default function XmasSnow({ on, host, ref }: { on: boolean; host: RefObje
       if (raf) cancelAnimationFrame(raf)
       ro.disconnect()
       root.removeEventListener('pointermove', onMove)
+      root.removeEventListener('pointerdown', onDown)
+      offTilt()
       root.removeEventListener('scroll', onScroll, { capture: true })
       document.removeEventListener('visibilitychange', onVis)
     }

@@ -134,7 +134,7 @@ async function connect() {
     if (ws !== sock) return
     clearTimeout(pongTimer) // 무엇이든 받았으면 살아 있다
     const t = parseSignal(ev.data)
-    if (t === 'presence') each((l) => l.signal?.(t)) // 접속 현황 신호는 sync로 보내지 않는다
+    if (t === 'presence' || t === 'xmas') each((l) => l.signal?.(t)) // 접속 현황·크리스마스 모드 신호는 sync로 보내지 않는다
     else if (t) {
       handlers?.onSignal(t)
       each((l) => l.signal?.(t))

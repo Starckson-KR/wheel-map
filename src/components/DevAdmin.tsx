@@ -9,6 +9,8 @@ import type { AdminReport, AdminSummary, AdminUser } from '../lib/account/admin'
 import { confirmSheet, toast } from '../lib/uiStore'
 import { useReports } from '../lib/reportStore'
 import { TO, go } from '../lib/nav'
+import { castXmasToAll, loadXmasCast } from '../lib/xmasCastSync'
+import { applyRemoteCast } from '../lib/xmas'
 import { clearDevReturn, markDevReturn, readDevReturn } from '../lib/devReturn'
 import DevActivity from './DevActivity'
 import Icon from './Icon'
@@ -57,6 +59,28 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
   const [shownPin, setShownPin] = useState<{ name: string; pin: string; self: boolean } | null>(null)
 
   const [detail, setDetail] = useState<AdminUser | null>(null) // 사용자 상세(접속 기록·기기·오류)
+  // 크리스마스 모드: 누르면 앱을 연 모든 기기가 새로 고쳐지며 바뀐다(같은 버튼으로 끈다). null이면 서버 값을 아직 모른다
+  const [xmasAll, setXmasAll] = useState<boolean | null>(null)
+  const [xmasBusy, setXmasBusy] = useState(false)
+  useEffect(() => {
+    let alive = true
+    void loadXmasCast().then((v) => alive && v && setXmasAll(v.on))
+    return () => {
+      alive = false
+    }
+  }, [])
+  const toggleXmas = async () => {
+    const next = !xmasAll // 확인 창 없이 한 번에(발표 중 한 번 눌러 켠다). 잘못 눌렀으면 같은 버튼으로 끈다
+    setXmasBusy(true)
+    const r = await castXmasToAll(next)
+    if (!mounted.current) return
+    setXmasBusy(false)
+    if (!r.ok) return setErr(r.message)
+    setErr('')
+    setXmasAll(r.on)
+    toast(r.on ? '크리스마스 모드를 켰어요.' : '크리스마스 모드를 껐어요.')
+    if (applyRemoteCast(r).reload) location.reload() // 이 기기도 신호를 기다리지 않고 바로 따른다
+  }
   const [opening, setOpening] = useState<string | null>(null) // 이동하려고 기다리는 신고 id
   const mounted = useRef(true)
   useEffect(() => {
@@ -273,6 +297,9 @@ function AdminSheet({ onClose, initialTab }: { onClose: () => void; initialTab: 
         </dl>
         <button type="button" className="dv-all" onClick={() => void unlockAll()}>
           모든 로그인 잠금 풀기
+        </button>
+        <button type="button" className={xmasAll ? 'dv-all dv-xmas on' : 'dv-all dv-xmas'} aria-pressed={xmasAll === true} disabled={xmasBusy || xmasAll === null} onClick={() => void toggleXmas()}>
+          {xmasAll ? '크리스마스 모드 끄기' : '크리스마스 모드 켜기'}
         </button>
         <div className="rf-seg" role="group" aria-label="목록 구분">
           <button type="button" className={tab === 'users' ? 'on' : ''} aria-pressed={tab === 'users'} onClick={() => setTab('users')}>

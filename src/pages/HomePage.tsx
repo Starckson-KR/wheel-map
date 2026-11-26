@@ -24,9 +24,10 @@ import { loadPubDataset } from '../lib/publicLayers'
 import { pickCandidates } from '../lib/demoLarge'
 import { Sentences } from '../components/Sentences'
 import { useXmas } from '../lib/useXmas'
-import { tapStep, type TapState } from '../lib/xmas'
+import { dismissXmasGift, tapStep, type TapState } from '../lib/xmas'
 import { prefersCalm } from '../lib/viewPrefs'
 import XmasSnow, { type SnowHandle } from '../components/XmasSnow'
+import XmasGift from '../components/XmasGift'
 import { Wordmark } from '../components/Wordmark'
 import { usePullRefresh } from '../components/usePullRefresh'
 import { WeatherLine } from '../components/WeatherBits'
@@ -283,6 +284,11 @@ export default function HomePage() {
   // 크리스마스 「첫눈」: 켜짐 기간에 로고를 연달아 5번 누르면 눈이 내리고, 내리는 중에 한 번 더 누르면 그친다
   const xmas = useXmas()
   const [snow, setSnow] = useState(false)
+  // 크리스마스 모드(관리자가 켬)에서는 첫 화면 연출을 닫자마자 눈이 내린다
+  const snowAuto = xmas.mode && !xmas.intro
+  useEffect(() => {
+    if (snowAuto) setSnow(true)
+  }, [snowAuto])
   const pageRef = useRef<HTMLDivElement>(null)
   const snowRef = useRef<SnowHandle>(null)
   const tapRef = useRef<TapState>({ n: 0, t: 0 })
@@ -406,7 +412,8 @@ export default function HomePage() {
           </m.div>
         </div>
       </div>
-      {xmas.on && <XmasSnow ref={snowRef} on={snow} host={pageRef} />}
+      {xmas.on && <XmasSnow ref={snowRef} on={snow} host={pageRef} chime={xmas.mode} />}
+      {xmas.gift && <XmasGift onDone={dismissXmasGift} />}
       <AnimatePresence>
         {menu && (
           <ListSheet

@@ -25,18 +25,22 @@ import { installLineTidy } from './lib/lineTidy'
 import { startUpdateCheck } from './lib/updateCheck'
 import { installPageHidden } from './lib/pageHidden'
 import { initActivity } from './lib/account/activity'
+import { startXmasCast } from './lib/xmasCastSync'
+import XmasMode from './components/XmasMode'
 
 initPrefs()
 installPageHidden()
 installLineTidy(document.getElementById('root'))
 startUpdateCheck()
 initActivity()
+startXmasCast()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <MotionRoot>
         <App />
+        <XmasMode />
       </MotionRoot>
     </ErrorBoundary>
   </StrictMode>,

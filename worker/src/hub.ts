@@ -1,9 +1,9 @@
 // 실시간 알림 허브(Durable Object, SQLite 기반 클래스, WebSocket Hibernation).
-// 메시지에는 내용이 없고 「바뀌었다」 신호만 실린다: {"t":"reports"}, {"t":"prefs"}, {"t":"presence"}(개발자 연결에만). 데이터는 앱이 기존 경로(/reports?since 등)로 당겨 간다.
+// 메시지에는 내용이 없고 「바뀌었다」 신호만 실린다: {"t":"reports"}, {"t":"prefs"}, {"t":"presence"}(개발자 연결에만), {"t":"xmas"}(크리스마스 모드가 바뀜, 모든 연결에). 데이터는 앱이 기존 경로(/reports?since 등)로 당겨 간다.
 // 저장소(SQL)는 쓰지 않고, 마지막 접속 시각(seen:)만 KV로 둔다. 연결 정보는 WebSocket 태그(u:<사용자 id>, 개발자는 dev)와 수락 시각(attachment)에 있고, 잠들었다 깨어나도 유지된다.
 // 앱은 25초마다 "ping"을 보내고, 서버는 깨우지 않고 "pong"으로 답한다(setWebSocketAutoResponse).
 
-export type Signal = 'reports' | 'prefs' | 'presence'
+export type Signal = 'reports' | 'prefs' | 'presence' | 'xmas'
 
 type WsLike = {
   send(data: string): void
@@ -86,9 +86,9 @@ export class RealtimeHub {
       } catch {
         return new Response('bad', { status: 400 })
       }
-      if (m.t !== 'reports' && m.t !== 'prefs' && m.t !== 'presence') return new Response('bad', { status: 400 })
+      if (m.t !== 'reports' && m.t !== 'prefs' && m.t !== 'presence' && m.t !== 'xmas') return new Response('bad', { status: 400 })
       if (m.t === 'presence') return new Response(String(this.notifyDev()), { status: 200 }) // 개발자 연결에만
-      const n = broadcast(this.ctx, m.t, typeof m.user === 'string' && m.user ? m.user : undefined)
+      const n = broadcast(this.ctx, m.t, m.t !== 'xmas' && typeof m.user === 'string' && m.user ? m.user : undefined)
       return new Response(String(n), { status: 200 })
     }
     // 계정 삭제·PIN 다시 정하기 뒤에 그 사용자의 연결을 모두 닫는다(Worker 안에서만 부른다: 밖에서 온 요청은 /rt 연결만 허브로 전달된다).

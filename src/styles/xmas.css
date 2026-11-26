@@ -128,3 +128,173 @@ html.motion-reduce .xm-band { animation: none; }
 /* 환영 화면 위쪽 머리 줄(52px)과 안전 영역도 밤하늘 맨 위 색으로 이어지게 한다 */
 .ob-root:has(.ob-x-bg) { background-color: #141d47; }
 :root[data-theme='dark'] .ob-root:has(.ob-x-bg) { background-color: #050816; }
+
+/* ═════ 크리스마스 모드(발표용, 관리자가 모든 기기에 켬): html.xmas-mode ═════
+   색은 토큰만 다시 정한다(화면마다 따로 칠하지 않는다). 초록 = 기본 강조, 빨강 = 탭·제보 버튼·느낌표, 금색 = 장식 선.
+   글자 대비는 4.5:1 이상으로 골랐다(초록 #0b6b47/흰 6.5, 빨강 #c22e26/흰 5.7, 다크 민트 #4fd39c/#131d18 9.1, 민트 위 글자 #06231a 8.8). */
+:root.xmas-mode {
+  --blue-50: #e3f3ea;
+  --blue-100: #c4e6d3;
+  --blue-500: #12915f;
+  --blue-600: #0b6b47;
+  --blue-700: #095a3b;
+  --primary: #0b6b47;
+  --primary-weak: #e3f3ea;
+  --primary-hover: #095a3b;
+  --bg-page: #f7f2e8;
+  --bg-sub: #fbf8f2;
+  --line: #eae3d5;
+  --focus-ring: 0 0 0 3px rgb(18 145 95 / 0.45);
+  --xmas-red: #c22e26;
+  --xmas-gold: #e0a82e;
+}
+:root[data-theme='dark'].xmas-mode {
+  --bg: #131d18;
+  --bg-page: #0b1410;
+  --bg-sub: #1a2620;
+  --line: #26362d;
+  --grey-0: #131d18;
+  --grey-50: #172119;
+  --grey-100: #1a2620;
+  --grey-200: #26362d;
+  --grey-300: #35483d;
+  --blue-50: #173527;
+  --blue-100: #1f4a36;
+  --blue-500: #2fb47f;
+  --blue-600: #17805a;
+  --blue-700: #8be3bd;
+  --primary: #4fd39c;
+  --on-primary: #06231a;
+  --primary-weak: #173527;
+  --primary-hover: #3cb886;
+  --focus-ring: 0 0 0 3px rgb(79 211 156 / 0.5);
+  --xmas-red: #ff7b72;
+  --xmas-gold: #ffd062;
+}
+.xmas-mode .tabbar, :root[data-theme='dark'].xmas-mode .tabbar { --tab-on: var(--xmas-red); border-top-color: var(--xmas-gold); }
+.xmas-mode .tabbar-fab-c,
+.xmas-mode .tabbar-fab[aria-current='page'] .tabbar-fab-c { background: #c22e26; color: #fff; }
+.xmas-mode .wordmark, :root[data-theme='dark'].xmas-mode .wordmark { --wordmark-bang: var(--xmas-red); }
+.xmas-mode .hp-ask, :root[data-theme='dark'].xmas-mode .hp-ask { --ask-blue: var(--xmas-gold); }
+/* 눌렀을 때 튀는 작은 반짝이(버튼·탭). 누르는 것을 막지 않는다 */
+.xm-tap { position: fixed; z-index: 480; width: 0; height: 0; pointer-events: none; }
+.xm-tap i { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; background: var(--xmas-gold); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: xm-tap 520ms var(--ease-out) both; }
+.xm-tap i:nth-child(2) { background: #ff6b61; }
+.xm-tap i:nth-child(3) { background: #3ecf8e; }
+@keyframes xm-tap { from { opacity: 1; transform: translate(0, 0) scale(0.4) rotate(0); } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.15) rotate(120deg); } }
+
+/* 소리 버튼: 크리스마스 모드 동안 왼쪽 아래 구석(첫 화면 연출 중에는 왼쪽 위) */
+/* 겹침 순서는 시트·확인 창(60~110)보다 아래: 창이 뜨면 그 뒤로 가려져 창의 버튼을 막지 않는다 */
+.xm-sound { position: fixed; z-index: 30; left: 8px; bottom: calc(var(--tabbar-h) + 8px); width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-full); background: var(--bg); color: var(--primary); box-shadow: var(--shadow-2), 0 0 0 1px var(--line); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.xm-sound.on-map { bottom: calc(var(--tabbar-h) + 84px); }
+.xm-sound.in-intro { z-index: 520; bottom: auto; top: calc(var(--safe-top) + 12px); background: rgb(255 255 255 / 0.16); color: #fff; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.28); }
+.xm-sound:active { transform: scale(0.94); }
+.xm-sound:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.xm-sound.playing svg { animation: xm-snd 900ms ease-in-out infinite; }
+@keyframes xm-snd { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.14); } }
+html.motion-reduce .xm-sound.playing svg { animation: none; }
+
+/* ───── 첫 화면 연출(XmasIntro.tsx). 장면은 .s1~.s6이 차례로 붙으며 넘어간다 ───── */
+.xi { position: fixed; inset: 0; z-index: 500; overflow: hidden; background: linear-gradient(180deg, #040818 0%, #0a1438 34%, #142a5c 66%, #27497f 100%); color: #fff; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; animation: xi-in 700ms ease both; }
+@keyframes xi-in { from { opacity: 0; } to { opacity: 1; } }
+.xi.leaving { opacity: 0; transition: opacity 300ms ease; animation: none; }
+.xi-glow { position: absolute; left: 50%; bottom: 6%; width: 150vmin; height: 150vmin; transform: translate(-50%, 30%) scale(0.6); border-radius: 50%; background: radial-gradient(closest-side, rgb(255 214 120 / 0.34), rgb(255 214 120 / 0.1) 55%, transparent); opacity: 0; transition: opacity 1400ms ease, transform 1400ms ease; pointer-events: none; }
+.xi.s4 .xi-glow { opacity: 1; transform: translate(-50%, 30%) scale(1); animation: xi-breathe 4.2s ease-in-out 1400ms infinite; }
+@keyframes xi-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.66; } }
+.xi-scene { position: absolute; left: 0; bottom: 0; width: 100%; height: min(100%, 187vw); overflow: visible; }
+.xi-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.xi-tier, .xi-tree, .xi-bulb, .xi-bulb-halo, .xi-star, .xi-rays, .xi-gift-in { transform-box: fill-box; }
+.xi-moon { opacity: 0; transform: translateY(46px); transition: opacity 1200ms ease, transform 1600ms var(--ease-out); }
+.xi.s1 .xi-moon { opacity: 1; transform: none; }
+.xi-hills { transform: translateY(130px); transition: transform 1100ms var(--ease-out); }
+.xi.s1 .xi-hills { transform: none; }
+.xi-trunk { opacity: 0; transition: opacity 300ms ease; }
+.xi.s2 .xi-trunk { opacity: 1; }
+.xi-tier { transform-origin: 50% 100%; transform: scale(0); transition: transform 620ms cubic-bezier(0.3, 1.55, 0.5, 1); cursor: pointer; }
+.xi.s2 .xi-tier { transform: none; }
+.xi-cap, .xi-wire { opacity: 0; transition: opacity 500ms ease 500ms; }
+.xi.s2 .xi-cap, .xi.s3 .xi-wire { opacity: 1; }
+.xi.s3 .xi-wire { opacity: 0.75; transition-delay: 0ms; }
+.xi-tree { transform-origin: 50% 100%; }
+.xi-tree.shake { animation: xi-shake 520ms ease-out; }
+@keyframes xi-shake { 0% { transform: rotate(0); } 20% { transform: rotate(-2.4deg); } 45% { transform: rotate(2deg); } 70% { transform: rotate(-1deg); } 100% { transform: none; } }
+.xi-bulb { transform-origin: center; transform: scale(0.2); opacity: 0.12; transition: transform 320ms cubic-bezier(0.3, 1.8, 0.5, 1), opacity 200ms ease; pointer-events: none; }
+.xi.s3 .xi-bulb { transform: none; opacity: 1; }
+.xi-bulb-halo { opacity: 0; transform-origin: center; }
+.xi.s3 .xi-bulb-halo { animation: xi-halo 1.7s ease-in-out infinite; }
+@keyframes xi-halo { 0%, 100% { opacity: 0.5; transform: scale(1.15); } 50% { opacity: 0.08; transform: scale(0.7); } }
+.xi.flash .xi-bulb-halo { animation: xi-flash 700ms ease-out; }
+@keyframes xi-flash { 0% { opacity: 0.95; transform: scale(2.1); } 100% { opacity: 0.3; transform: scale(1); } }
+.xi-orn { transform: scale(0); transition: transform 420ms cubic-bezier(0.3, 1.7, 0.5, 1); cursor: pointer; }
+.xi.s3 .xi-orn { transform: none; }
+.xi-orn-ball { transition: fill 200ms ease; }
+.xi.s3 .xi-orn.swing { animation: xi-swing 900ms ease-out; }
+@keyframes xi-swing { 0% { transform: rotate(0); } 15% { transform: rotate(26deg); } 38% { transform: rotate(-19deg); } 60% { transform: rotate(11deg); } 80% { transform: rotate(-5deg); } 100% { transform: none; } }
+.xi-star { transform-origin: center; transform: scale(0) rotate(-140deg); transition: transform 760ms cubic-bezier(0.3, 1.6, 0.5, 1); cursor: pointer; }
+.xi.s4 .xi-star { transform: none; }
+.xi.s4 .xi-star.spin { animation: xi-spin 760ms cubic-bezier(0.3, 1.2, 0.5, 1); }
+@keyframes xi-spin { 0% { transform: scale(1) rotate(0); } 40% { transform: scale(1.5) rotate(160deg); } 100% { transform: scale(1) rotate(360deg); } }
+.xi-rays { transform-origin: center; opacity: 0; }
+.xi.s4 .xi-rays { animation: xi-rays 9s linear infinite, xi-rays-a 2.4s ease-in-out infinite; }
+@keyframes xi-rays { to { transform: rotate(360deg); } }
+@keyframes xi-rays-a { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.3; } }
+.xi-gift { cursor: pointer; }
+.xi-gift-in { opacity: 0; transform: translateY(-620px) rotate(-18deg); transition: transform 760ms cubic-bezier(0.45, 0, 0.6, 1.28), opacity 120ms linear; transition-delay: inherit; }
+.xi.s4 .xi-gift-in { opacity: 1; transform: none; }
+.xi.s4 .xi-gift.hop { animation: xi-hop 620ms ease-out; }
+@keyframes xi-hop { 0% { transform: none; } 18% { transform: scale(1.12, 0.84); } 45% { transform: translateY(-34px) scale(0.94, 1.08) rotate(-6deg); } 72% { transform: scale(1.06, 0.92); } 100% { transform: none; } }
+.xi-text { position: absolute; left: 0; right: 0; top: calc(var(--safe-top) + 76px); padding: 0 var(--gutter); text-align: center; pointer-events: none; }
+/* 문구: 꾸밈(빛 번짐·금 테두리) 없이. 글꼴 「주아」는 불러와졌을 때만(html.xm-font-on) 쓰고, 아니면 본문 글꼴 굵게 그대로 */
+.xi-title { margin: 0; font-size: clamp(1.5rem, 7vw, 2.125rem); line-height: 1.25; font-weight: 700; letter-spacing: -0.01em; color: #ffe08a; word-break: keep-all; }
+.xm-font-on .xi-title { font-family: 'Jua', var(--font); font-weight: 400; font-size: clamp(1.75rem, 8vw, 2.375rem); letter-spacing: 0; }
+.xm-font-on .xi-hint { font-family: 'Jua', var(--font); font-weight: 400; font-size: 1.125rem; }
+.xi-title span { display: inline-block; opacity: 0; transform: translateY(18px) scale(0.6); transition: opacity 360ms ease, transform 520ms cubic-bezier(0.3, 1.7, 0.5, 1); }
+.xi.s5 .xi-title span { opacity: 1; transform: none; }
+.xi-hint { margin: var(--s-3) 0 0; font-size: var(--fs-body); font-weight: 500; color: #fff; opacity: 0; transition: opacity 500ms ease; }
+.xi.s6 .xi-hint { opacity: 1; animation: xi-hint 1.8s ease-in-out 500ms infinite; }
+@keyframes xi-hint { 0%, 100% { opacity: 1; transform: none; } 50% { opacity: 0.55; transform: translateY(-3px); } }
+.xi-x { position: absolute; z-index: 2; right: 12px; top: calc(var(--safe-top) + 12px); width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-full); background: rgb(255 255 255 / 0.16); color: #fff; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.28); cursor: pointer; }
+.xi-x:active { transform: scale(0.94); }
+.xi-x:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(255 233 168 / 0.8); }
+html[data-page-hidden] .xi * { animation-play-state: paused !important; }
+/* 움직임 줄이기: 다 켜진 끝 장면 한 장 */
+.xi.calm, .xi.calm * { animation: none !important; transition: none !important; }
+.xi.calm .xi-bulb-halo { opacity: 0.35; }
+.xi.calm .xi-rays { opacity: 0.7; }
+
+/* ───── 홈의 선물 상자(XmasGift.tsx): 누르면 열리며 「메리 크리스마스!」. 상자만 눌리고 나머지 화면은 그대로 쓸 수 있다 ───── */
+.xg { position: fixed; z-index: 30; right: 8px; bottom: calc(var(--tabbar-h) + 8px); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; animation: xg-in 520ms cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+@keyframes xg-in { from { opacity: 0; transform: translateY(40px) scale(0.5); } to { opacity: 1; transform: none; } }
+.xg.leaving { opacity: 0; transform: translateY(16px) scale(0.9); transition: opacity 380ms ease, transform 380ms ease; animation: none; }
+.xg-tip { padding: 6px 12px; border-radius: var(--r-full); background: var(--bg); color: var(--text-strong); font-size: var(--fs-small); font-weight: 600; box-shadow: var(--shadow-2), 0 0 0 1px var(--line); white-space: nowrap; animation: xg-tip 1.6s ease-in-out infinite; }
+@keyframes xg-tip { 0%, 100% { transform: none; } 50% { transform: translateY(-4px); } }
+.xg.open .xg-tip { display: none; }
+.bm button.xg-box, button.xg-box { pointer-events: auto; width: 64px; height: 64px; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; cursor: pointer; -webkit-tap-highlight-color: transparent; filter: drop-shadow(0 6px 10px rgb(25 31 40 / 0.28)); }
+.xg-box:focus-visible { outline: none; border-radius: var(--r-md); box-shadow: var(--focus-ring); }
+.xg-box svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.xg:not(.open) .xg-box svg { transform-origin: 50% 90%; animation: xg-wiggle 2.2s ease-in-out infinite; }
+@keyframes xg-wiggle { 0%, 55%, 100% { transform: none; } 62% { transform: rotate(-8deg) scale(1.05); } 70% { transform: rotate(7deg) scale(1.05); } 78% { transform: rotate(-5deg); } 86% { transform: rotate(3deg); } }
+.xg-lid { transform-box: fill-box; transform-origin: 50% 100%; }
+.xg.open .xg-lid { animation: xg-lid 760ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes xg-lid { 0% { transform: none; opacity: 1; } 100% { transform: translate(-70px, -210px) rotate(-70deg); opacity: 0; } }
+.xg.open .xg-body { transform-box: fill-box; transform-origin: 50% 100%; animation: xg-pop 520ms ease-out; }
+@keyframes xg-pop { 0% { transform: scale(1.2, 0.76); } 40% { transform: scale(0.92, 1.12); } 100% { transform: none; } }
+.xg-shine { opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; }
+.xg.open .xg-shine { opacity: 1; animation: xg-shine 1.5s ease-in-out infinite; }
+@keyframes xg-shine { 0%, 100% { opacity: 0.9; transform: scaleY(1); } 50% { opacity: 0.45; transform: scaleY(0.82); } }
+.xg-fx { position: fixed; inset: 0; z-index: 460; width: 100%; height: 100%; pointer-events: none; }
+.xg-msg { position: fixed; z-index: 465; left: 0; right: 0; top: 30%; display: flex; justify-content: center; padding: 0 var(--gutter); pointer-events: none; }
+.xg-msg p { margin: 0; padding: 12px 28px; border-radius: var(--r-full); background: #ffffff; color: #0b6b47; font-size: clamp(1.625rem, 8vw, 2.25rem); font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; box-shadow: 0 6px 14px rgb(25 31 40 / 0.2); animation: xg-msg 760ms cubic-bezier(0.3, 1.7, 0.5, 1) both; }
+.xg-msg p span { display: inline-block; animation: xg-letter 1.4s ease-in-out infinite; }
+.xg-msg p span:nth-child(-n + 2), .xg-msg p span:last-child { color: #c22e26; }
+.xm-font-on .xg-msg p { font-family: 'Jua', var(--font); font-weight: 400; font-size: clamp(1.875rem, 9vw, 2.5rem); letter-spacing: 0; padding: 12px 28px 9px; }
+@keyframes xg-msg { from { opacity: 0; transform: translateY(120px) scale(0.2) rotate(-8deg); } to { opacity: 1; transform: none; } }
+@keyframes xg-letter { 0%, 100% { transform: none; } 50% { transform: translateY(-5px); } }
+.xg-msg.leaving p { opacity: 0; transform: scale(0.9); transition: opacity 380ms ease, transform 380ms ease; animation: none; }
+html.motion-reduce .xg, html.motion-reduce .xg *, html.motion-reduce .xg-msg * { animation: none !important; transition: none !important; }
+html.motion-reduce .xg-lid { transform: translate(-22px, -30px) rotate(-24deg); }
+html[data-page-hidden] .xg *, html[data-page-hidden] .xg-msg * { animation-play-state: paused !important; }
+/* 개발자 관리의 「크리스마스 모드 켜기/끄기」(모든 기기에 적용) */
+.bm .dv-all.dv-xmas { margin-top: var(--s-2); background: var(--red-50); color: var(--red-700); }
+.bm .dv-all.dv-xmas.on { background: var(--green-50); color: var(--green-700); }
+.xi.calm .xi-hint { display: none; }

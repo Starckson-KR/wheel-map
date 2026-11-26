@@ -4,6 +4,7 @@ import { dayStart } from './activity.ts'
 import { cityLabel } from './cityLabel.ts'
 import { disconnectUser, hubStub, notify } from './notify.ts'
 import type { NotifyDeps } from './notify.ts'
+import { readXmas, setXmas } from './xmas.ts'
 import type { D1Db, Env } from './types'
 
 // 0000~9999를 치우침 없이 고른다(거부 표집).
@@ -202,6 +203,22 @@ export async function handleAdmin(request: Request, env: Env, origin: string, de
         }
       })
       return reply({ ok: true, items, more, total: await count(db, 'SELECT COUNT(*) AS n FROM reports') }, 200, origin)
+    }
+
+    // 크리스마스 모드: 지금 값 보기(GET) / 켜고 끄기(POST {on}). 바꾸면 앱을 연 모든 기기에 신호를 보낸다.
+    if (path === '/admin/xmas') {
+      if (m === 'GET') return reply({ ok: true, ...(await readXmas(db)) }, 200, origin)
+      if (m !== 'POST') return fail(405, 'method_not_allowed', '허용되지 않는 요청이에요.', origin)
+      let on: unknown
+      try {
+        on = ((await request.json()) as { on?: unknown }).on
+      } catch {
+        on = undefined
+      }
+      if (typeof on !== 'boolean') return fail(400, 'bad_input', '값이 올바르지 않아요.', origin)
+      const f = await setXmas(db, on, now)
+      await notify(env, deps, 'xmas')
+      return reply({ ok: true, ...f }, 200, origin)
     }
 
     // 모든 로그인 시도 제한 풀기(가입 시도 제한 포함)

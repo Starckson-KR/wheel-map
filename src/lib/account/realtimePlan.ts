@@ -15,13 +15,13 @@ export function wsUrl(base: string, ticket: string): string {
   return `${base.replace(/^http/, 'ws').replace(/\/+$/, '')}/rt?ticket=${encodeURIComponent(ticket)}`
 }
 
-export type RtSignal = 'reports' | 'prefs' | 'presence'
+export type RtSignal = 'reports' | 'prefs' | 'presence' | 'xmas'
 /** 서버 메시지에서 신호를 읽는다. pong·모르는 메시지는 null. */
 export function parseSignal(data: unknown): RtSignal | null {
   if (typeof data !== 'string' || data.length > 200) return null
   try {
     const t = (JSON.parse(data) as { t?: unknown }).t
-    return t === 'reports' || t === 'prefs' || t === 'presence' ? t : null
+    return t === 'reports' || t === 'prefs' || t === 'presence' || t === 'xmas' ? t : null
   } catch {
     return null
   }

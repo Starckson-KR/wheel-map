@@ -30,7 +30,7 @@ export type PubLayerInfo = { id: PubLayerId; label: string; color: string; icon:
 export const ALL_PUB_LAYERS: PubLayerInfo[] = [
   { id: 'crosswalk', label: '횡단보도', color: '#455a64', icon: 'cross', desc: '보도턱 낮춤 여부·폭 (북구 285곳)' },
   { id: 'toilet', label: '장애인화장실', color: '#5e35b1', icon: 'access', desc: '공중화장실과 장애인용 시설 수' },
-  { id: 'facility', label: '장애인편의시설', color: '#6d4c41', icon: 'building', desc: '편의시설 현황 (시설 유형별)' },
+  { id: 'facility', label: '편의시설', color: '#6d4c41', icon: 'building', desc: '편의시설 현황 (시설 유형별)' },
   { id: 'bus', label: '버스 정류장', color: '#1e6fb5', icon: 'bus', desc: '정류소 이름과 번호' },
   { id: 'voucher', label: '상품권 가맹점', color: '#ad1457', icon: 'ticket', desc: '용봉동 지역사랑상품권 가맹점과 출입구 정보' },
   // 북구 공공데이터 파일 6종(2026-11-19). 모두 기본은 꺼짐.

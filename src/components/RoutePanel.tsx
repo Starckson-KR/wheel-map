@@ -832,7 +832,7 @@ export default function RoutePanel(props: Props) {
       )}
       {destFacilities.length > 0 && (
         <section className="rt-sec">
-          <h3>목적지 장애인편의시설 {destFacilities.length}곳</h3>
+          <h3>목적지 편의시설 {destFacilities.length}곳</h3>
           <ul className="rt-plain">
             {destFacilities.slice(0, 6).map((f, i) => (
               <li key={`${f.item.id}-${i}`}>

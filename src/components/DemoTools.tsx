@@ -231,19 +231,19 @@ export default function DemoTools({ page, onReset, barriers, row = false, open: 
             </div>
 
             <div className="ms-sec">
-              <h3>크리스마스</h3>
+              <h3>크리스마스 (이 기기만)</h3>
               <div className="rf-seg" role="group" aria-label="크리스마스">
                 <button type="button" className={!xmasDemo && !xmasMode ? 'on' : ''} aria-pressed={!xmasDemo && !xmasMode} onClick={() => { setXmasDemoState(false); setXmasModeState(false); setXmasDemo(false); setXmasCastLocal(false) }}>
                   {!xmasDemo && !xmasMode && <SegBg group="seg-demo-xmas" />}
-                  자동
+                  끔
                 </button>
                 <button type="button" className={xmasDemo && !xmasMode ? 'on' : ''} aria-pressed={xmasDemo && !xmasMode} onClick={() => { setXmasDemoState(true); setXmasModeState(false); setXmasDemo(true); setXmasCastLocal(false) }}>
                   {xmasDemo && !xmasMode && <SegBg group="seg-demo-xmas" />}
-                  켬
+                  장식만
                 </button>
                 <button type="button" className={xmasMode ? 'on' : ''} aria-pressed={xmasMode} onClick={() => { setXmasModeState(true); setXmasCastLocal(true); location.reload() /* 관리자가 모두에게 켰을 때처럼 새로 고쳐진 뒤 첫 화면부터 */ }}>
                   {xmasMode && <SegBg group="seg-demo-xmas" />}
-                  모드
+                  전체 연출
                 </button>
               </div>
             </div>

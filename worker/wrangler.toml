@@ -9,6 +9,9 @@ binding = "AI"
 [vars]
 # 모델 이름: 나중에 바꾸기 쉽게 여기에 둔다(카탈로그: https://developers.cloudflare.com/workers-ai/models/)
 AI_MODEL = "@cf/google/gemma-4-26b-a4b-it" # qwen3-30b-a3b-fp8은 2026-11-20에 종료됨
+AI_PROVIDER = "anthropic" # 2026-11-28 사용자 결정: 분류를 Claude Haiku 5.5로. 이 줄을 지우면 예전처럼 Workers AI만 쓴다.
+# AI 검색을 Claude로 돌리려면(기본은 꺼짐=Workers AI): AI_PROVIDER = "anthropic" 을 추가하고 secret ANTHROPIC_API_KEY를 넣는다. 모델은 ANTHROPIC_MODEL(기본 claude-haiku-5-5). 키가 없거나 호출이 실패하면 위 Workers AI로 넘어간다.
+# AI 답변(POST /answer, 웹 검색을 쓰는 유료 경로)은 기본 꺼짐이다. 켜려면 ANSWER_ENABLED = "1" 을 추가한다(없거나 다른 값이면 404). 검색 1번에 약 1센트라 켜기 전에 상한을 확인한다: ANSWER_PER_MINUTE(기본 5), ANSWER_DAILY_LIMIT(기본 200).
 # 허용 출처(쉼표로 구분, 끝의 / 없이). 그 외는 403
 ALLOWED_ORIGINS = "https://starckson-kr.github.io,http://localhost:5173"
 # IP별 분당 횟수, 전체 하루 상한(문자열로 적는다)

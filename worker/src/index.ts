@@ -19,6 +19,8 @@ import { handleRt, isRtPath } from './rt.ts'
 import { handleXmas, isXmasPath } from './xmas.ts'
 import { handleTransit, isTransitPath } from './transit.ts'
 import { handleWeather, isWeatherPath } from './weather.ts'
+import { askClaude } from './claude.ts'
+import { handleAnswer, isAnswerPath } from './answer.ts'
 import type { ApiBody } from './intents.ts'
 import type { Env } from './types'
 
@@ -27,7 +29,7 @@ const MODEL_TIMEOUT_MS = 6000 // 첫 호출과 재시도를 합친 총 제한(�
 const MIN_RETRY_MS = 1500 // 남은 시간이 이보다 적으면 재시도하지 않는다
 
 type Limiter = ReturnType<typeof createRateLimiter>
-type Deps = { limiter?: Limiter; now?: () => number; fetch?: typeof fetch; waitUntil?: (p: Promise<unknown>) => void }
+type Deps = { limiter?: Limiter; answerLimiter?: Limiter; now?: () => number; fetch?: typeof fetch; waitUntil?: (p: Promise<unknown>) => void }
 
 let sharedLimiter: { key: string; limiter: Limiter } | null = null
 function getLimiter(env: Env): Limiter {
@@ -89,6 +91,8 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
   if (isTransitPath(path)) return handleTransit(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
   if (isWeatherPath(path)) return handleWeather(request, env, origin as string, { now: deps.now, fetch: deps.fetch })
   if (isAccountPath(path)) return handleAccount(request, env, origin as string, { now: deps.now, waitUntil: deps.waitUntil })
+  // AI 답변(웹 검색, 유료): ANSWER_ENABLED="1"일 때만 살아 있다. 꺼져 있으면 아래로 내려가 지금과 똑같이 답한다(POST는 404 not_found).
+  if (isAnswerPath(path) && env.ANSWER_ENABLED === '1') return handleAnswer(request, env, origin as string, { now: deps.now, fetch: deps.fetch, answerLimiter: deps.answerLimiter })
   if (request.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)
   if (path !== '/' && path !== '/intent') return json({ ok: false, error: 'not_found' }, 404, origin)
 
@@ -151,9 +155,25 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
     }
   }
 
+  // AI_PROVIDER=anthropic 이고 키가 있으면 먼저 Claude로 분류한다. 실패·시간 초과면 남은 시간 안에서 기존 Workers AI 길로 넘어간다.
+  // 그 밖(설정 없음·다른 값·키 없음)은 지금과 똑같이 Workers AI만 부른다.
+  const useClaude = env.AI_PROVIDER === 'anthropic' && !!env.ANTHROPIC_API_KEY
+  const askAny = async (strict: boolean, timeoutMs: number): Promise<unknown> => {
+    if (!useClaude) return ask(strict, timeoutMs)
+    const t0 = Date.now()
+    try {
+      return (await askClaude({ apiKey: env.ANTHROPIC_API_KEY as string, model: env.ANTHROPIC_MODEL, system: buildSystemPrompt(strict), question: cleaned, timeoutMs, fetch: deps.fetch })).text
+    } catch (e) {
+      logError('claude_error', e)
+      const left = timeoutMs - (Date.now() - t0)
+      if (left < MIN_RETRY_MS) throw e
+      return ask(strict, left)
+    }
+  }
+
   let output: unknown
   try {
-    output = await ask(false, MODEL_TIMEOUT_MS)
+    output = await askAny(false, MODEL_TIMEOUT_MS)
   } catch (e) {
     logError(e instanceof Error && e.message === 'timeout' ? 'model_timeout' : 'model_error', e)
     return json(fallbackBody('model_error'), 200, origin)
@@ -168,7 +188,7 @@ export async function handle(request: Request, env: Env, deps: Deps = {}): Promi
       retried = true
       if (!dev) limiter.charge((deps.now ?? Date.now)())
       try {
-        result = parseModelOutput(await ask(true, left), cleaned)
+        result = parseModelOutput(await askAny(true, left), cleaned)
       } catch (e) {
         logError(e instanceof Error && e.message === 'timeout' ? 'model_timeout' : 'model_error', e)
       }

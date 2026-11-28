@@ -29,6 +29,14 @@ export interface Env {
   DB?: D1Db
   HUB?: DoNamespace // 실시간 알림 허브. 없으면(시험·미설정) 알림만 건너뛴다
   AI_MODEL?: string
+  // AI 검색 제공자: 'anthropic'이면 Claude로 먼저 분류(없거나 다른 값이면 Workers AI). 키는 secret으로만(wrangler secret put ANTHROPIC_API_KEY)
+  AI_PROVIDER?: string
+  ANTHROPIC_API_KEY?: string
+  ANTHROPIC_MODEL?: string // 기본 claude-haiku-5-5
+  // AI 답변(POST /answer, 웹 검색·유료): '1'일 때만 경로가 살아 있다(없거나 다른 값이면 404). 키는 위 ANTHROPIC_API_KEY를 같이 쓴다.
+  ANSWER_ENABLED?: string
+  ANSWER_PER_MINUTE?: string // IP별 분당 횟수(없으면 5)
+  ANSWER_DAILY_LIMIT?: string // 전체 하루 상한(없으면 200)
   ALLOWED_ORIGINS?: string
   RATE_PER_MINUTE?: string
   DAILY_LIMIT?: string

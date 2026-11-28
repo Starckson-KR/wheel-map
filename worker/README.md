@@ -129,3 +129,14 @@ npx.cmd wrangler d1 execute wheelmap-db --remote --command "DELETE FROM photos; 
 ```
 (`bis_cache`·`bis_calls`는 중계 캐시라 개인 자료가 아니어서 뺐습니다. 표 목록은 `migrations/0001`~`0006` 기준이며, 마이그레이션이 늘면 이 명령도 갱신하세요. 개발자 계정까지 지워지므로 남길 계정이 있으면 `DELETE FROM users WHERE ...`로 따로 처리하세요.)
 계정 하나만: `... --command "DELETE FROM users WHERE name='이름'"` 후 그 사람의 sessions·prefs·reports(`author_id`)·photos(`owner_id`)도 같은 방식으로 지웁니다. 데이터베이스째 없애려면 `npx.cmd wrangler d1 delete wheelmap-db`.
+
+## AI 답변 (`POST /answer`, 기본 꺼짐)
+- 질문에서 필요를 읽고 공공 사이트만 검색해 출처와 함께 짧게 답한다. Claude Haiku 5.5 + Anthropic 웹 검색 서버 도구(`web_search_20250305`, `allowed_domains` = `src/answerSources.ts`, `max_uses` 2, 위치 광주).
+- **`ANSWER_ENABLED = "1"`일 때만 살아 있다.** 없거나 다른 값이면 지금처럼 404 `not_found`이고 Anthropic을 부르지 않는다. 키는 secret `ANTHROPIC_API_KEY`(없으면 503 `not_configured`). 상한: `ANSWER_PER_MINUTE`(IP별, 기본 5), `ANSWER_DAILY_LIMIT`(전체, 기본 200) — Worker 인스턴스 메모리 기준(best effort)이다.
+- 요청: `{ "question": "…", "history": [{ "q": "…", "a": "…" }] }`(history는 직전 2개까지, 서버에 저장하지 않는다). 질문 120자, 본문 4KB까지.
+- 응답: 검사에서 걸리면 JSON `{ ok:false, error }`(400·413·429·503), 통과하면 `text/event-stream`. 조각(`event:` 이름 = `data.type`):
+  - `need` `{ text }` · `status` `{ phase:"searching", query }` / `{ phase:"reading", sites:[{name,domain}] }` · `delta` `{ text }` · `reset`(흘린 답 글자 지우기)
+  - `done` `{ kind:"answer"|"clarify"|"out_of_scope"|"not_found", need, answer, sources:[{name,domain,url,title}], actions:[{id,to?,phone?}], followups:[], clarify?:{question,options}, notice }`
+  - `error` `{ reason:"timeout"|"busy"|"upstream" }`
+- 지키는 것: 검색을 했고 허용 사이트 인용이 하나 이상 붙은 글만 `answer`로 친다(아니면 `not_found`). `actions`는 `src/answerCore.ts`의 `ACTIONS` 목록 안에서만, 전화하기는 인용 원문에 적힌 번호만. 출처(citations)와 구조화 출력은 같이 쓸 수 없어(400) 나머지 조각은 글 안의 `@@need`·`@@end {JSON}` 표시로 받고 코드에서 다시 검증한다.
+- 실측: 저장소 루트에서 `node worker/scripts/measure-answer.ts [번호,…] [--full]`(실제 돈이 나간다. 2026-11-28: 답 1건 약 6~8초·약 1.2센트, 되묻기·범위 밖 1~3초·0.1센트 미만).
